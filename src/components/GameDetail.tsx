@@ -26,7 +26,35 @@ export const GameDetail = ({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onUpdate,
 }: Props) => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshMetadata = async () => {
+    if (!game) return;
+    setRefreshing(true);
+    try {
+      const results = await searchRawg(game.title, 1);
+      const top = results[0];
+      if (!top) {
+        toast("No match found on RAWG");
+        return;
+      }
+      onUpdate(game.id, {
+        cover: top.cover ?? game.cover,
+        genre: top.genre ?? game.genre,
+        developer: top.developer ?? game.developer,
+        description: top.description ?? game.description,
+      });
+      toast.success(`Updated from: ${top.title}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Refresh failed", { description: msg });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <Sheet open={!!game} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
