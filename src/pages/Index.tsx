@@ -75,6 +75,49 @@ const Index = () => {
     toast("Game removed");
   };
 
+  const updateGame = (id: string, patch: Partial<Game>) => {
+    setGames((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  };
+
+  const addFromQuickFind = (data: Omit<Game, "id" | "addedAt">) => {
+    setGames((g) => [
+      { ...data, id: crypto.randomUUID(), addedAt: Date.now() },
+      ...g,
+    ]);
+  };
+
+  const fixMissingCovers = async () => {
+    const targets = games.filter((g) => !g.cover);
+    if (targets.length === 0) {
+      toast("All games already have covers");
+      return;
+    }
+    setBulkBusy(true);
+    toast(`Looking up ${targets.length} games...`);
+    let fixed = 0;
+    try {
+      for (const g of targets) {
+        try {
+          const [top] = await searchRawg(g.title, 1);
+          if (top?.cover) {
+            updateGame(g.id, {
+              cover: top.cover,
+              genre: g.genre ?? top.genre,
+              developer: g.developer ?? top.developer,
+              description: g.description ?? top.description,
+            });
+            fixed++;
+          }
+        } catch {
+          /* skip individual failures */
+        }
+      }
+      toast.success(`Updated ${fixed} of ${targets.length} games`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const importFromSteam = (incoming: SteamGameDetail[]) => {
     setGames((current) => {
       const byAppId = new Map<number, Game>();
