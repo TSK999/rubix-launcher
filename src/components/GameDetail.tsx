@@ -140,6 +140,20 @@ export const GameDetail = ({
                   <Pencil className="h-4 w-4 mr-2" /> Edit
                 </Button>
                 <Button
+                  onClick={refreshMetadata}
+                  variant="secondary"
+                  size="lg"
+                  disabled={refreshing}
+                  className="rounded-2xl"
+                  title="Refresh cover & metadata from RAWG"
+                >
+                  {refreshing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
                   onClick={() => {
                     onDelete(game.id);
                     onClose();
