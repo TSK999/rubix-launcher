@@ -382,8 +382,7 @@ const Index = () => {
                       game={g}
                       onOpen={(x) => setDetailId(x.id)}
                       onLaunch={launchGame}
-        onToggleFavorite={toggleFavorite}
-        onUpdate={updateGame}
+                      onToggleFavorite={toggleFavorite}
                     />
                   ))}
                 </div>
