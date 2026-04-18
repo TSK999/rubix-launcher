@@ -1,0 +1,306 @@
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Gamepad2, Search } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { GameCard } from "@/components/GameCard";
+import { GameFormDialog } from "@/components/GameFormDialog";
+import { GameDetail } from "@/components/GameDetail";
+import { Sidebar, type Collection } from "@/components/Sidebar";
+import { STORAGE_KEY, type Game } from "@/lib/game-types";
+
+const RECENT_WINDOW_DAYS = 30;
+
+const Index = () => {
+  const [games, setGames] = useState<Game[]>([]);
+  const [search, setSearch] = useState("");
+  const [collection, setCollection] = useState<Collection>("all");
+  const [genre, setGenre] = useState<string | null>(null);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Game | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  // Load
+  useEffect(() => {
+    document.title = "RUBIX Launcher — Your game library";
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setGames(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(games));
+  }, [games]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+
+  const upsertGame = (data: Omit<Game, "id" | "addedAt"> & { id?: string }) => {
+    if (data.id) {
+      setGames((g) => g.map((x) => (x.id === data.id ? { ...x, ...data, id: x.id } : x)));
+      toast.success("Game updated");
+    } else {
+      const game: Game = {
+        ...data,
+        id: crypto.randomUUID(),
+        addedAt: Date.now(),
+      };
+      setGames((g) => [game, ...g]);
+      toast.success(`${game.title} added to library`);
+    }
+  };
+
+  const removeGame = (id: string) => {
+    setGames((g) => g.filter((x) => x.id !== id));
+    toast("Game removed");
+  };
+
+  const toggleFavorite = (id: string) => {
+    setGames((g) => g.map((x) => (x.id === id ? { ...x, favorite: !x.favorite } : x)));
+  };
+
+  const launchGame = async (g: Game) => {
+    // Update stats first
+    setGames((all) =>
+      all.map((x) =>
+        x.id === g.id
+          ? { ...x, lastPlayedAt: Date.now(), playCount: (x.playCount ?? 0) + 1 }
+          : x
+      )
+    );
+
+    if (!g.path) {
+      toast(`No launch path set for ${g.title}`, {
+        description: "Edit the game to add a path or URL.",
+      });
+      return;
+    }
+    if (window.rubix?.isElectron) {
+      const res = await window.rubix.launchGame(g.path);
+      if (res.ok) toast.success(`Launching ${g.title}`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(g.path)) {
+      window.open(g.path, "_blank");
+      toast.success(`Opening ${g.title}`);
+    } else {
+      toast.error("Local files can only be launched in the desktop app", {
+        description: "Build the RUBIX desktop app to launch .exe files.",
+      });
+    }
+  };
+
+  // Derived data
+  const genres = useMemo(() => {
+    const s = new Set<string>();
+    games.forEach((g) => g.genre && s.add(g.genre));
+    return Array.from(s).sort();
+  }, [games]);
+
+  const counts = useMemo(() => {
+    const recentCutoff = Date.now() - RECENT_WINDOW_DAYS * 86400 * 1000;
+    return {
+      all: games.length,
+      favorites: games.filter((g) => g.favorite).length,
+      recent: games.filter((g) => (g.lastPlayedAt ?? 0) >= recentCutoff).length,
+    };
+  }, [games]);
+
+  const filtered = useMemo(() => {
+    const recentCutoff = Date.now() - RECENT_WINDOW_DAYS * 86400 * 1000;
+    let list = games;
+    if (collection === "favorites") list = list.filter((g) => g.favorite);
+    if (collection === "recent") {
+      list = list
+        .filter((g) => (g.lastPlayedAt ?? 0) >= recentCutoff)
+        .sort((a, b) => (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0));
+    }
+    if (genre) list = list.filter((g) => g.genre === genre);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (g) =>
+          g.title.toLowerCase().includes(q) ||
+          g.developer?.toLowerCase().includes(q) ||
+          g.genre?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [games, collection, genre, search]);
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    // Only allow reordering when viewing the full unsorted "all" library
+    if (collection !== "all" || genre || search.trim()) {
+      toast("Clear filters to reorder games");
+      return;
+    }
+    setGames((g) => {
+      const oldIndex = g.findIndex((x) => x.id === active.id);
+      const newIndex = g.findIndex((x) => x.id === over.id);
+      return arrayMove(g, oldIndex, newIndex);
+    });
+  };
+
+  const detailGame = games.find((g) => g.id === detailId) ?? null;
+  const showEmptyLibrary = games.length === 0;
+  const showEmptyFiltered = !showEmptyLibrary && filtered.length === 0;
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex">
+      <Sidebar
+        collection={collection}
+        onCollection={setCollection}
+        genres={genres}
+        selectedGenre={genre}
+        onGenre={setGenre}
+        counts={counts}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
+          <div className="flex items-center justify-between gap-4 px-6 lg:px-10 py-5">
+            <div className="md:hidden flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--glow-primary)]">
+                <Gamepad2 className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h1 className="text-lg font-bold tracking-tight">RUBIX</h1>
+            </div>
+
+            <div className="hidden md:block">
+              <h2 className="text-2xl font-bold tracking-tight capitalize">
+                {collection === "all" ? "All games" : collection === "favorites" ? "Favorites" : "Recently played"}
+                {genre && <span className="text-muted-foreground font-light"> · {genre}</span>}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {filtered.length} {filtered.length === 1 ? "game" : "games"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-1 max-w-md md:ml-auto md:mr-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search library..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 rounded-2xl bg-secondary border-border h-11"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              className="rounded-2xl h-11 px-5 bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)]"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Add Game
+            </Button>
+          </div>
+        </header>
+
+        {/* Library */}
+        <main className="flex-1 px-6 lg:px-10 py-8">
+          {showEmptyLibrary ? (
+            <EmptyState
+              title="Your library is empty"
+              body="Add your first game to get started. Set a title, cover and launch path."
+              cta={
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setFormOpen(true);
+                  }}
+                  className="rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--glow-primary)]"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add your first game
+                </Button>
+              }
+            />
+          ) : showEmptyFiltered ? (
+            <EmptyState
+              title="No games match"
+              body="Try clearing the search or selecting a different collection."
+            />
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filtered.map((g) => g.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filtered.map((g) => (
+                    <GameCard
+                      key={g.id}
+                      game={g}
+                      onOpen={(x) => setDetailId(x.id)}
+                      onLaunch={launchGame}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </main>
+      </div>
+
+      <GameFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        initial={editing}
+        onSubmit={upsertGame}
+      />
+
+      <GameDetail
+        game={detailGame}
+        onClose={() => setDetailId(null)}
+        onLaunch={launchGame}
+        onEdit={(g) => {
+          setEditing(g);
+          setDetailId(null);
+          setFormOpen(true);
+        }}
+        onDelete={removeGame}
+        onToggleFavorite={toggleFavorite}
+      />
+    </div>
+  );
+};
+
+const EmptyState = ({
+  title,
+  body,
+  cta,
+}: {
+  title: string;
+  body: string;
+  cta?: React.ReactNode;
+}) => (
+  <div className="flex flex-col items-center justify-center py-32 text-center">
+    <div className="h-20 w-20 rounded-3xl bg-secondary grid place-items-center mb-6">
+      <Gamepad2 className="h-9 w-9 text-muted-foreground" />
+    </div>
+    <h2 className="text-2xl font-semibold mb-2">{title}</h2>
+    <p className="text-muted-foreground max-w-sm mb-6">{body}</p>
+    {cta}
+  </div>
+);
+
+export default Index;
