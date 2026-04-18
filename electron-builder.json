@@ -1,0 +1,27 @@
+{
+  "appId": "com.rubix.launcher",
+  "productName": "RUBIX Launcher",
+  "directories": {
+    "output": "installer-release",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      { "target": "nsis", "arch": ["x64"] }
+    ],
+    "artifactName": "RUBIX-Launcher-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "RUBIX Launcher"
+  }
+}
