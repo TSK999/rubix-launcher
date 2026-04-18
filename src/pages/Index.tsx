@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2 } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -18,6 +18,8 @@ import { GameFormDialog } from "@/components/GameFormDialog";
 import { GameDetail } from "@/components/GameDetail";
 import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
+import { QuickFindDialog } from "@/components/QuickFindDialog";
+import { searchRawg } from "@/lib/rawg";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
@@ -30,6 +32,8 @@ const Index = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [steamOpen, setSteamOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
