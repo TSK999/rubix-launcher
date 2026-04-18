@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Loader2, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Game } from "@/lib/game-types";
+
+type RawgResult = {
+  rawgId: number;
+  title: string;
+  released?: string;
+  cover?: string;
+  genre?: string;
+  developer?: string;
+  description?: string;
+};
 
 type Props = {
   open: boolean;
@@ -32,6 +44,8 @@ const empty = {
 
 export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props) => {
   const [form, setForm] = useState(empty);
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<RawgResult[] | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -44,6 +58,7 @@ export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props)
         developer: initial?.developer ?? "",
         status: initial?.status ?? "none",
       });
+      setResults(null);
     }
   }, [open, initial]);
 
@@ -51,6 +66,43 @@ export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props)
     const reader = new FileReader();
     reader.onload = () => setForm((f) => ({ ...f, cover: String(reader.result) }));
     reader.readAsDataURL(file);
+  };
+
+  const findCover = async () => {
+    const q = form.title.trim();
+    if (q.length < 2) {
+      toast.error("Enter a title first");
+      return;
+    }
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rawg-search", {
+        body: { query: q, pageSize: 6 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const list: RawgResult[] = data?.results ?? [];
+      setResults(list);
+      if (list.length === 0) toast("No matches found");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Search failed", { description: msg });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const applyResult = (r: RawgResult) => {
+    setForm((f) => ({
+      ...f,
+      title: r.title || f.title,
+      cover: r.cover || f.cover,
+      genre: r.genre || f.genre,
+      developer: r.developer || f.developer,
+      description: r.description || f.description,
+    }));
+    setResults(null);
+    toast.success(`Applied: ${r.title}`);
   };
 
   const pickExecutable = async () => {
@@ -92,13 +144,63 @@ export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props)
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Cyberpunk 2077"
-              className="rounded-xl bg-secondary border-border"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="e.g. Cyberpunk 2077"
+                className="rounded-xl bg-secondary border-border"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={findCover}
+                disabled={searching || form.title.trim().length < 2}
+                className="rounded-xl shrink-0"
+                title="Auto-fill cover & details from RAWG"
+              >
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" /> Find
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {results && results.length > 0 && (
+              <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border max-h-72 overflow-y-auto">
+                {results.map((r) => (
+                  <button
+                    key={r.rawgId}
+                    type="button"
+                    onClick={() => applyResult(r)}
+                    className="w-full flex items-center gap-3 p-2 text-left hover:bg-secondary transition-colors"
+                  >
+                    {r.cover ? (
+                      <img
+                        src={r.cover}
+                        alt={r.title}
+                        className="h-12 w-20 object-cover rounded bg-muted shrink-0"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-12 w-20 rounded bg-muted shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{r.title}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[r.released?.slice(0, 4), r.genre, r.developer]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
