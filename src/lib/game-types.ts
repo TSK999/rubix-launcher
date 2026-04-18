@@ -11,6 +11,8 @@ export type Game = {
   lastPlayedAt?: number;
   playCount?: number;
   status?: "early-access" | "beta";
+  steamAppId?: number;
 };
 
 export const STORAGE_KEY = "rubix-launcher-games";
+export const STEAM_ID_KEY = "rubix-launcher-steam-id";
