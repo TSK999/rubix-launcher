@@ -6,3 +6,6 @@ verify_jwt = false
 [functions.rawg-search]
 verify_jwt = false
 
+[functions.steam-auth]
+verify_jwt = false
+
