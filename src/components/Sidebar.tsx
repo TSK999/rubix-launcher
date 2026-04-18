@@ -1,5 +1,8 @@
-import { Clock, Gamepad2, Heart, Library, Sparkles } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { clearStoredSteamId, getStoredSteamId } from "@/lib/steam-auth";
 
 export type Collection = "all" | "favorites" | "recent";
 
@@ -20,6 +23,15 @@ export const Sidebar = ({
   onGenre,
   counts,
 }: Props) => {
+  const navigate = useNavigate();
+  const steamId = getStoredSteamId();
+
+  const handleSignOut = () => {
+    clearStoredSteamId();
+    toast("Signed out of Steam");
+    navigate("/login", { replace: true });
+  };
+
   const items: { id: Collection; label: string; icon: typeof Library; count: number }[] = [
     { id: "all", label: "All games", icon: Library, count: counts.all },
     { id: "favorites", label: "Favorites", icon: Heart, count: counts.favorites },
@@ -95,6 +107,21 @@ export const Sidebar = ({
           </div>
         </div>
       )}
+
+      <div className="mt-auto p-3 border-t border-border">
+        {steamId && (
+          <p className="px-3 pb-2 text-[11px] text-muted-foreground font-mono truncate" title={steamId}>
+            Steam · {steamId.slice(-6)}
+          </p>
+        )}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
   );
 };
