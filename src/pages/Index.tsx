@@ -422,6 +422,7 @@ const Index = () => {
         }}
         onDelete={removeGame}
         onToggleFavorite={toggleFavorite}
+        onUpdate={updateGame}
       />
     </div>
   );
