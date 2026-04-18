@@ -1,7 +1,10 @@
-import { Clock, Gamepad2, Heart, Pencil, Play, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Clock, Gamepad2, Heart, Loader2, Pencil, Play, Sparkles, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
 
 type Props = {
@@ -11,6 +14,7 @@ type Props = {
   onEdit: (g: Game) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<Game>) => void;
 };
 
 const formatDate = (ts?: number) => {
