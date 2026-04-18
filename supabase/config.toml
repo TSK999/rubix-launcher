@@ -2,3 +2,7 @@ project_id = "ogkuwbdziljwbgspwoqp"
 
 [functions.steam-import]
 verify_jwt = false
+
+[functions.rawg-search]
+verify_jwt = false
+
