@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Loader2, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Game } from "@/lib/game-types";
+
+type RawgResult = {
+  rawgId: number;
+  title: string;
+  released?: string;
+  cover?: string;
+  genre?: string;
+  developer?: string;
+  description?: string;
+};
 
 type Props = {
   open: boolean;
@@ -32,6 +44,8 @@ const empty = {
 
 export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props) => {
   const [form, setForm] = useState(empty);
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<RawgResult[] | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -44,6 +58,7 @@ export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props)
         developer: initial?.developer ?? "",
         status: initial?.status ?? "none",
       });
+      setResults(null);
     }
   }, [open, initial]);
 
@@ -51,6 +66,43 @@ export const GameFormDialog = ({ open, onOpenChange, initial, onSubmit }: Props)
     const reader = new FileReader();
     reader.onload = () => setForm((f) => ({ ...f, cover: String(reader.result) }));
     reader.readAsDataURL(file);
+  };
+
+  const findCover = async () => {
+    const q = form.title.trim();
+    if (q.length < 2) {
+      toast.error("Enter a title first");
+      return;
+    }
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rawg-search", {
+        body: { query: q, pageSize: 6 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const list: RawgResult[] = data?.results ?? [];
+      setResults(list);
+      if (list.length === 0) toast("No matches found");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Search failed", { description: msg });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const applyResult = (r: RawgResult) => {
+    setForm((f) => ({
+      ...f,
+      title: r.title || f.title,
+      cover: r.cover || f.cover,
+      genre: r.genre || f.genre,
+      developer: r.developer || f.developer,
+      description: r.description || f.description,
+    }));
+    setResults(null);
+    toast.success(`Applied: ${r.title}`);
   };
 
   const pickExecutable = async () => {
