@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Gamepad2, LogIn, ShieldCheck, Zap } from "lucide-react";
+import { LogIn, ShieldCheck, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { getStoredSteamId, redirectToSteamLogin } from "@/lib/steam-auth";
@@ -34,9 +34,6 @@ const Login = () => {
 
       <main className="relative w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-10">
-          <div className="h-16 w-16 rounded-3xl bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--glow-primary)] mb-5">
-            <Gamepad2 className="h-8 w-8 text-primary-foreground" />
-          </div>
           <h1 className="text-4xl font-bold tracking-tight">RUBIX Launcher</h1>
           <p className="text-muted-foreground mt-2 max-w-xs">
             One library. All your games. Sign in with Steam to instantly sync your collection.
