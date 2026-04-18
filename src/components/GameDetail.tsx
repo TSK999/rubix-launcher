@@ -1,7 +1,10 @@
-import { Clock, Gamepad2, Heart, Pencil, Play, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Clock, Gamepad2, Heart, Loader2, Pencil, Play, Sparkles, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
 
 type Props = {
@@ -11,6 +14,7 @@ type Props = {
   onEdit: (g: Game) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<Game>) => void;
 };
 
 const formatDate = (ts?: number) => {
@@ -26,7 +30,35 @@ export const GameDetail = ({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onUpdate,
 }: Props) => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshMetadata = async () => {
+    if (!game) return;
+    setRefreshing(true);
+    try {
+      const results = await searchRawg(game.title, 1);
+      const top = results[0];
+      if (!top) {
+        toast("No match found on RAWG");
+        return;
+      }
+      onUpdate(game.id, {
+        cover: top.cover ?? game.cover,
+        genre: top.genre ?? game.genre,
+        developer: top.developer ?? game.developer,
+        description: top.description ?? game.description,
+      });
+      toast.success(`Updated from: ${top.title}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Refresh failed", { description: msg });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <Sheet open={!!game} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -106,6 +138,20 @@ export const GameDetail = ({
                   className="rounded-2xl"
                 >
                   <Pencil className="h-4 w-4 mr-2" /> Edit
+                </Button>
+                <Button
+                  onClick={refreshMetadata}
+                  variant="secondary"
+                  size="lg"
+                  disabled={refreshing}
+                  className="rounded-2xl"
+                  title="Refresh cover & metadata from RAWG"
+                >
+                  {refreshing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   onClick={() => {

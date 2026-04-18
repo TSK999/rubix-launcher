@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2 } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -18,6 +18,8 @@ import { GameFormDialog } from "@/components/GameFormDialog";
 import { GameDetail } from "@/components/GameDetail";
 import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
+import { QuickFindDialog } from "@/components/QuickFindDialog";
+import { searchRawg } from "@/lib/rawg";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
@@ -30,6 +32,8 @@ const Index = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [steamOpen, setSteamOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -69,6 +73,49 @@ const Index = () => {
   const removeGame = (id: string) => {
     setGames((g) => g.filter((x) => x.id !== id));
     toast("Game removed");
+  };
+
+  const updateGame = (id: string, patch: Partial<Game>) => {
+    setGames((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  };
+
+  const addFromQuickFind = (data: Omit<Game, "id" | "addedAt">) => {
+    setGames((g) => [
+      { ...data, id: crypto.randomUUID(), addedAt: Date.now() },
+      ...g,
+    ]);
+  };
+
+  const fixMissingCovers = async () => {
+    const targets = games.filter((g) => !g.cover);
+    if (targets.length === 0) {
+      toast("All games already have covers");
+      return;
+    }
+    setBulkBusy(true);
+    toast(`Looking up ${targets.length} games...`);
+    let fixed = 0;
+    try {
+      for (const g of targets) {
+        try {
+          const [top] = await searchRawg(g.title, 1);
+          if (top?.cover) {
+            updateGame(g.id, {
+              cover: top.cover,
+              genre: g.genre ?? top.genre,
+              developer: g.developer ?? top.developer,
+              description: g.description ?? top.description,
+            });
+            fixed++;
+          }
+        } catch {
+          /* skip individual failures */
+        }
+      }
+      toast.success(`Updated ${fixed} of ${targets.length} games`);
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const importFromSteam = (incoming: SteamGameDetail[]) => {
@@ -263,6 +310,27 @@ const Index = () => {
 
             <Button
               variant="outline"
+              onClick={() => setFindOpen(true)}
+              className="rounded-2xl h-11 px-4"
+              title="Find any game by title"
+            >
+              <Sparkles className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Find</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={fixMissingCovers}
+              disabled={bulkBusy}
+              className="rounded-2xl h-11 px-4 hidden md:inline-flex"
+              title="Auto-fetch covers for all games missing one"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {bulkBusy ? "Fixing..." : "Fix covers"}
+            </Button>
+
+            <Button
+              variant="outline"
               onClick={() => setSteamOpen(true)}
               className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
             >
@@ -337,6 +405,12 @@ const Index = () => {
         onImport={importFromSteam}
       />
 
+      <QuickFindDialog
+        open={findOpen}
+        onOpenChange={setFindOpen}
+        onAdd={addFromQuickFind}
+      />
+
       <GameDetail
         game={detailGame}
         onClose={() => setDetailId(null)}
@@ -348,6 +422,7 @@ const Index = () => {
         }}
         onDelete={removeGame}
         onToggleFavorite={toggleFavorite}
+        onUpdate={updateGame}
       />
     </div>
   );
