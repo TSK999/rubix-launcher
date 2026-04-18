@@ -310,6 +310,27 @@ const Index = () => {
 
             <Button
               variant="outline"
+              onClick={() => setFindOpen(true)}
+              className="rounded-2xl h-11 px-4"
+              title="Find any game by title"
+            >
+              <Sparkles className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Find</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={fixMissingCovers}
+              disabled={bulkBusy}
+              className="rounded-2xl h-11 px-4 hidden md:inline-flex"
+              title="Auto-fetch covers for all games missing one"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {bulkBusy ? "Fixing..." : "Fix covers"}
+            </Button>
+
+            <Button
+              variant="outline"
               onClick={() => setSteamOpen(true)}
               className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
             >
@@ -382,6 +403,12 @@ const Index = () => {
         open={steamOpen}
         onOpenChange={setSteamOpen}
         onImport={importFromSteam}
+      />
+
+      <QuickFindDialog
+        open={findOpen}
+        onOpenChange={setFindOpen}
+        onAdd={addFromQuickFind}
       />
 
       <GameDetail
