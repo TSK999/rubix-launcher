@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search } from "lucide-react";
+import { Plus, Gamepad2, Search, Download } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -17,6 +17,7 @@ import { GameCard } from "@/components/GameCard";
 import { GameFormDialog } from "@/components/GameFormDialog";
 import { GameDetail } from "@/components/GameDetail";
 import { Sidebar, type Collection } from "@/components/Sidebar";
+import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
@@ -28,6 +29,7 @@ const Index = () => {
   const [genre, setGenre] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [steamOpen, setSteamOpen] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -67,6 +69,59 @@ const Index = () => {
   const removeGame = (id: string) => {
     setGames((g) => g.filter((x) => x.id !== id));
     toast("Game removed");
+  };
+
+  const importFromSteam = (incoming: SteamGameDetail[]) => {
+    setGames((current) => {
+      const byAppId = new Map<number, Game>();
+      current.forEach((g) => {
+        if (g.steamAppId) byAppId.set(g.steamAppId, g);
+      });
+
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+
+      for (const s of incoming) {
+        const existing = byAppId.get(s.appId);
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = {
+              ...existing,
+              title: s.title,
+              cover: s.cover,
+              path: s.launchPath,
+              description: s.description ?? existing.description,
+              genre: s.genre ?? existing.genre,
+              developer: s.developer ?? existing.developer,
+              lastPlayedAt: s.lastPlayedAt ?? existing.lastPlayedAt,
+              steamAppId: s.appId,
+            };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({
+            id: crypto.randomUUID(),
+            title: s.title,
+            cover: s.cover,
+            path: s.launchPath,
+            description: s.description,
+            genre: s.genre,
+            developer: s.developer,
+            lastPlayedAt: s.lastPlayedAt,
+            steamAppId: s.appId,
+            addedAt: Date.now(),
+          });
+          added++;
+        }
+      }
+
+      toast.success("Steam library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
   };
 
   const toggleFavorite = (id: string) => {
@@ -207,6 +262,14 @@ const Index = () => {
             </div>
 
             <Button
+              variant="outline"
+              onClick={() => setSteamOpen(true)}
+              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
+            >
+              <Download className="h-4 w-4 mr-2" /> Steam
+            </Button>
+
+            <Button
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
@@ -266,6 +329,12 @@ const Index = () => {
         onOpenChange={setFormOpen}
         initial={editing}
         onSubmit={upsertGame}
+      />
+
+      <SteamImportDialog
+        open={steamOpen}
+        onOpenChange={setSteamOpen}
+        onImport={importFromSteam}
       />
 
       <GameDetail
