@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { clearStoredSteamId, getStoredSteamId } from "@/lib/steam-auth";
+import { ThemeManager } from "@/components/ThemeManager";
 
 export type Collection = "all" | "favorites" | "recent";
 
@@ -108,7 +109,11 @@ export const Sidebar = ({
         </div>
       )}
 
-      <div className="mt-auto p-3 border-t border-border">
+      <div className="mt-auto">
+        <ThemeManager />
+      </div>
+
+      <div className="p-3 border-t border-border">
         {steamId && (
           <p className="px-3 pb-2 text-[11px] text-muted-foreground font-mono truncate" title={steamId}>
             Steam · {steamId.slice(-6)}
