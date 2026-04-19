@@ -1,9 +1,10 @@
-import { Clock, Heart, Library, LogOut, Sparkles } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { clearStoredSteamId, getStoredSteamId } from "@/lib/steam-auth";
 import { ThemeManager } from "@/components/ThemeManager";
+import type { GameSource } from "@/lib/game-types";
 
 export type Collection = "all" | "favorites" | "recent";
 
@@ -14,6 +15,9 @@ type Props = {
   selectedGenre: string | null;
   onGenre: (g: string | null) => void;
   counts: { all: number; favorites: number; recent: number };
+  selectedSource: GameSource | null;
+  onSource: (s: GameSource | null) => void;
+  sourceCounts: { steam: number; epic: number; other: number };
 };
 
 export const Sidebar = ({
@@ -23,6 +27,9 @@ export const Sidebar = ({
   selectedGenre,
   onGenre,
   counts,
+  selectedSource,
+  onSource,
+  sourceCounts,
 }: Props) => {
   const navigate = useNavigate();
   const steamId = getStoredSteamId();
@@ -37,6 +44,12 @@ export const Sidebar = ({
     { id: "all", label: "All games", icon: Library, count: counts.all },
     { id: "favorites", label: "Favorites", icon: Heart, count: counts.favorites },
     { id: "recent", label: "Recently played", icon: Clock, count: counts.recent },
+  ];
+
+  const stores: { id: GameSource; label: string; icon: typeof Library; count: number }[] = [
+    { id: "steam", label: "Steam", icon: Gamepad2, count: sourceCounts.steam },
+    { id: "epic", label: "Epic Games", icon: Store, count: sourceCounts.epic },
+    { id: "other", label: "Other", icon: Box, count: sourceCounts.other },
   ];
 
   return (
@@ -70,6 +83,43 @@ export const Sidebar = ({
           );
         })}
       </nav>
+
+      <div className="p-3 border-t border-border">
+        <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          Stores
+        </p>
+        <button
+          onClick={() => onSource(null)}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors",
+            selectedSource === null
+              ? "bg-secondary text-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+          )}
+        >
+          <Library className={cn("h-4 w-4", selectedSource === null && "text-primary")} />
+          <span className="flex-1 text-left">All stores</span>
+        </button>
+        {stores.map(({ id, label, icon: Icon, count }) => {
+          const active = selectedSource === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onSource(id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors",
+                active
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", active && "text-primary")} />
+              <span className="flex-1 text-left">{label}</span>
+              <span className="text-xs text-muted-foreground">{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {genres.length > 0 && (
         <div className="p-3 border-t border-border">

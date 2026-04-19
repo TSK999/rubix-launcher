@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2 } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -18,9 +18,10 @@ import { GameFormDialog } from "@/components/GameFormDialog";
 import { GameDetail } from "@/components/GameDetail";
 import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
+import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
-import { STORAGE_KEY, type Game } from "@/lib/game-types";
+import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
 
@@ -29,9 +30,11 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [collection, setCollection] = useState<Collection>("all");
   const [genre, setGenre] = useState<string | null>(null);
+  const [source, setSource] = useState<GameSource | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [steamOpen, setSteamOpen] = useState(false);
+  const [epicOpen, setEpicOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -185,6 +188,18 @@ const Index = () => {
       )
     );
 
+    // Epic Games — use dedicated launcher URI in desktop app
+    if (window.rubix?.isElectron && g.epicAppName && g.epicCatalogNamespace && g.epicCatalogItemId) {
+      const res = await window.rubix.epic.launch({
+        appName: g.epicAppName,
+        catalogNamespace: g.epicCatalogNamespace,
+        catalogItemId: g.epicCatalogItemId,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Epic`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -207,6 +222,35 @@ const Index = () => {
     }
   };
 
+  const importFromEpic = (incoming: EpicImportGame[]) => {
+    setGames((current) => {
+      const byAppName = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.epicAppName) byAppName.set(g.epicAppName, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const e of incoming) {
+        const existing = e.epicAppName ? byAppName.get(e.epicAppName) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...e };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...e, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Epic library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   // Derived data
   const genres = useMemo(() => {
     const s = new Set<string>();
@@ -223,6 +267,14 @@ const Index = () => {
     };
   }, [games]);
 
+  const sourceCounts = useMemo(() => {
+    const c = { steam: 0, epic: 0, other: 0 };
+    games.forEach((g) => {
+      c[getGameSource(g)]++;
+    });
+    return c;
+  }, [games]);
+
   const filtered = useMemo(() => {
     const recentCutoff = Date.now() - RECENT_WINDOW_DAYS * 86400 * 1000;
     let list = games;
@@ -233,6 +285,7 @@ const Index = () => {
         .sort((a, b) => (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0));
     }
     if (genre) list = list.filter((g) => g.genre === genre);
+    if (source) list = list.filter((g) => getGameSource(g) === source);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -243,7 +296,7 @@ const Index = () => {
       );
     }
     return list;
-  }, [games, collection, genre, search]);
+  }, [games, collection, genre, source, search]);
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -273,6 +326,9 @@ const Index = () => {
         selectedGenre={genre}
         onGenre={setGenre}
         counts={counts}
+        selectedSource={source}
+        onSource={setSource}
+        sourceCounts={sourceCounts}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -335,6 +391,19 @@ const Index = () => {
               className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
             >
               <Download className="h-4 w-4 mr-2" /> Steam
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => setEpicOpen(true)}
+              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
+              title={
+                window.rubix?.isElectron
+                  ? "Scan installed Epic games"
+                  : "Epic library scan requires the desktop app"
+              }
+            >
+              <Store className="h-4 w-4 mr-2" /> Epic
             </Button>
 
             <Button
@@ -403,6 +472,12 @@ const Index = () => {
         open={steamOpen}
         onOpenChange={setSteamOpen}
         onImport={importFromSteam}
+      />
+
+      <EpicImportDialog
+        open={epicOpen}
+        onOpenChange={setEpicOpen}
+        onImport={importFromEpic}
       />
 
       <QuickFindDialog
