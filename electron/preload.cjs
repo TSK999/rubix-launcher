@@ -8,4 +8,14 @@ contextBridge.exposeInMainWorld("rubix", {
     scanInstalled: () => ipcRenderer.invoke("epic:scan-installed"),
     launch: (payload) => ipcRenderer.invoke("epic:launch", payload),
   },
+  updater: {
+    check: () => ipcRenderer.invoke("updater:check"),
+    install: () => ipcRenderer.invoke("updater:install"),
+    getVersion: () => ipcRenderer.invoke("updater:get-version"),
+    onStatus: (cb) => {
+      const handler = (_evt, data) => cb(data);
+      ipcRenderer.on("updater:status", handler);
+      return () => ipcRenderer.removeListener("updater:status", handler);
+    },
+  },
 });
