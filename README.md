@@ -9,17 +9,24 @@
 
 ---
 
-## About
+##  About
 
 Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for people who have their game library scattered across multiple launchers.
 
 ---
 
-## 📸 Preview
+##  Preview
 
-<p align="center">
-  <img src="preview.png" width="900">
-</p>
+<table align="center" cellspacing="10">
+  <tr>
+    <td><img src="preview1.png" width="100%"></td>
+    <td><img src="preview2.png" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="preview3.png" width="100%"></td>
+    <td><img src="preview4.png" width="100%"></td>
+  </tr>
+</table>
 
 ---
 
