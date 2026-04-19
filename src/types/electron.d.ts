@@ -23,7 +23,7 @@ export type UpdaterStatus =
   | { status: "available"; payload: { version: string } }
   | { status: "not-available"; payload: { version?: string } }
   | { status: "downloading"; payload: { percent: number; bytesPerSecond: number; transferred: number; total: number } }
-  | { status: "downloaded"; payload: { version: string } }
+  | { status: "downloaded"; payload: { version: string; releaseName: string; releaseNotes: string; releaseDate: string } }
   | { status: "error"; payload: { message: string } };
 
 declare global {

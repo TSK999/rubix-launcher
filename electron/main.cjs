@@ -37,9 +37,22 @@ autoUpdater.on("download-progress", (p) =>
     total: p.total,
   })
 );
-autoUpdater.on("update-downloaded", (info) =>
-  sendUpdateStatus("downloaded", { version: info.version })
-);
+autoUpdater.on("update-downloaded", (info) => {
+  let notes = "";
+  if (typeof info.releaseNotes === "string") {
+    notes = info.releaseNotes;
+  } else if (Array.isArray(info.releaseNotes)) {
+    notes = info.releaseNotes
+      .map((n) => `### v${n.version}\n\n${n.note || ""}`)
+      .join("\n\n");
+  }
+  sendUpdateStatus("downloaded", {
+    version: info.version,
+    releaseName: info.releaseName || `v${info.version}`,
+    releaseNotes: notes,
+    releaseDate: info.releaseDate || "",
+  });
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
