@@ -267,6 +267,14 @@ const Index = () => {
     };
   }, [games]);
 
+  const sourceCounts = useMemo(() => {
+    const c = { steam: 0, epic: 0, other: 0 };
+    games.forEach((g) => {
+      c[getGameSource(g)]++;
+    });
+    return c;
+  }, [games]);
+
   const filtered = useMemo(() => {
     const recentCutoff = Date.now() - RECENT_WINDOW_DAYS * 86400 * 1000;
     let list = games;
@@ -277,6 +285,7 @@ const Index = () => {
         .sort((a, b) => (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0));
     }
     if (genre) list = list.filter((g) => g.genre === genre);
+    if (source) list = list.filter((g) => getGameSource(g) === source);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -287,7 +296,7 @@ const Index = () => {
       );
     }
     return list;
-  }, [games, collection, genre, search]);
+  }, [games, collection, genre, source, search]);
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -317,6 +326,9 @@ const Index = () => {
         selectedGenre={genre}
         onGenre={setGenre}
         counts={counts}
+        selectedSource={source}
+        onSource={setSource}
+        sourceCounts={sourceCounts}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -379,6 +391,19 @@ const Index = () => {
               className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
             >
               <Download className="h-4 w-4 mr-2" /> Steam
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => setEpicOpen(true)}
+              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
+              title={
+                window.rubix?.isElectron
+                  ? "Scan installed Epic games"
+                  : "Epic library scan requires the desktop app"
+              }
+            >
+              <Store className="h-4 w-4 mr-2" /> Epic
             </Button>
 
             <Button
@@ -447,6 +472,12 @@ const Index = () => {
         open={steamOpen}
         onOpenChange={setSteamOpen}
         onImport={importFromSteam}
+      />
+
+      <EpicImportDialog
+        open={epicOpen}
+        onOpenChange={setEpicOpen}
+        onImport={importFromEpic}
       />
 
       <QuickFindDialog
