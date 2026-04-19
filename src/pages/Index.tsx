@@ -188,6 +188,18 @@ const Index = () => {
       )
     );
 
+    // Epic Games — use dedicated launcher URI in desktop app
+    if (window.rubix?.isElectron && g.epicAppName && g.epicCatalogNamespace && g.epicCatalogItemId) {
+      const res = await window.rubix.epic.launch({
+        appName: g.epicAppName,
+        catalogNamespace: g.epicCatalogNamespace,
+        catalogItemId: g.epicCatalogItemId,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Epic`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -208,6 +220,35 @@ const Index = () => {
         description: "Build the RUBIX desktop app to launch .exe files.",
       });
     }
+  };
+
+  const importFromEpic = (incoming: EpicImportGame[]) => {
+    setGames((current) => {
+      const byAppName = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.epicAppName) byAppName.set(g.epicAppName, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const e of incoming) {
+        const existing = e.epicAppName ? byAppName.get(e.epicAppName) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...e };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...e, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Epic library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
   };
 
   // Derived data
