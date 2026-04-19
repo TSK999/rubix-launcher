@@ -1,13 +1,39 @@
-Made with only the finest ai slop code Rubix launcher is a solution for pepole that have their game libery Scattered across multiple launchers 
+<p align="center">
+  <img src="banner.png" width="100%">
+</p>
 
-DONE: 1.Steam ID log in and librery sync 
-      2.Epic Games Support 
-      3.Cutom Themes
+<h1 align="center"> Rubix Launcher</h1>
+<p align="center">
+  Your games — exactly where you need them
+</p>
 
-TODO: 1.Multi Language support
-      2.Built in Theme Store
-      3.EA launcher support
-      4.General Clean up and polish
+---
 
+## About
 
-      
+Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for people who have their game library scattered across multiple launchers.
+
+---
+
+## 📸 Preview
+
+<p align="center">
+  <img src="preview.png" width="900">
+</p>
+
+---
+
+##  Done
+
+* Steam ID login & library sync
+* Epic Games support
+* Custom themes
+
+---
+
+##  TODO
+
+* Multi-language support
+* Built-in theme store
+* EA launcher support
+* General cleanup & polish
