@@ -75,12 +75,15 @@ autoUpdater.on("update-downloaded", (info) => {
       .map((n) => `### v${n.version}\n\n${n.note || ""}`)
       .join("\n\n");
   }
-  sendUpdateStatus("downloaded", {
+  const payload = {
     version: info.version,
     releaseName: info.releaseName || `v${info.version}`,
     releaseNotes: notes,
     releaseDate: info.releaseDate || "",
-  });
+  };
+  // Persist so we can show a "What's new" splash on next launch (post-install)
+  writePendingNotes(payload);
+  sendUpdateStatus("downloaded", payload);
 });
 
 function createWindow() {
