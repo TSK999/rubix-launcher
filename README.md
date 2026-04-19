@@ -44,3 +44,4 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Built-in theme store
 * EA launcher support
 * General cleanup & polish
+* Website 
