@@ -13,6 +13,35 @@ autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow = null;
 
+// Persist release notes between download → next launch (after install)
+const pendingNotesPath = () =>
+  path.join(app.getPath("userData"), "pending-release-notes.json");
+
+function writePendingNotes(data) {
+  try {
+    fs.writeFileSync(pendingNotesPath(), JSON.stringify(data), "utf-8");
+  } catch (err) {
+    log.warn("Failed to write pending release notes", err);
+  }
+}
+
+function readPendingNotes() {
+  try {
+    const raw = fs.readFileSync(pendingNotesPath(), "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingNotes() {
+  try {
+    fs.unlinkSync(pendingNotesPath());
+  } catch {
+    /* ignore — file may not exist */
+  }
+}
+
 function sendUpdateStatus(status, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("updater:status", { status, payload });
