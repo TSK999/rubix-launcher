@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogIn, ShieldCheck, Zap, Loader2 } from "lucide-react";
+import { LogIn, ShieldCheck, Zap, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,69 @@ const Login = () => {
   const handleWebSignIn = () => {
     const returnTo = `${window.location.origin}/auth/callback`;
     redirectToSteamLogin(returnTo);
+  };
+
+  const handleDemoLaunch = () => {
+    const demoGames: Game[] = [
+      {
+        id: crypto.randomUUID(),
+        title: "Hollow Knight",
+        cover: "https://cdn.cloudflare.steamstatic.com/steam/apps/367520/header.jpg",
+        genre: "Metroidvania",
+        favorite: true,
+        addedAt: Date.now(),
+        steamAppId: 367520,
+      },
+      {
+        id: crypto.randomUUID(),
+        title: "Hades",
+        cover: "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/header.jpg",
+        genre: "Roguelike",
+        addedAt: Date.now() - 1000,
+        steamAppId: 1145360,
+      },
+      {
+        id: crypto.randomUUID(),
+        title: "Fortnite",
+        cover: "https://cdn1.epicgames.com/offer/fn/24BR_C5S3_EGS_Launcher_Blade_2560x1440_2560x1440-3007af027a4256a5d59a1ea3c64a778d",
+        genre: "Battle Royale",
+        addedAt: Date.now() - 2000,
+        epicAppName: "Fortnite",
+        epicLaunchUri: "com.epicgames.launcher://apps/Fortnite?action=launch&silent=true",
+      },
+      {
+        id: crypto.randomUUID(),
+        title: "Alan Wake 2",
+        cover: "https://cdn1.epicgames.com/offer/d5241c76f178492ea1540eec3398eb9b/EGS_AlanWake2_RemedyEntertainment_S1_2560x1440-d8d0e8a6c1e3e3b0e8a6c1e3e3b0e8a6",
+        genre: "Survival Horror",
+        addedAt: Date.now() - 3000,
+        epicAppName: "AlanWake2",
+        epicLaunchUri: "com.epicgames.launcher://apps/AlanWake2?action=launch&silent=true",
+      },
+      {
+        id: crypto.randomUUID(),
+        title: "Stardew Valley",
+        cover: "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/header.jpg",
+        genre: "Farming Sim",
+        favorite: true,
+        addedAt: Date.now() - 4000,
+        steamAppId: 413150,
+      },
+      {
+        id: crypto.randomUUID(),
+        title: "Celeste",
+        cover: "https://cdn.cloudflare.steamstatic.com/steam/apps/504230/header.jpg",
+        genre: "Platformer",
+        addedAt: Date.now() - 5000,
+        steamAppId: 504230,
+      },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(demoGames));
+    setStoredSteamId("demo");
+    toast.success("Demo mode", {
+      description: `Loaded ${demoGames.length} sample games. Explore the launcher!`,
+    });
+    navigate("/", { replace: true });
   };
 
   const handleDesktopSignIn = async () => {
@@ -186,6 +249,24 @@ const Login = () => {
           <p className="mt-6 text-xs text-muted-foreground text-center">
             Your Steam profile and game details must be set to{" "}
             <span className="font-medium text-foreground">Public</span> for the import to work.
+          </p>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            onClick={handleDemoLaunch}
+            variant="outline"
+            className="w-full h-12 rounded-2xl border-dashed"
+          >
+            <Sparkles className="h-4 w-4 mr-2 text-primary" />
+            Try the demo launcher
+          </Button>
+          <p className="mt-2 text-xs text-muted-foreground text-center">
+            Explore RUBIX with sample games — no sign-in needed.
           </p>
         </div>
 

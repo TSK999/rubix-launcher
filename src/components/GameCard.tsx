@@ -1,9 +1,19 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Gamepad2, GripVertical, Heart, Play } from "lucide-react";
-import type { Game } from "@/lib/game-types";
+import { getGameSource, type Game } from "@/lib/game-types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const SOURCE_LABEL: Record<"steam" | "epic", string> = {
+  steam: "Steam",
+  epic: "Epic",
+};
+
+const SOURCE_STYLES: Record<"steam" | "epic", string> = {
+  steam: "bg-[#1b2838]/90 text-[#66c0f4] border border-[#66c0f4]/30",
+  epic: "bg-black/80 text-white border border-white/20",
+};
 
 type Props = {
   game: Game;
@@ -52,6 +62,20 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
             {game.status === "early-access" ? "Early Access" : "Beta"}
           </span>
         )}
+        {(() => {
+          const src = getGameSource(game);
+          if (src !== "steam" && src !== "epic") return null;
+          return (
+            <span
+              className={cn(
+                "absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm",
+                SOURCE_STYLES[src],
+              )}
+            >
+              {SOURCE_LABEL[src]}
+            </span>
+          );
+        })()}
       </div>
 
       <div className="p-4 flex items-start justify-between gap-2">
