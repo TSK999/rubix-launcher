@@ -45,3 +45,7 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * EA launcher support
 * General cleanup & polish
 * Website 
+
+---
+
+**This app is still very much in development so any sugetions would be wellcome**
