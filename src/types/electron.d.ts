@@ -45,6 +45,13 @@ declare global {
         check: () => Promise<{ ok: boolean; version?: string; error?: string }>;
         install: () => Promise<{ ok: boolean }>;
         getVersion: () => Promise<{ version: string }>;
+        getPendingReleaseNotes: () => Promise<{
+          version: string;
+          releaseName: string;
+          releaseNotes: string;
+          releaseDate: string;
+        } | null>;
+        clearPendingReleaseNotes: () => Promise<{ ok: boolean }>;
         onStatus: (cb: (data: UpdaterStatus) => void) => () => void;
       };
     };
