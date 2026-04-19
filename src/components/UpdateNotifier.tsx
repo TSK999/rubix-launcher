@@ -1,19 +1,27 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+
+const formatBytes = (bytes: number) => {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+  const units = ["KB", "MB", "GB"];
+  let v = bytes / 1024;
+  let u = 0;
+  while (v >= 1024 && u < units.length - 1) {
+    v /= 1024;
+    u++;
+  }
+  return `${v.toFixed(1)} ${units[u]}`;
+};
 
 /**
  * Listens for auto-updater events from the Electron main process
  * and surfaces them to the user via toasts. Only active in Electron.
- *
- * Flow (silent + prompt-on-ready):
- *  - checking / not-available: silent
- *  - available: silent toast "Downloading update vX..."
- *  - downloading: silent (could show progress later)
- *  - downloaded: persistent toast with "Restart now" / "Later" actions
- *  - error: silent log (don't nag the user)
  */
 export const UpdateNotifier = () => {
+  const progressToastId = useRef<string | number | null>(null);
   const downloadedToastId = useRef<string | number | null>(null);
 
   useEffect(() => {
@@ -24,25 +32,63 @@ export const UpdateNotifier = () => {
       switch (data.status) {
         case "available":
           toast(`Update available — v${data.payload.version}`, {
-            description: "Downloading in the background…",
+            description: "Starting download…",
           });
           break;
 
+        case "downloading": {
+          const { percent, bytesPerSecond, transferred, total } = data.payload;
+          const speed = `${formatBytes(bytesPerSecond)}/s`;
+          const sizes = `${formatBytes(transferred)} / ${formatBytes(total)}`;
+
+          const content = (
+            <div className="flex w-full flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Download className="h-4 w-4" />
+                Downloading update… {percent}%
+              </div>
+              <Progress value={percent} className="h-2" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{sizes}</span>
+                <span>{speed}</span>
+              </div>
+            </div>
+          );
+
+          if (progressToastId.current === null) {
+            progressToastId.current = toast(content, {
+              duration: Infinity,
+              dismissible: false,
+            });
+          } else {
+            toast(content, {
+              id: progressToastId.current,
+              duration: Infinity,
+              dismissible: false,
+            });
+          }
+          break;
+        }
+
         case "downloaded": {
-          // Dismiss any previous "downloaded" toast so we don't stack them
+          // Replace the progress toast with the "ready" toast
+          if (progressToastId.current !== null) {
+            toast.dismiss(progressToastId.current);
+            progressToastId.current = null;
+          }
           if (downloadedToastId.current !== null) {
             toast.dismiss(downloadedToastId.current);
           }
-          downloadedToastId.current = toast(
+          downloadedToastId.current = toast.success(
             `Update ready — v${data.payload.version}`,
             {
-              description: "Restart RUBIX to install the latest version.",
+              description: "Restart RUBIX to install and see what's new.",
               duration: Infinity,
               action: (
                 <Button
                   size="sm"
                   onClick={() => {
-                    void updater.install();
+                    void window.rubix?.updater.install();
                   }}
                 >
                   Restart now
@@ -54,7 +100,6 @@ export const UpdateNotifier = () => {
         }
 
         case "error":
-          // Quietly log — don't pester the user with auto-update errors
           console.warn("[updater] error:", data.payload.message);
           break;
 
