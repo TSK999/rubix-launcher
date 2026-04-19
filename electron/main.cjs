@@ -183,6 +183,20 @@ ipcMain.handle("updater:get-version", async () => {
   return { version: app.getVersion() };
 });
 
+// Returns release notes only if they correspond to the currently-running version
+// (i.e. the user just relaunched into the new build). Otherwise returns null.
+ipcMain.handle("updater:get-pending-notes", async () => {
+  const data = readPendingNotes();
+  if (!data) return null;
+  if (data.version !== app.getVersion()) return null;
+  return data;
+});
+
+ipcMain.handle("updater:clear-pending-notes", async () => {
+  clearPendingNotes();
+  return { ok: true };
+});
+
 // ---------- Epic Games Store integration ----------
 
 function getEpicManifestDirs() {
