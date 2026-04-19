@@ -10,6 +10,14 @@
     "electron/**/*",
     "package.json"
   ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "TSK999",
+      "repo": "rubix-launcher",
+      "releaseType": "release"
+    }
+  ],
   "win": {
     "target": [
       { "target": "nsis", "arch": ["x64"] }

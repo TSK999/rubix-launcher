@@ -2,9 +2,47 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
+const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
+
+// ---------- Auto-updater setup ----------
+log.transports.file.level = "info";
+autoUpdater.logger = log;
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+let mainWindow = null;
+
+function sendUpdateStatus(status, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("updater:status", { status, payload });
+  }
+}
+
+autoUpdater.on("checking-for-update", () => sendUpdateStatus("checking"));
+autoUpdater.on("update-available", (info) =>
+  sendUpdateStatus("available", { version: info.version })
+);
+autoUpdater.on("update-not-available", (info) =>
+  sendUpdateStatus("not-available", { version: info?.version })
+);
+autoUpdater.on("error", (err) =>
+  sendUpdateStatus("error", { message: String(err?.message || err) })
+);
+autoUpdater.on("download-progress", (p) =>
+  sendUpdateStatus("downloading", {
+    percent: Math.round(p.percent || 0),
+    bytesPerSecond: p.bytesPerSecond,
+    transferred: p.transferred,
+    total: p.total,
+  })
+);
+autoUpdater.on("update-downloaded", (info) =>
+  sendUpdateStatus("downloaded", { version: info.version })
+);
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 900,
@@ -19,7 +57,16 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+
+  // Kick off an update check shortly after the window is ready (only in packaged builds)
+  mainWindow.webContents.once("did-finish-load", () => {
+    if (app.isPackaged) {
+      setTimeout(() => {
+        autoUpdater.checkForUpdates().catch((err) => log.warn("Update check failed", err));
+      }, 3000);
+    }
+  });
 }
 
 // Launch a game by path/URI
@@ -68,6 +115,29 @@ ipcMain.handle("pick-executable", async () => {
   return result.filePaths[0];
 });
 
+// ---------- Auto-updater IPC ----------
+ipcMain.handle("updater:check", async () => {
+  if (!app.isPackaged) {
+    return { ok: false, error: "Updates only run in packaged builds" };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { ok: true, version: result?.updateInfo?.version };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("updater:install", async () => {
+  // Quits the app and installs the downloaded update
+  setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  return { ok: true };
+});
+
+ipcMain.handle("updater:get-version", async () => {
+  return { version: app.getVersion() };
+});
+
 // ---------- Epic Games Store integration ----------
 
 function getEpicManifestDirs() {
@@ -76,7 +146,6 @@ function getEpicManifestDirs() {
     const programData = process.env.PROGRAMDATA || "C:\\ProgramData";
     dirs.push(path.join(programData, "Epic", "EpicGamesLauncher", "Data", "Manifests"));
   } else if (process.platform === "darwin") {
-    // Epic on macOS uses a similar layout under user Library
     dirs.push(
       path.join(
         app.getPath("home"),
@@ -89,7 +158,6 @@ function getEpicManifestDirs() {
       )
     );
   } else {
-    // Linux (Heroic / Lutris / wine prefixes) — best-effort common locations
     const home = app.getPath("home");
     dirs.push(
       path.join(home, ".config", "heroic", "store", "legendary", "manifests"),
@@ -113,7 +181,6 @@ ipcMain.handle("epic:scan-installed", async () => {
         try {
           const raw = fs.readFileSync(path.join(dir, file), "utf-8");
           const m = JSON.parse(raw);
-          // Skip DLC / plugins — only real games have a launch executable
           if (!m.LaunchExecutable && !m.AppName) continue;
           games.push({
             appName: m.AppName || m.MainGameAppName || "",
@@ -134,7 +201,6 @@ ipcMain.handle("epic:scan-installed", async () => {
     }
   }
 
-  // De-dup by appName
   const seen = new Map();
   for (const g of games) {
     if (!seen.has(g.appName)) seen.set(g.appName, g);
