@@ -14,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { RequireSteamAuth } from "./components/RequireSteamAuth";
 import { UpdateNotifier } from "./components/UpdateNotifier";
+import { UpdateSplash } from "./components/UpdateSplash";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <UpdateNotifier />
+      <UpdateSplash />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />

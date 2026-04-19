@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("rubix", {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),
     getVersion: () => ipcRenderer.invoke("updater:get-version"),
+    getPendingReleaseNotes: () => ipcRenderer.invoke("updater:get-pending-notes"),
+    clearPendingReleaseNotes: () => ipcRenderer.invoke("updater:clear-pending-notes"),
     onStatus: (cb) => {
       const handler = (_evt, data) => cb(data);
       ipcRenderer.on("updater:status", handler);

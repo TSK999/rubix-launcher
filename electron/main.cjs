@@ -13,6 +13,35 @@ autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow = null;
 
+// Persist release notes between download → next launch (after install)
+const pendingNotesPath = () =>
+  path.join(app.getPath("userData"), "pending-release-notes.json");
+
+function writePendingNotes(data) {
+  try {
+    fs.writeFileSync(pendingNotesPath(), JSON.stringify(data), "utf-8");
+  } catch (err) {
+    log.warn("Failed to write pending release notes", err);
+  }
+}
+
+function readPendingNotes() {
+  try {
+    const raw = fs.readFileSync(pendingNotesPath(), "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingNotes() {
+  try {
+    fs.unlinkSync(pendingNotesPath());
+  } catch {
+    /* ignore — file may not exist */
+  }
+}
+
 function sendUpdateStatus(status, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("updater:status", { status, payload });
@@ -37,9 +66,25 @@ autoUpdater.on("download-progress", (p) =>
     total: p.total,
   })
 );
-autoUpdater.on("update-downloaded", (info) =>
-  sendUpdateStatus("downloaded", { version: info.version })
-);
+autoUpdater.on("update-downloaded", (info) => {
+  let notes = "";
+  if (typeof info.releaseNotes === "string") {
+    notes = info.releaseNotes;
+  } else if (Array.isArray(info.releaseNotes)) {
+    notes = info.releaseNotes
+      .map((n) => `### v${n.version}\n\n${n.note || ""}`)
+      .join("\n\n");
+  }
+  const payload = {
+    version: info.version,
+    releaseName: info.releaseName || `v${info.version}`,
+    releaseNotes: notes,
+    releaseDate: info.releaseDate || "",
+  };
+  // Persist so we can show a "What's new" splash on next launch (post-install)
+  writePendingNotes(payload);
+  sendUpdateStatus("downloaded", payload);
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -136,6 +181,20 @@ ipcMain.handle("updater:install", async () => {
 
 ipcMain.handle("updater:get-version", async () => {
   return { version: app.getVersion() };
+});
+
+// Returns release notes only if they correspond to the currently-running version
+// (i.e. the user just relaunched into the new build). Otherwise returns null.
+ipcMain.handle("updater:get-pending-notes", async () => {
+  const data = readPendingNotes();
+  if (!data) return null;
+  if (data.version !== app.getVersion()) return null;
+  return data;
+});
+
+ipcMain.handle("updater:clear-pending-notes", async () => {
+  clearPendingNotes();
+  return { ok: true };
 });
 
 // ---------- Epic Games Store integration ----------
