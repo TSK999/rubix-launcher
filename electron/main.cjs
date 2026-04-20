@@ -295,6 +295,157 @@ ipcMain.handle("epic:launch", async (_evt, payload) => {
   }
 });
 
+// ---------- EA app (Origin) integration ----------
+
+function getEaInstallDataDirs() {
+  const dirs = [];
+  if (process.platform === "win32") {
+    const programData = process.env.PROGRAMDATA || "C:\\ProgramData";
+    dirs.push(
+      path.join(programData, "Electronic Arts", "EA Desktop", "InstallData"),
+      path.join(programData, "Electronic Arts", "EA Services", "Installed"),
+      path.join(programData, "Origin", "LocalContent")
+    );
+  }
+  // EA app is Windows-only; macOS/Linux fall through to empty list
+  return dirs;
+}
+
+function readEaInstalledRegistry() {
+  // Best-effort: query HKLM\SOFTWARE\WOW6432Node\Electronic Arts via reg.exe
+  if (process.platform !== "win32") return [];
+  const { execSync } = require("child_process");
+  const games = [];
+  const roots = [
+    "HKLM\\SOFTWARE\\WOW6432Node\\Electronic Arts",
+    "HKLM\\SOFTWARE\\Electronic Arts",
+  ];
+  for (const root of roots) {
+    try {
+      const out = execSync(`reg query "${root}" /s /f "Install Dir" /t REG_SZ`, {
+        encoding: "utf-8",
+        windowsHide: true,
+        timeout: 8000,
+      });
+      const blocks = out.split(/\r?\n\r?\n/);
+      for (const block of blocks) {
+        const keyMatch = block.match(/^(HKEY_[^\s]+\\[^\r\n]+)/m);
+        const dirMatch = block.match(/Install Dir\s+REG_SZ\s+(.+)$/im);
+        if (!keyMatch || !dirMatch) continue;
+        const key = keyMatch[1];
+        const installDir = dirMatch[1].trim();
+        const name = key.split("\\").pop() || "Unknown";
+        if (!installDir || /Electronic Arts$/i.test(name)) continue;
+        games.push({
+          appId: name,
+          contentId: name,
+          displayName: name,
+          installLocation: installDir,
+          installSize: 0,
+        });
+      }
+    } catch {
+      /* registry path may not exist on this machine */
+    }
+  }
+  return games;
+}
+
+function readEaManifests() {
+  const games = [];
+  const dirs = getEaInstallDataDirs();
+  let scannedDir = null;
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    scannedDir = scannedDir || dir;
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const subdir = path.join(dir, entry.name);
+        // Look for installerdata.xml (EA Desktop) or .mfst (Origin legacy)
+        try {
+          const subEntries = fs.readdirSync(subdir);
+          const xml = subEntries.find((f) => /installerdata\.xml$/i.test(f));
+          const mfst = subEntries.find((f) => /\.mfst$/i.test(f));
+          let displayName = entry.name;
+          let contentId = entry.name;
+          let appId = entry.name;
+          let installLocation = subdir;
+          let installSize = 0;
+
+          if (xml) {
+            const raw = fs.readFileSync(path.join(subdir, xml), "utf-8");
+            const titleMatch = raw.match(/<gameTitle[^>]*>([^<]+)<\/gameTitle>/i);
+            const contentMatch = raw.match(/<contentID[^>]*>([^<]+)<\/contentID>/i);
+            if (titleMatch) displayName = titleMatch[1].trim();
+            if (contentMatch) contentId = contentMatch[1].trim();
+          } else if (mfst) {
+            const raw = fs.readFileSync(path.join(subdir, mfst), "utf-8");
+            const idMatch = raw.match(/[?&]id=([^&\s]+)/i);
+            if (idMatch) contentId = decodeURIComponent(idMatch[1]);
+          }
+
+          try {
+            const stat = fs.statSync(installLocation);
+            installSize = stat.size || 0;
+          } catch {
+            /* ignore */
+          }
+
+          games.push({ appId, contentId, displayName, installLocation, installSize });
+        } catch {
+          /* skip unreadable subdir */
+        }
+      }
+    } catch {
+      /* skip unreadable dir */
+    }
+  }
+  return { games, scannedDir };
+}
+
+ipcMain.handle("ea:scan-installed", async () => {
+  try {
+    const { games: manifestGames, scannedDir } = readEaManifests();
+    const regGames = readEaInstalledRegistry();
+
+    const seen = new Map();
+    for (const g of [...manifestGames, ...regGames]) {
+      const key = (g.contentId || g.appId || g.displayName).toLowerCase();
+      if (!seen.has(key)) seen.set(key, g);
+    }
+
+    const games = Array.from(seen.values()).sort((a, b) =>
+      a.displayName.localeCompare(b.displayName)
+    );
+
+    return {
+      ok: true,
+      scannedDir: scannedDir || (regGames.length ? "Windows Registry" : null),
+      games,
+    };
+  } catch (err) {
+    return { ok: false, scannedDir: null, games: [], error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("ea:launch", async (_evt, payload) => {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, error: "Invalid launch payload" };
+  }
+  const { appId, contentId } = payload;
+  const offer = contentId || appId;
+  if (!offer) return { ok: false, error: "Missing EA offer/content ID" };
+  const uri = `origin2://game/launch?offerIds=${encodeURIComponent(offer)}`;
+  try {
+    await shell.openExternal(uri);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {

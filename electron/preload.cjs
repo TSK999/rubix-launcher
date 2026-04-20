@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld("rubix", {
     scanInstalled: () => ipcRenderer.invoke("epic:scan-installed"),
     launch: (payload) => ipcRenderer.invoke("epic:launch", payload),
   },
+  ea: {
+    scanInstalled: () => ipcRenderer.invoke("ea:scan-installed"),
+    launch: (payload) => ipcRenderer.invoke("ea:launch", payload),
+  },
   updater: {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),
