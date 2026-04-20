@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play } from "lucide-react";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
 import { fetchRubixSteamMap } from "@/lib/rubix-friends";
 import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
+import { SteamProfileDialog } from "@/components/SteamProfileDialog";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import spotifyIcon from "@/assets/spotify-icon.png";
 
@@ -35,6 +36,23 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   // rubix user_id → currently playing track
   const [tracks, setTracks] = useState<Map<string, SpotifyTrack | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [selectedSteamId, setSelectedSteamId] = useState<string | null>(null);
+
+  const launchFriendGame = async (e: React.MouseEvent, gameId: string, gameName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = `steam://rungameid/${gameId}`;
+    if (window.rubix?.isElectron) {
+      const res = await window.rubix.launchGame(target);
+      if (res.ok) {
+        toast.success(`Launching ${gameName}`);
+      } else {
+        toast.error("Couldn't launch", { description: res.error });
+      }
+    } else {
+      window.location.href = target;
+    }
+  };
 
   const load = async () => {
     if (!steamId) return;
@@ -157,11 +175,10 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                     <ul className="space-y-0.5">
                       {list.map((f) => (
                         <li key={f.steamId}>
-                          <a
-                            href={f.profileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/50 transition-colors group"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSteamId(f.steamId)}
+                            className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/50 transition-colors group"
                             title={
                               f.gameName
                                 ? `${f.personaName} — ${f.gameName}`
@@ -243,7 +260,23 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 );
                               })()}
                             </div>
-                          </a>
+                            {f.gameId && f.gameName && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => launchFriendGame(e, f.gameId!, f.gameName!)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    launchFriendGame(e as unknown as React.MouseEvent, f.gameId!, f.gameName!);
+                                  }
+                                }}
+                                className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title={`Launch ${f.gameName}`}
+                              >
+                                <Play className="h-3 w-3" />
+                              </span>
+                            )}
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -254,6 +287,11 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
           )}
         </CollapsibleContent>
       </Collapsible>
+
+      <SteamProfileDialog
+        steamId={selectedSteamId}
+        onClose={() => setSelectedSteamId(null)}
+      />
     </div>
   );
 };
