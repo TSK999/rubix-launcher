@@ -179,6 +179,8 @@ export const Sidebar = ({
 
       <SteamFriendsPanel steamId={steamId} />
 
+      <SpotifyNowPlaying userId={userId} />
+
       <div className="mt-auto">
         <ThemeManager />
       </div>
