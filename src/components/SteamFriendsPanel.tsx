@@ -28,7 +28,12 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<SteamFriend[]>([]);
-  const [rubixIds, setRubixIds] = useState<Set<string>>(new Set());
+  // steam_id → rubix user_id (for friends with a Rubix account)
+  const [rubixMap, setRubixMap] = useState<Map<string, string>>(new Map());
+  // rubix user_id → spotify username (for friends with linked Spotify)
+  const [spotifyUsers, setSpotifyUsers] = useState<Map<string, string>>(new Map());
+  // rubix user_id → currently playing track
+  const [tracks, setTracks] = useState<Map<string, SpotifyTrack | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -38,12 +43,32 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
     try {
       const list = await fetchSteamFriends(steamId);
       setFriends(list);
+
       // Cross-reference Rubix accounts (silent on failure)
+      let map = new Map<string, string>();
       try {
-        const ids = await fetchRubixSteamIds(list.map((f) => f.steamId));
-        setRubixIds(ids);
+        map = await fetchRubixSteamMap(list.map((f) => f.steamId));
+        setRubixMap(map);
       } catch {
-        setRubixIds(new Set());
+        setRubixMap(new Map());
+      }
+
+      // Then check which Rubix friends have linked Spotify
+      const userIds = Array.from(map.values());
+      try {
+        const linked = await fetchSpotifyLinkedUsers(userIds);
+        const spotMap = new Map<string, string>();
+        for (const [uid, info] of linked) {
+          spotMap.set(uid, info.spotify_username ?? info.spotify_id);
+        }
+        setSpotifyUsers(spotMap);
+
+        // Fetch currently-playing for friends with Spotify
+        const trackMap = await fetchNowPlaying(Array.from(linked.keys()));
+        setTracks(trackMap);
+      } catch {
+        setSpotifyUsers(new Map());
+        setTracks(new Map());
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load friends";
@@ -62,6 +87,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [steamId]);
+
 
   if (!steamId) return null;
 
