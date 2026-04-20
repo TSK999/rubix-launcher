@@ -162,7 +162,7 @@ export const EaImportDialog = ({ open, onOpenChange, onImport }: Props) => {
         eaAppId: g.appId,
         eaContentId: g.contentId,
         eaLaunchUri: buildEaUri(g),
-      });
+      } as EaImportGame);
     }
 
     onImport(out);
