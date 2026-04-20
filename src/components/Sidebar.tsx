@@ -77,6 +77,8 @@ export const Sidebar = ({
         </div>
       </div>
 
+      <SpotifyNowPlaying userId={userId} />
+
       <nav className="p-3 space-y-1">
         <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           Library
