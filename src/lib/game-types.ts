@@ -1,4 +1,4 @@
-export type GameSource = "steam" | "epic" | "other";
+export type GameSource = "steam" | "epic" | "ea" | "other";
 
 export type Game = {
   id: string;
@@ -19,6 +19,10 @@ export type Game = {
   epicCatalogNamespace?: string;
   epicCatalogItemId?: string;
   epicLaunchUri?: string;
+  // EA app (formerly Origin)
+  eaAppId?: string;
+  eaContentId?: string;
+  eaLaunchUri?: string;
 };
 
 export const STORAGE_KEY = "rubix-launcher-games";
@@ -27,5 +31,6 @@ export const STEAM_ID_KEY = "rubix-launcher-steam-id";
 export const getGameSource = (g: Game): GameSource => {
   if (g.steamAppId) return "steam";
   if (g.epicAppName || g.epicLaunchUri) return "epic";
+  if (g.eaAppId || g.eaLaunchUri) return "ea";
   return "other";
 };

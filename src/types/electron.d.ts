@@ -18,6 +18,19 @@ export type EpicLaunchPayload = {
   catalogItemId: string;
 };
 
+export type EaScanGame = {
+  appId: string;
+  contentId: string;
+  displayName: string;
+  installLocation: string;
+  installSize: number;
+};
+
+export type EaLaunchPayload = {
+  appId: string;
+  contentId?: string;
+};
+
 export type UpdaterStatus =
   | { status: "checking"; payload?: undefined }
   | { status: "available"; payload: { version: string } }
@@ -40,6 +53,15 @@ declare global {
           error?: string;
         }>;
         launch: (payload: EpicLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
+      };
+      ea: {
+        scanInstalled: () => Promise<{
+          ok: boolean;
+          scannedDir: string | null;
+          games: EaScanGame[];
+          error?: string;
+        }>;
+        launch: (payload: EaLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
       };
       updater: {
         check: () => Promise<{ ok: boolean; version?: string; error?: string }>;
