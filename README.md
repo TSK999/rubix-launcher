@@ -35,6 +35,7 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Steam ID login & library sync
 * Epic Games support
 * Custom themes
+* Auto updates
 
 ---
 
