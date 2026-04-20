@@ -1,3 +1,4 @@
+// Game source: which storefront/launcher does this game come from
 export type GameSource = "steam" | "epic" | "ea" | "other";
 
 export type Game = {

@@ -16,7 +16,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
-import type { EaScanGame } from "@/types/electron";
+
+type EaScanGame = {
+  appId: string;
+  contentId: string;
+  displayName: string;
+  installLocation: string;
+  installSize: number;
+};
+
+type EaBridge = {
+  scanInstalled: () => Promise<{
+    ok: boolean;
+    scannedDir: string | null;
+    games: EaScanGame[];
+    error?: string;
+  }>;
+  launch: (payload: { appId: string; contentId?: string }) => Promise<{ ok: boolean; error?: string }>;
+};
 
 export type EaImportGame = Omit<Game, "id" | "addedAt">;
 
@@ -64,7 +81,9 @@ export const EaImportDialog = ({ open, onOpenChange, onImport }: Props) => {
     }
     setScanning(true);
     try {
-      const res = await window.rubix.ea.scanInstalled();
+      const ea = (window.rubix as unknown as { ea?: EaBridge })?.ea;
+      if (!ea) throw new Error("EA bridge not available — rebuild the desktop app");
+      const res = await ea.scanInstalled();
       if (!res.ok) throw new Error(res.error || "Scan failed");
       setScanned(res.games);
       setScannedDir(res.scannedDir);
@@ -143,7 +162,7 @@ export const EaImportDialog = ({ open, onOpenChange, onImport }: Props) => {
         eaAppId: g.appId,
         eaContentId: g.contentId,
         eaLaunchUri: buildEaUri(g),
-      });
+      } as EaImportGame);
     }
 
     onImport(out);

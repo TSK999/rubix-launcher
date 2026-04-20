@@ -1,4 +1,4 @@
-// Type declaration for Electron bridge exposed via preload.cjs
+// Type declaration for Electron bridge exposed via preload.cjs (incl. Epic + EA)
 export {};
 
 export type EpicScanGame = {
