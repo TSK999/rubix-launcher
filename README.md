@@ -37,17 +37,18 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Custom themes
 * Auto updates
 * Game banners and descriptions 
-
+* EA launcher support
+* Built in Steam Friend list 
 ---
 
 ##  TODO
 
 * Multi-language support
 * Built-in theme store
-* EA launcher support
 * General cleanup & polish
 * Website
-* Built in Steam Friend list 
+* Xbox App Support 
+
 
 ---
 
