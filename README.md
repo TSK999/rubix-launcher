@@ -38,18 +38,19 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Auto updates
 * Game banners and descriptions 
 * EA launcher support
-* Built in Steam Friend list 
+* Built in Steam Friend list
+* Built in Spotify
+* Rubix Accounts
+* General cleanup & polish
+
 ---
 
 ##  TODO
 
 * Multi-language support
 * Built-in theme store
-* General cleanup & polish
 * Website
 * Xbox App Support
-* Built in Spotify
-* Rubix Accounts
 * Messaging
 * Playtime Tracker
 
