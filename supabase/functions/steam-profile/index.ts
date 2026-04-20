@@ -130,14 +130,16 @@ Deno.serve(async (req) => {
           piData?.response?.mini_profile_background;
         const filename = bg?.image_large as string | undefined;
         const movie = bg?.movie as string | undefined;
+        const toSteamItemUrl = (path?: string) => {
+          if (!path) return undefined;
+          if (/^https?:\/\//.test(path)) return path;
+          const normalized = path.replace(/^\/+/, "");
+          return `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/${normalized}`;
+        };
         if (filename || movie) {
           profileBackground = {
-            image: filename
-              ? `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/items/${filename}`
-              : undefined,
-            movie: movie
-              ? `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/items/${movie}`
-              : undefined,
+            image: toSteamItemUrl(filename),
+            movie: toSteamItemUrl(movie),
           };
         }
       }
