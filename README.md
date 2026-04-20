@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" width="100%">
+  <img src="Topbanner.png" width="100%">
 </p>
 
 <h1 align="center"> Rubix Launcher</h1>
