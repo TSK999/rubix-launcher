@@ -26,10 +26,16 @@ export type SteamRecentGame = {
   header: string;
 };
 
+export type SteamProfileBackground = {
+  image?: string;
+  movie?: string;
+};
+
 export type SteamProfileResponse = {
   profile: SteamProfile;
   recentGames: SteamRecentGame[];
   totalGames?: number;
+  profileBackground?: SteamProfileBackground;
 };
 
 export const fetchSteamProfile = async (steamId: string): Promise<SteamProfileResponse> => {

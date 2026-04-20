@@ -95,8 +95,30 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
         {data && !loading && (
           <>
             {/* Header banner */}
-            <div className="relative bg-gradient-to-br from-secondary/60 to-background px-6 pt-6 pb-5 border-b border-border">
-              <div className="flex items-start gap-4">
+            <div className="relative bg-gradient-to-br from-secondary/60 to-background px-6 pt-6 pb-5 border-b border-border overflow-hidden">
+              {(data.profileBackground?.movie || data.profileBackground?.image) && (
+                <>
+                  {data.profileBackground.movie ? (
+                    <video
+                      src={data.profileBackground.movie}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      poster={data.profileBackground.image}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={data.profileBackground.image}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
+                </>
+              )}
+              <div className="relative flex items-start gap-4">
                 {data.profile.avatar ? (
                   <img
                     src={data.profile.avatar}
@@ -155,7 +177,7 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-4 text-xs text-muted-foreground">
+              <div className="relative flex items-center gap-3 mt-4 text-xs text-muted-foreground">
                 {data.totalGames !== undefined && (
                   <span>
                     <strong className="text-foreground">{data.totalGames.toLocaleString()}</strong> games owned
