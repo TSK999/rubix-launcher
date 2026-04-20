@@ -115,7 +115,37 @@ Deno.serve(async (req) => {
       /* ignore — recently played is optional */
     }
 
-    // 3) Owned games count (best-effort)
+    // 3) Equipped profile background (best-effort)
+    let profileBackground: { image?: string; movie?: string } | undefined;
+    try {
+      const piUrl =
+        `https://api.steampowered.com/IPlayerService/GetProfileItemsEquipped/v1/` +
+        `?key=${STEAM_API_KEY}&steamid=${steamId}`;
+      const piRes = await fetch(piUrl);
+      if (piRes.ok) {
+        const piData = await piRes.json();
+        // Prefer animated mini-profile bg if present, fallback to profile_background
+        const bg =
+          piData?.response?.profile_background ??
+          piData?.response?.mini_profile_background;
+        const filename = bg?.image_large as string | undefined;
+        const movie = bg?.movie as string | undefined;
+        if (filename || movie) {
+          profileBackground = {
+            image: filename
+              ? `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/items/${filename}`
+              : undefined,
+            movie: movie
+              ? `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/items/${movie}`
+              : undefined,
+          };
+        }
+      }
+    } catch {
+      /* ignore — backgrounds are optional */
+    }
+
+    // 4) Owned games count (best-effort)
     let totalGames: number | undefined;
     try {
       const ogUrl =
