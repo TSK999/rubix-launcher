@@ -75,7 +75,9 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
     setLoading(true);
     try {
       const map = await fetchNowPlaying([userId]);
-      setTrack(map.get(userId) ?? null);
+      const t = map.get(userId) ?? null;
+      setTrack(t);
+      if (t?.progress_ms != null) setProgressMs(t.progress_ms);
     } finally {
       setLoading(false);
     }
