@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Palette, Upload, RotateCcw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,8 @@ import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDi
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
+import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
+import { THEME_FILE_EXT } from "@/lib/theme-schema";
 import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
