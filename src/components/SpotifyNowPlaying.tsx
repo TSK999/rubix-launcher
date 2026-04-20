@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Music, Unlink } from "lucide-react";
+import {
+  Loader2,
+  Music,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Unlink,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
 import {
+  controlSpotify,
   disconnectSpotify,
   fetchMySpotifyConnection,
   fetchNowPlaying,
@@ -21,6 +33,9 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
   const [track, setTrack] = useState<SpotifyTrack | null>(null);
   const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [muted, setMuted] = useState(false);
 
   // Handle OAuth callback toast
   useEffect(() => {
@@ -101,6 +116,43 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
     toast("Spotify disconnected");
   };
 
+  const runControl = async (cmd: Parameters<typeof controlSpotify>[0]) => {
+    setBusy(true);
+    try {
+      await controlSpotify(cmd);
+      // optimistic toggle for play/pause
+      if (cmd.action === "play" || cmd.action === "pause") {
+        setTrack((t) => (t ? { ...t, is_playing: cmd.action === "play" } : t));
+      }
+      // refresh shortly after to reflect new track on next/prev
+      if (cmd.action === "next" || cmd.action === "previous") {
+        setTimeout(loadTrack, 600);
+      }
+    } catch (e) {
+      toast.error("Spotify control failed", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMute = async () => {
+    const next = !muted;
+    setMuted(next);
+    try {
+      await controlSpotify({
+        action: "volume",
+        volume_percent: next ? 0 : volume,
+      });
+    } catch (e) {
+      setMuted(!next);
+      toast.error("Couldn't change volume", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  };
+
   if (!userId) return null;
 
   return (
@@ -163,7 +215,7 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
                     <span
                       className={cn(
                         "h-1.5 w-1.5 rounded-full shrink-0",
-                        track.is_playing ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/40",
+                        track.is_playing ? "bg-primary animate-pulse" : "bg-muted-foreground/40",
                       )}
                     />
                     <p className="text-xs font-medium text-foreground truncate">
@@ -186,9 +238,75 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
                 </>
               )}
             </div>
-            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </div>
         </a>
+      )}
+
+      {connection && (
+        <div className="px-3 pt-2 space-y-2">
+          <div className="flex items-center justify-center gap-1">
+            <button
+              onClick={() => runControl({ action: "previous" })}
+              disabled={busy}
+              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
+              title="Previous"
+              aria-label="Previous track"
+            >
+              <SkipBack className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() =>
+                runControl({ action: track?.is_playing ? "pause" : "play" })
+              }
+              disabled={busy}
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-40"
+              title={track?.is_playing ? "Pause" : "Play"}
+              aria-label={track?.is_playing ? "Pause" : "Play"}
+            >
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : track?.is_playing ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4 ml-0.5" />
+              )}
+            </button>
+            <button
+              onClick={() => runControl({ action: "next" })}
+              disabled={busy}
+              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
+              title="Next"
+              aria-label="Next track"
+            >
+              <SkipForward className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 px-1">
+            <button
+              onClick={handleMute}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              title={muted ? "Unmute" : "Mute"}
+              aria-label={muted ? "Unmute" : "Mute"}
+            >
+              {muted || volume === 0 ? (
+                <VolumeX className="h-3.5 w-3.5" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <Slider
+              value={[muted ? 0 : volume]}
+              max={100}
+              step={1}
+              onValueChange={(v) => setVolume(v[0])}
+              onValueCommit={(v) => {
+                setMuted(false);
+                runControl({ action: "volume", volume_percent: v[0] });
+              }}
+              className="flex-1"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
