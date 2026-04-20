@@ -83,3 +83,20 @@ export const fetchNowPlaying = async (
   }
   return out;
 };
+
+export type SpotifyControlAction =
+  | { action: "play" | "pause" | "next" | "previous" }
+  | { action: "volume"; volume_percent: number }
+  | { action: "seek"; position_ms: number };
+
+/** Send a playback control command to the current user's Spotify. */
+export const controlSpotify = async (cmd: SpotifyControlAction): Promise<void> => {
+  const { data, error } = await supabase.functions.invoke("spotify-control", {
+    body: cmd,
+  });
+  if (error) {
+    // Edge function returns JSON error in data on non-2xx
+    const msg = (data as { error?: string } | null)?.error || error.message;
+    throw new Error(msg);
+  }
+};
