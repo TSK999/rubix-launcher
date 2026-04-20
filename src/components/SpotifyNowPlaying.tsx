@@ -168,9 +168,16 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
 
   if (!userId) return null;
 
+  const fmtTime = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
+  };
+
   return (
-    <div className="p-3 border-t border-border">
-      <div className="flex items-center justify-between px-3 pt-2 pb-2">
+    <div className="p-3 border-b border-border bg-card/40">
+      <div className="flex items-center justify-between px-1 pb-2">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           <Music className="h-3 w-3" />
           <span>Spotify</span>
@@ -200,22 +207,17 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
           <span>Link Spotify</span>
         </button>
       ) : (
-        <a
-          href={track?.url ?? `https://open.spotify.com/user/${connection.spotify_id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="block px-3 py-2 rounded-xl hover:bg-secondary/50 transition-colors group"
-        >
-          <div className="flex items-center gap-2.5">
+        <>
+          <div className="flex items-center gap-2.5 px-1">
             {track?.album_art ? (
               <img
                 src={track.album_art}
                 alt=""
-                className="h-10 w-10 rounded-md object-cover shrink-0"
+                className="h-12 w-12 rounded-md object-cover shrink-0"
                 loading="lazy"
               />
             ) : (
-              <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center shrink-0">
+              <div className="h-12 w-12 rounded-md bg-secondary flex items-center justify-center shrink-0">
                 <img src={spotifyIcon} alt="" className="h-5 w-5" width={20} height={20} loading="lazy" />
               </div>
             )}
@@ -252,74 +254,96 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
               )}
             </div>
           </div>
-        </a>
-      )}
 
-      {connection && (
-        <div className="px-3 pt-2 space-y-2">
-          <div className="flex items-center justify-center gap-1">
-            <button
-              onClick={() => runControl({ action: "previous" })}
-              disabled={busy}
-              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
-              title="Previous"
-              aria-label="Previous track"
-            >
-              <SkipBack className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() =>
-                runControl({ action: track?.is_playing ? "pause" : "play" })
-              }
-              disabled={busy}
-              className="h-9 w-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-40"
-              title={track?.is_playing ? "Pause" : "Play"}
-              aria-label={track?.is_playing ? "Pause" : "Play"}
-            >
-              {busy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : track?.is_playing ? (
-                <Pause className="h-4 w-4" />
-              ) : (
-                <Play className="h-4 w-4 ml-0.5" />
-              )}
-            </button>
-            <button
-              onClick={() => runControl({ action: "next" })}
-              disabled={busy}
-              className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
-              title="Next"
-              aria-label="Next track"
-            >
-              <SkipForward className="h-4 w-4" />
-            </button>
+          {/* Progress bar + time */}
+          {track?.duration_ms ? (
+            <div className="px-1 mt-2.5 space-y-1">
+              <Slider
+                value={[Math.min(progressMs, track.duration_ms)]}
+                max={track.duration_ms}
+                step={1000}
+                onValueChange={(v) => {
+                  setSeeking(true);
+                  setProgressMs(v[0]);
+                }}
+                onValueCommit={(v) => {
+                  setSeeking(false);
+                  runControl({ action: "seek", position_ms: v[0] });
+                }}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] tabular-nums text-muted-foreground">
+                <span>{fmtTime(progressMs)}</span>
+                <span>{fmtTime(track.duration_ms)}</span>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="px-1 mt-2 space-y-2">
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => runControl({ action: "previous" })}
+                disabled={busy}
+                className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
+                title="Previous"
+                aria-label="Previous track"
+              >
+                <SkipBack className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() =>
+                  runControl({ action: track?.is_playing ? "pause" : "play" })
+                }
+                disabled={busy}
+                className="h-9 w-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-40"
+                title={track?.is_playing ? "Pause" : "Play"}
+                aria-label={track?.is_playing ? "Pause" : "Play"}
+              >
+                {busy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : track?.is_playing ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4 ml-0.5" />
+                )}
+              </button>
+              <button
+                onClick={() => runControl({ action: "next" })}
+                disabled={busy}
+                className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
+                title="Next"
+                aria-label="Next track"
+              >
+                <SkipForward className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 px-1">
+              <button
+                onClick={handleMute}
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                title={muted ? "Unmute" : "Mute"}
+                aria-label={muted ? "Unmute" : "Mute"}
+              >
+                {muted || volume === 0 ? (
+                  <VolumeX className="h-3.5 w-3.5" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <Slider
+                value={[muted ? 0 : volume]}
+                max={100}
+                step={1}
+                onValueChange={(v) => setVolume(v[0])}
+                onValueCommit={(v) => {
+                  setMuted(false);
+                  runControl({ action: "volume", volume_percent: v[0] });
+                }}
+                className="flex-1"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2 px-1">
-            <button
-              onClick={handleMute}
-              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-              title={muted ? "Unmute" : "Mute"}
-              aria-label={muted ? "Unmute" : "Mute"}
-            >
-              {muted || volume === 0 ? (
-                <VolumeX className="h-3.5 w-3.5" />
-              ) : (
-                <Volume2 className="h-3.5 w-3.5" />
-              )}
-            </button>
-            <Slider
-              value={[muted ? 0 : volume]}
-              max={100}
-              step={1}
-              onValueChange={(v) => setVolume(v[0])}
-              onValueCommit={(v) => {
-                setMuted(false);
-                runControl({ action: "volume", volume_percent: v[0] });
-              }}
-              className="flex-1"
-            />
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
