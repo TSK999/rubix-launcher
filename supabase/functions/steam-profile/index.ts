@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
       /* ignore */
     }
 
-    return new Response(JSON.stringify({ profile, recentGames, totalGames }), {
+    return new Response(JSON.stringify({ profile, recentGames, totalGames, profileBackground }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
