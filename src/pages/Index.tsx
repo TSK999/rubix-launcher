@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Palette, Upload, RotateCcw } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
