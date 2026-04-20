@@ -53,6 +53,7 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Xbox App Support
 * Messaging
 * Playtime Tracker
+* Instant game laucnher from friend list
 
 
 
