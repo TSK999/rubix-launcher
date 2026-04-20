@@ -47,7 +47,12 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Built-in theme store
 * General cleanup & polish
 * Website
-* Xbox App Support 
+* Xbox App Support
+* Built in Spotify
+* Rubix Accounts
+* Messaging
+* Playtime Tracker
+
 
 
 ---
