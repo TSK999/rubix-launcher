@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   DndContext,
   PointerSensor,
@@ -407,69 +415,49 @@ const Index = () => {
             </div>
 
             <Button
-              variant="outline"
-              onClick={() => setFindOpen(true)}
-              className="rounded-2xl h-11 px-4"
-              title="Find any game by title"
-            >
-              <Sparkles className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Find</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={fixMissingCovers}
-              disabled={bulkBusy}
-              className="rounded-2xl h-11 px-4 hidden md:inline-flex"
-              title="Auto-fetch covers for all games missing one"
-            >
-              <Wand2 className="h-4 w-4 mr-2" />
-              {bulkBusy ? "Fixing..." : "Fix covers"}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setSteamOpen(true)}
-              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
-            >
-              <Download className="h-4 w-4 mr-2" /> Steam
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setEpicOpen(true)}
-              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
-              title={
-                window.rubix?.isElectron
-                  ? "Scan installed Epic games"
-                  : "Epic library scan requires the desktop app"
-              }
-            >
-              <Store className="h-4 w-4 mr-2" /> Epic
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setEaOpen(true)}
-              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
-              title={
-                window.rubix?.isElectron
-                  ? "Scan installed EA games"
-                  : "EA library scan requires the desktop app"
-              }
-            >
-              <Gamepad className="h-4 w-4 mr-2" /> EA
-            </Button>
-
-            <Button
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
               }}
               className="rounded-2xl h-11 px-5 bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)]"
             >
-              <Plus className="h-4 w-4 mr-2" /> Add Game
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Add Game</span>
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-2xl h-11 w-11 shrink-0"
+                  title="More actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Find & fix</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setFindOpen(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Find a game
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={fixMissingCovers} disabled={bulkBusy}>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  {bulkBusy ? "Fixing covers..." : "Fix missing covers"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Import library</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setSteamOpen(true)}>
+                  <Download className="h-4 w-4 mr-2" /> Import from Steam
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEpicOpen(true)}>
+                  <Store className="h-4 w-4 mr-2" /> Import from Epic
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEaOpen(true)}>
+                  <Gamepad className="h-4 w-4 mr-2" /> Import from EA
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
