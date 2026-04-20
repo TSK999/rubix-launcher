@@ -33,6 +33,9 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
   const [track, setTrack] = useState<SpotifyTrack | null>(null);
   const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [muted, setMuted] = useState(false);
 
   // Handle OAuth callback toast
   useEffect(() => {
