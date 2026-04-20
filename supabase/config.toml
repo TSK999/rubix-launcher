@@ -15,3 +15,6 @@ verify_jwt = false
 [functions.spotify-now-playing]
 verify_jwt = false
 
+[functions.steam-profile]
+verify_jwt = false
+
