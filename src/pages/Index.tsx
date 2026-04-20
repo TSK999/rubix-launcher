@@ -426,7 +426,15 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Find & fix</DropdownMenuLabel>
+                <DropdownMenuLabel>Add games</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditing(null);
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add a game manually
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFindOpen(true)}>
                   <Sparkles className="h-4 w-4 mr-2" /> Find a game
                 </DropdownMenuItem>
