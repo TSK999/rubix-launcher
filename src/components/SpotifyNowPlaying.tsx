@@ -99,6 +99,15 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection?.user_id]);
 
+  // Local 1s progress ticker (smooth bar between 30s server polls)
+  useEffect(() => {
+    if (!track?.is_playing || seeking || !track.duration_ms) return;
+    const id = window.setInterval(() => {
+      setProgressMs((p) => Math.min(p + 1000, track.duration_ms ?? p));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [track?.is_playing, track?.duration_ms, seeking]);
+
   const handleLink = async () => {
     setLinking(true);
     try {
