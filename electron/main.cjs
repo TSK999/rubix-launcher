@@ -304,14 +304,42 @@ function getEaInstallDataDirs() {
   const dirs = [];
   if (process.platform === "win32") {
     const programData = process.env.PROGRAMDATA || "C:\\ProgramData";
+    const localAppData = process.env.LOCALAPPDATA || "";
     dirs.push(
+      // Modern EA Desktop (correct path — no "Electronic Arts" parent)
+      path.join(programData, "EA Desktop", "InstallData"),
+      path.join(programData, "EA Desktop"),
+      // Older / alternate layouts
       path.join(programData, "Electronic Arts", "EA Desktop", "InstallData"),
       path.join(programData, "Electronic Arts", "EA Services", "Installed"),
-      path.join(programData, "Origin", "LocalContent")
+      // Legacy Origin manifests
+      path.join(programData, "Origin", "LocalContent"),
+      localAppData && path.join(localAppData, "Electronic Arts", "EA Desktop")
     );
   }
-  // EA app is Windows-only; macOS/Linux fall through to empty list
-  return dirs;
+  return dirs.filter(Boolean);
+}
+
+// Recursively find installerdata.xml / .mfst within a root, capped depth
+function findEaManifestFiles(root, depth = 0, out = []) {
+  if (depth > 4) return out;
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    const full = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      findEaManifestFiles(full, depth + 1, out);
+    } else if (entry.isFile()) {
+      if (/^installerdata\.xml$/i.test(entry.name) || /\.mfst$/i.test(entry.name)) {
+        out.push(full);
+      }
+    }
+  }
+  return out;
 }
 
 function readEaInstalledRegistry() {
