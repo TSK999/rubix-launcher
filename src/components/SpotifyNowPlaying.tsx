@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Music, Unlink } from "lucide-react";
+import {
+  Loader2,
+  Music,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Unlink,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
 import {
+  controlSpotify,
   disconnectSpotify,
   fetchMySpotifyConnection,
   fetchNowPlaying,
