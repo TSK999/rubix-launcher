@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,11 +30,33 @@ import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDi
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
+import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
+import { THEME_FILE_EXT } from "@/lib/theme-schema";
 import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/game-types";
 
 const RECENT_WINDOW_DAYS = 30;
 
 const Index = () => {
+  const themeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleThemeFile = async (file: File) => {
+    try {
+      const theme = await importThemeFromFile(file);
+      applyTheme(theme);
+      saveTheme(theme);
+      toast.success(`Theme "${theme.name}" applied`);
+    } catch (e) {
+      toast.error("Couldn't load theme", {
+        description: e instanceof Error ? e.message : "Invalid file",
+      });
+    }
+  };
+
+  const handleResetTheme = () => {
+    clearTheme();
+    toast("Reset to default theme");
+  };
+
   const [games, setGames] = useState<Game[]>([]);
   const [search, setSearch] = useState("");
   const [collection, setCollection] = useState<Collection>("all");
@@ -453,8 +475,27 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setEaOpen(true)}>
                   <Gamepad className="h-4 w-4 mr-2" /> Import from EA
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" /> Import theme
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleResetTheme}>
+                  <RotateCcw className="h-4 w-4 mr-2" /> Reset to default
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <input
+              ref={themeInputRef}
+              type="file"
+              accept={`${THEME_FILE_EXT},application/json`}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleThemeFile(f);
+                e.target.value = "";
+              }}
+            />
           </div>
         </header>
 
