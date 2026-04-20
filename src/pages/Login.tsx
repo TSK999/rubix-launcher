@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { setStoredSteamId } from "@/lib/steam-auth";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
-import rubixIcon from "@/assets/rubix-friends-icon.png";
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ const Login = () => {
 
       <main className="relative w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
-          <img src={rubixIcon} alt="Rubix" className="h-16 w-16 mb-3 drop-shadow-lg" />
+          
           <h1 className="text-4xl font-bold tracking-tight">RUBIX</h1>
           <p className="text-muted-foreground mt-2 max-w-xs">
             Your unified game library. Sign in or create your Rubix account.
