@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -19,6 +19,7 @@ import { GameDetail } from "@/components/GameDetail";
 import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
 import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
+import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/game-types";
@@ -35,6 +36,7 @@ const Index = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [steamOpen, setSteamOpen] = useState(false);
   const [epicOpen, setEpicOpen] = useState(false);
+  const [eaOpen, setEaOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -200,6 +202,17 @@ const Index = () => {
       return;
     }
 
+    // EA app — launch via origin2:// URI
+    if (window.rubix?.isElectron && g.eaAppId) {
+      const res = await window.rubix.ea.launch({
+        appId: g.eaAppId,
+        contentId: g.eaContentId,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via EA app`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -251,6 +264,35 @@ const Index = () => {
     });
   };
 
+  const importFromEa = (incoming: EaImportGame[]) => {
+    setGames((current) => {
+      const byAppId = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.eaAppId) byAppId.set(g.eaAppId, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const e of incoming) {
+        const existing = e.eaAppId ? byAppId.get(e.eaAppId) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...e };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...e, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("EA library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   // Derived data
   const genres = useMemo(() => {
     const s = new Set<string>();
@@ -268,7 +310,7 @@ const Index = () => {
   }, [games]);
 
   const sourceCounts = useMemo(() => {
-    const c = { steam: 0, epic: 0, other: 0 };
+    const c = { steam: 0, epic: 0, ea: 0, other: 0 };
     games.forEach((g) => {
       c[getGameSource(g)]++;
     });
@@ -407,6 +449,19 @@ const Index = () => {
             </Button>
 
             <Button
+              variant="outline"
+              onClick={() => setEaOpen(true)}
+              className="rounded-2xl h-11 px-4 hidden sm:inline-flex"
+              title={
+                window.rubix?.isElectron
+                  ? "Scan installed EA games"
+                  : "EA library scan requires the desktop app"
+              }
+            >
+              <Gamepad className="h-4 w-4 mr-2" /> EA
+            </Button>
+
+            <Button
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
@@ -478,6 +533,12 @@ const Index = () => {
         open={epicOpen}
         onOpenChange={setEpicOpen}
         onImport={importFromEpic}
+      />
+
+      <EaImportDialog
+        open={eaOpen}
+        onOpenChange={setEaOpen}
+        onImport={importFromEa}
       />
 
       <QuickFindDialog
