@@ -10,6 +10,9 @@ log.transports.file.level = "info";
 autoUpdater.logger = log;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+// Accept GitHub pre-releases (so tags like v0.0.4 marked "Pre-release" still update)
+autoUpdater.allowPrerelease = true;
+autoUpdater.channel = "latest";
 
 let mainWindow = null;
 
