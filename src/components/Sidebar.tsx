@@ -39,6 +39,7 @@ export const Sidebar = ({
   const navigate = useNavigate();
   const { profile } = useRubixAuth();
   const steamId = profile?.steam_id ?? null;
+  const userId = profile?.user_id ?? null;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
