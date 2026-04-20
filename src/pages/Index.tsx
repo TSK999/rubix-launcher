@@ -414,17 +414,6 @@ const Index = () => {
               </div>
             </div>
 
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-              className="rounded-2xl h-11 px-5 bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)]"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add Game</span>
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -437,7 +426,15 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Find & fix</DropdownMenuLabel>
+                <DropdownMenuLabel>Add games</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditing(null);
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add a game manually
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFindOpen(true)}>
                   <Sparkles className="h-4 w-4 mr-2" /> Find a game
                 </DropdownMenuItem>
