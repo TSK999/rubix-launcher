@@ -36,6 +36,7 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Epic Games support
 * Custom themes
 * Auto updates
+* Game banners and descriptions 
 
 ---
 
