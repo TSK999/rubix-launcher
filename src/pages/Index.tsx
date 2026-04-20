@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Palette, Upload, RotateCcw } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +37,26 @@ import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/ga
 const RECENT_WINDOW_DAYS = 30;
 
 const Index = () => {
+  const themeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleThemeFile = async (file: File) => {
+    try {
+      const theme = await importThemeFromFile(file);
+      applyTheme(theme);
+      saveTheme(theme);
+      toast.success(`Theme "${theme.name}" applied`);
+    } catch (e) {
+      toast.error("Couldn't load theme", {
+        description: e instanceof Error ? e.message : "Invalid file",
+      });
+    }
+  };
+
+  const handleResetTheme = () => {
+    clearTheme();
+    toast("Reset to default theme");
+  };
+
   const [games, setGames] = useState<Game[]>([]);
   const [search, setSearch] = useState("");
   const [collection, setCollection] = useState<Collection>("all");
