@@ -116,6 +116,43 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
     toast("Spotify disconnected");
   };
 
+  const runControl = async (cmd: Parameters<typeof controlSpotify>[0]) => {
+    setBusy(true);
+    try {
+      await controlSpotify(cmd);
+      // optimistic toggle for play/pause
+      if (cmd.action === "play" || cmd.action === "pause") {
+        setTrack((t) => (t ? { ...t, is_playing: cmd.action === "play" } : t));
+      }
+      // refresh shortly after to reflect new track on next/prev
+      if (cmd.action === "next" || cmd.action === "previous") {
+        setTimeout(loadTrack, 600);
+      }
+    } catch (e) {
+      toast.error("Spotify control failed", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMute = async () => {
+    const next = !muted;
+    setMuted(next);
+    try {
+      await controlSpotify({
+        action: "volume",
+        volume_percent: next ? 0 : volume,
+      });
+    } catch (e) {
+      setMuted(!next);
+      toast.error("Couldn't change volume", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    }
+  };
+
   if (!userId) return null;
 
   return (
