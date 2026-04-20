@@ -1,10 +1,13 @@
-import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { clearStoredSteamId, getStoredSteamId } from "@/lib/steam-auth";
+import { clearStoredSteamId } from "@/lib/steam-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { ThemeManager } from "@/components/ThemeManager";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
+import { useRubixAuth } from "@/hooks/useRubixAuth";
+import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
 
 export type Collection = "all" | "favorites" | "recent";
@@ -33,11 +36,13 @@ export const Sidebar = ({
   sourceCounts,
 }: Props) => {
   const navigate = useNavigate();
-  const steamId = getStoredSteamId();
+  const { profile } = useRubixAuth();
+  const steamId = profile?.steam_id ?? null;
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     clearStoredSteamId();
-    toast("Signed out of Steam");
+    toast("Signed out of Rubix");
     navigate("/login", { replace: true });
   };
 
@@ -56,9 +61,18 @@ export const Sidebar = ({
 
   return (
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card/30 backdrop-blur-sm">
-      <div className="p-4 border-b border-border">
-        <h1 className="text-base font-bold tracking-tight leading-none">RUBIX</h1>
-        <p className="text-[11px] text-muted-foreground mt-1">Launcher</p>
+      <div className="p-4 border-b border-border flex items-center gap-3">
+        <img src={rubixIcon} alt="" className="h-8 w-8 shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-base font-bold tracking-tight leading-none">RUBIX</h1>
+          {profile ? (
+            <p className="text-[11px] text-muted-foreground mt-1 truncate" title={profile.username}>
+              @{profile.username}
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground mt-1">Launcher</p>
+          )}
+        </div>
       </div>
 
       <nav className="p-3 space-y-1">
@@ -168,6 +182,18 @@ export const Sidebar = ({
       </div>
 
       <div className="p-3 border-t border-border">
+        {!steamId && (
+          <button
+            onClick={() => {
+              localStorage.removeItem("rubix:steam-link-skipped");
+              window.location.reload();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors mb-1"
+          >
+            <Link2 className="h-4 w-4" />
+            <span>Link Steam</span>
+          </button>
+        )}
         {steamId && (
           <p className="px-3 pb-2 text-[11px] text-muted-foreground font-mono truncate" title={steamId}>
             Steam · {steamId.slice(-6)}

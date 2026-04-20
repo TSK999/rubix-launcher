@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { setStoredSteamId } from "@/lib/steam-auth";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
@@ -70,14 +71,18 @@ const Login = () => {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
     });
-    if (error) {
+    if (result.error) {
       setLoading(false);
-      toast.error("Google sign-in failed", { description: error.message });
+      const msg = result.error instanceof Error ? result.error.message : String(result.error);
+      toast.error("Google sign-in failed", { description: msg });
+      return;
     }
+    if (result.redirected) return;
+    toast.success("Welcome!");
+    navigate("/", { replace: true });
   };
 
   const handleDemoLaunch = async () => {
