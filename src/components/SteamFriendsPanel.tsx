@@ -199,14 +199,29 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 )}
                               >
                                 <span className="truncate">{f.personaName}</span>
-                                {rubixIds.has(f.steamId) && (
-                                  <img
-                                    src={rubixIcon}
-                                    alt="Rubix user"
-                                    title="Has a Rubix account"
-                                    className="h-3.5 w-3.5 shrink-0"
-                                  />
-                                )}
+                                {(() => {
+                                  const uid = rubixMap.get(f.steamId);
+                                  if (!uid) return null;
+                                  return (
+                                    <>
+                                      <img
+                                        src={rubixIcon}
+                                        alt="Rubix user"
+                                        title="Has a Rubix account"
+                                        className="h-3.5 w-3.5 shrink-0"
+                                      />
+                                      {spotifyUsers.has(uid) && (
+                                        <img
+                                          src={spotifyIcon}
+                                          alt="Spotify"
+                                          title={`Spotify · @${spotifyUsers.get(uid)}`}
+                                          className="h-3.5 w-3.5 shrink-0"
+                                          loading="lazy"
+                                        />
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                               {f.gameName && (
                                 <div className="text-[10px] text-emerald-400/90 truncate flex items-center gap-1">
@@ -214,6 +229,19 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                   {f.gameName}
                                 </div>
                               )}
+                              {(() => {
+                                const uid = rubixMap.get(f.steamId);
+                                const track = uid ? tracks.get(uid) : null;
+                                if (!track || !track.is_playing) return null;
+                                return (
+                                  <div className="text-[10px] text-emerald-400/80 truncate flex items-center gap-1">
+                                    <Music className="h-2.5 w-2.5" />
+                                    <span className="truncate">
+                                      {track.name} · {track.artists}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </a>
                         </li>
