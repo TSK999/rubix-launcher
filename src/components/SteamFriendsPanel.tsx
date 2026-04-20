@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
+import { fetchRubixSteamIds } from "@/lib/rubix-friends";
+import rubixIcon from "@/assets/rubix-friends-icon.png";
 
 type Props = {
   steamId: string | null;
@@ -24,6 +26,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<SteamFriend[]>([]);
+  const [rubixIds, setRubixIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -33,6 +36,13 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
     try {
       const list = await fetchSteamFriends(steamId);
       setFriends(list);
+      // Cross-reference Rubix accounts (silent on failure)
+      try {
+        const ids = await fetchRubixSteamIds(list.map((f) => f.steamId));
+        setRubixIds(ids);
+      } catch {
+        setRubixIds(new Set());
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load friends";
       setError(msg);
@@ -154,13 +164,21 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                             <div className="flex-1 min-w-0">
                               <div
                                 className={cn(
-                                  "text-xs font-medium truncate",
+                                  "text-xs font-medium truncate flex items-center gap-1.5",
                                   status === "offline"
                                     ? "text-muted-foreground"
                                     : "text-foreground",
                                 )}
                               >
-                                {f.personaName}
+                                <span className="truncate">{f.personaName}</span>
+                                {rubixIds.has(f.steamId) && (
+                                  <img
+                                    src={rubixIcon}
+                                    alt="Rubix user"
+                                    title="Has a Rubix account"
+                                    className="h-3.5 w-3.5 shrink-0"
+                                  />
+                                )}
                               </div>
                               {f.gameName && (
                                 <div className="text-[10px] text-emerald-400/90 truncate flex items-center gap-1">

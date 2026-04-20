@@ -12,7 +12,8 @@ import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import { RequireSteamAuth } from "./components/RequireSteamAuth";
+import { RequireRubixAuth } from "./components/RequireRubixAuth";
+import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
 import { UpdateSplash } from "./components/UpdateSplash";
 
@@ -32,9 +33,12 @@ const App = () => (
           <Route
             path="/"
             element={
-              <RequireSteamAuth>
-                <Index />
-              </RequireSteamAuth>
+              <RequireRubixAuth>
+                <>
+                  <LinkSteamPrompt />
+                  <Index />
+                </>
+              </RequireRubixAuth>
             }
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
