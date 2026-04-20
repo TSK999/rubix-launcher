@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2 } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music } from "lucide-react";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
-import { fetchRubixSteamIds } from "@/lib/rubix-friends";
+import { fetchRubixSteamMap } from "@/lib/rubix-friends";
+import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
+import spotifyIcon from "@/assets/spotify-icon.png";
 
 type Props = {
   steamId: string | null;
