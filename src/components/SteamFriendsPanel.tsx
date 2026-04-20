@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2 } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music } from "lucide-react";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
-import { fetchRubixSteamIds } from "@/lib/rubix-friends";
+import { fetchRubixSteamMap } from "@/lib/rubix-friends";
+import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
+import spotifyIcon from "@/assets/spotify-icon.png";
 
 type Props = {
   steamId: string | null;
@@ -26,7 +28,12 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<SteamFriend[]>([]);
-  const [rubixIds, setRubixIds] = useState<Set<string>>(new Set());
+  // steam_id → rubix user_id (for friends with a Rubix account)
+  const [rubixMap, setRubixMap] = useState<Map<string, string>>(new Map());
+  // rubix user_id → spotify username (for friends with linked Spotify)
+  const [spotifyUsers, setSpotifyUsers] = useState<Map<string, string>>(new Map());
+  // rubix user_id → currently playing track
+  const [tracks, setTracks] = useState<Map<string, SpotifyTrack | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -36,12 +43,32 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
     try {
       const list = await fetchSteamFriends(steamId);
       setFriends(list);
+
       // Cross-reference Rubix accounts (silent on failure)
+      let map = new Map<string, string>();
       try {
-        const ids = await fetchRubixSteamIds(list.map((f) => f.steamId));
-        setRubixIds(ids);
+        map = await fetchRubixSteamMap(list.map((f) => f.steamId));
+        setRubixMap(map);
       } catch {
-        setRubixIds(new Set());
+        setRubixMap(new Map());
+      }
+
+      // Then check which Rubix friends have linked Spotify
+      const userIds = Array.from(map.values());
+      try {
+        const linked = await fetchSpotifyLinkedUsers(userIds);
+        const spotMap = new Map<string, string>();
+        for (const [uid, info] of linked) {
+          spotMap.set(uid, info.spotify_username ?? info.spotify_id);
+        }
+        setSpotifyUsers(spotMap);
+
+        // Fetch currently-playing for friends with Spotify
+        const trackMap = await fetchNowPlaying(Array.from(linked.keys()));
+        setTracks(trackMap);
+      } catch {
+        setSpotifyUsers(new Map());
+        setTracks(new Map());
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load friends";
@@ -60,6 +87,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [steamId]);
+
 
   if (!steamId) return null;
 
@@ -171,14 +199,29 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 )}
                               >
                                 <span className="truncate">{f.personaName}</span>
-                                {rubixIds.has(f.steamId) && (
-                                  <img
-                                    src={rubixIcon}
-                                    alt="Rubix user"
-                                    title="Has a Rubix account"
-                                    className="h-3.5 w-3.5 shrink-0"
-                                  />
-                                )}
+                                {(() => {
+                                  const uid = rubixMap.get(f.steamId);
+                                  if (!uid) return null;
+                                  return (
+                                    <>
+                                      <img
+                                        src={rubixIcon}
+                                        alt="Rubix user"
+                                        title="Has a Rubix account"
+                                        className="h-3.5 w-3.5 shrink-0"
+                                      />
+                                      {spotifyUsers.has(uid) && (
+                                        <img
+                                          src={spotifyIcon}
+                                          alt="Spotify"
+                                          title={`Spotify · @${spotifyUsers.get(uid)}`}
+                                          className="h-3.5 w-3.5 shrink-0"
+                                          loading="lazy"
+                                        />
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                               {f.gameName && (
                                 <div className="text-[10px] text-emerald-400/90 truncate flex items-center gap-1">
@@ -186,6 +229,19 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                   {f.gameName}
                                 </div>
                               )}
+                              {(() => {
+                                const uid = rubixMap.get(f.steamId);
+                                const track = uid ? tracks.get(uid) : null;
+                                if (!track || !track.is_playing) return null;
+                                return (
+                                  <div className="text-[10px] text-emerald-400/80 truncate flex items-center gap-1">
+                                    <Music className="h-2.5 w-2.5" />
+                                    <span className="truncate">
+                                      {track.name} · {track.artists}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </a>
                         </li>

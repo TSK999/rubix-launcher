@@ -6,6 +6,7 @@ import { clearStoredSteamId } from "@/lib/steam-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeManager } from "@/components/ThemeManager";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
+import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
@@ -38,6 +39,7 @@ export const Sidebar = ({
   const navigate = useNavigate();
   const { profile } = useRubixAuth();
   const steamId = profile?.steam_id ?? null;
+  const userId = profile?.user_id ?? null;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -176,6 +178,8 @@ export const Sidebar = ({
       )}
 
       <SteamFriendsPanel steamId={steamId} />
+
+      <SpotifyNowPlaying userId={userId} />
 
       <div className="mt-auto">
         <ThemeManager />

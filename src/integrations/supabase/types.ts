@@ -47,12 +47,66 @@ export type Database = {
         }
         Relationships: []
       }
+      spotify_connections: {
+        Row: {
+          access_token: string
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          expires_at: string
+          id: string
+          refresh_token: string
+          scope: string | null
+          spotify_id: string
+          spotify_username: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          expires_at: string
+          id?: string
+          refresh_token: string
+          scope?: string | null
+          spotify_id: string
+          spotify_username?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          scope?: string | null
+          spotify_id?: string
+          spotify_username?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_spotify_linked_users: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          spotify_id: string
+          spotify_username: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

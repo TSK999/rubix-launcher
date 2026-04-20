@@ -9,3 +9,9 @@ verify_jwt = false
 [functions.steam-auth]
 verify_jwt = false
 
+[functions.spotify-auth]
+verify_jwt = false
+
+[functions.spotify-now-playing]
+verify_jwt = false
+
