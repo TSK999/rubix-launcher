@@ -118,9 +118,9 @@ const Login = () => {
       <main className="relative w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
           
-          <h1 className="text-4xl font-bold tracking-tight">RUBIX</h1>
+          <h1 className="text-4xl font-bold tracking-tight">RUBIX LAUNCHER</h1>
           <p className="text-muted-foreground mt-2 max-w-xs">
-            Your unified game library. Sign in or create your Rubix account.
+            Sign in or create your Rubix account.
           </p>
         </div>
 
