@@ -475,8 +475,27 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setEaOpen(true)}>
                   <Gamepad className="h-4 w-4 mr-2" /> Import from EA
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" /> Import theme
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleResetTheme}>
+                  <RotateCcw className="h-4 w-4 mr-2" /> Reset to default
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <input
+              ref={themeInputRef}
+              type="file"
+              accept={`${THEME_FILE_EXT},application/json`}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleThemeFile(f);
+                e.target.value = "";
+              }}
+            />
           </div>
         </header>
 
