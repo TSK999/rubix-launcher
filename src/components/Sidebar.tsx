@@ -1,9 +1,10 @@
-import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { clearStoredSteamId, getStoredSteamId } from "@/lib/steam-auth";
 import { ThemeManager } from "@/components/ThemeManager";
+import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import type { GameSource } from "@/lib/game-types";
 
 export type Collection = "all" | "favorites" | "recent";
@@ -17,7 +18,7 @@ type Props = {
   counts: { all: number; favorites: number; recent: number };
   selectedSource: GameSource | null;
   onSource: (s: GameSource | null) => void;
-  sourceCounts: { steam: number; epic: number; other: number };
+  sourceCounts: { steam: number; epic: number; ea: number; other: number };
 };
 
 export const Sidebar = ({
@@ -49,6 +50,7 @@ export const Sidebar = ({
   const stores: { id: GameSource; label: string; icon: typeof Library; count: number }[] = [
     { id: "steam", label: "Steam", icon: Gamepad2, count: sourceCounts.steam },
     { id: "epic", label: "Epic Games", icon: Store, count: sourceCounts.epic },
+    { id: "ea", label: "EA app", icon: Gamepad, count: sourceCounts.ea },
     { id: "other", label: "Other", icon: Box, count: sourceCounts.other },
   ];
 
@@ -158,6 +160,8 @@ export const Sidebar = ({
           </div>
         </div>
       )}
+
+      <SteamFriendsPanel steamId={steamId} />
 
       <div className="mt-auto">
         <ThemeManager />
