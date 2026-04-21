@@ -31,6 +31,21 @@ export type EaLaunchPayload = {
   contentId?: string;
 };
 
+export type XboxScanGame = {
+  packageFamilyName: string;
+  appUserModelId: string;
+  displayName: string;
+  installLocation: string;
+  publisher: string;
+  installSize: number;
+  logo: string;
+};
+
+export type XboxLaunchPayload = {
+  appUserModelId?: string;
+  packageFamilyName?: string;
+};
+
 export type UpdaterStatus =
   | { status: "checking"; payload?: undefined }
   | { status: "available"; payload: { version: string } }
@@ -62,6 +77,15 @@ declare global {
           error?: string;
         }>;
         launch: (payload: EaLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
+      };
+      xbox: {
+        scanInstalled: () => Promise<{
+          ok: boolean;
+          scannedDir: string | null;
+          games: XboxScanGame[];
+          error?: string;
+        }>;
+        launch: (payload: XboxLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
       };
       updater: {
         check: () => Promise<{ ok: boolean; version?: string; error?: string }>;
