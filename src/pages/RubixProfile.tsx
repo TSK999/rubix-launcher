@@ -329,6 +329,48 @@ const RubixProfile = () => {
               ) : (
                 <p className="text-sm text-muted-foreground italic">No bio yet.</p>
               )}
+
+              {/* Socials */}
+              {profile.socials && Object.values(profile.socials).some((v) => v && v.trim()) && (
+                <div className="rounded-xl border border-border bg-card/50 p-5">
+                  <p className="text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                    <ExternalLink className="h-3 w-3" /> Socials
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {SOCIALS.map((s) => {
+                      const raw = profile.socials?.[s.key];
+                      if (!raw || !raw.trim()) return null;
+                      const Icon = s.icon;
+                      const url = s.toUrl(raw);
+                      const label = s.display(raw);
+                      const inner = (
+                        <>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="text-sm truncate max-w-[180px]">{label}</span>
+                        </>
+                      );
+                      const className =
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-secondary/40 hover:bg-secondary transition-colors";
+                      return url ? (
+                        <a
+                          key={s.key}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={className}
+                          title={s.label}
+                        >
+                          {inner}
+                        </a>
+                      ) : (
+                        <span key={s.key} className={className} title={s.label}>
+                          {inner}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
