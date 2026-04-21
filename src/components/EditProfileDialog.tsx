@@ -42,6 +42,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgKind, setBgKind] = useState<"image" | "gif" | "video" | null>(null);
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">("public");
+  const [socials, setSocials] = useState<Socials>({});
   const [saving, setSaving] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
