@@ -57,20 +57,19 @@ export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicP
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id",
+      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
     )
     .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
     .limit(limit * 2);
   if (error || !data) return [];
+  const rows = (data as Record<string, unknown>[]).map(normalize);
 
   // Filter out anyone in a blocked friendship with the current viewer
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return (data as RubixPublicProfile[]).slice(0, limit);
-  const otherIds = (data as RubixPublicProfile[]).map((p) => p.user_id);
+  if (!user) return rows.slice(0, limit);
+  const otherIds = rows.map((p) => p.user_id);
   const blockedIds = await fetchBlockedUserIds(user.id, otherIds);
-  return (data as RubixPublicProfile[])
-    .filter((p) => !blockedIds.has(p.user_id))
-    .slice(0, limit);
+  return rows.filter((p) => !blockedIds.has(p.user_id)).slice(0, limit);
 };
 
 /**
