@@ -1,5 +1,7 @@
 import { Github, Globe, Instagram, Twitch, Youtube } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+
+type IconComponent = ComponentType<{ className?: string }>;
 
 export type SocialKey =
   | "youtube"
