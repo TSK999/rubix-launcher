@@ -37,7 +37,9 @@ export const ControllerModeProvider = ({ children }: { children: ReactNode }) =>
     return () => document.body.classList.remove(cls);
   }, [enabled]);
 
-  // Track gamepad connect/disconnect
+  // Track gamepad connect/disconnect (always polling so the badge stays accurate
+  // even when controller-mode is off — the Gamepad API only reports devices
+  // after the user presses a button while the page is focused).
   useEffect(() => {
     const onConnect = () => setControllerConnected(true);
     const onDisconnect = () => {
@@ -46,12 +48,19 @@ export const ControllerModeProvider = ({ children }: { children: ReactNode }) =>
     };
     window.addEventListener("gamepadconnected", onConnect);
     window.addEventListener("gamepaddisconnected", onDisconnect);
-    // Initial check
-    const pads = navigator.getGamepads?.() ?? [];
-    if (Array.from(pads).some((p) => p)) setControllerConnected(true);
+
+    // Light poll — getGamepads() may need to be called repeatedly before the
+    // browser surfaces a connected pad (especially in Chromium).
+    const interval = window.setInterval(() => {
+      const pads = navigator.getGamepads?.() ?? [];
+      const any = Array.from(pads).some((p) => p);
+      setControllerConnected((prev) => (prev !== any ? any : prev));
+    }, 1000);
+
     return () => {
       window.removeEventListener("gamepadconnected", onConnect);
       window.removeEventListener("gamepaddisconnected", onDisconnect);
+      window.clearInterval(interval);
     };
   }, []);
 
