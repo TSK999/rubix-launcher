@@ -272,6 +272,24 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 );
                               })()}
                             </div>
+                            {(() => {
+                              const uid = rubixMap.get(f.steamId);
+                              if (!uid) return null;
+                              return (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => openDm(e, uid)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") openDm(e as unknown as React.MouseEvent, uid);
+                                  }}
+                                  className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  title={`Message ${f.personaName}`}
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                </span>
+                              );
+                            })()}
                             {f.gameId && f.gameName && (
                               <span
                                 role="button"
