@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Check, CheckCheck, MoreVertical, Pencil, Reply, Smile, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -102,19 +103,39 @@ export const MessageBubble = ({
     <div className={cn("flex gap-2 group px-3 py-0.5", isMine && "flex-row-reverse")}>
       <div className="w-8 shrink-0">
         {showAvatar && (
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={sender?.avatar_url ?? undefined} />
-            <AvatarFallback className="text-[10px]">
-              {(sender?.display_name ?? sender?.username ?? "?").slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          sender?.username ? (
+            <Link to={`/u/${sender.username}`} title={`View @${sender.username}`}>
+              <Avatar className="h-8 w-8 hover:ring-2 hover:ring-primary transition-all">
+                <AvatarImage src={sender?.avatar_url ?? undefined} />
+                <AvatarFallback className="text-[10px]">
+                  {(sender?.display_name ?? sender?.username ?? "?").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          ) : (
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={sender?.avatar_url ?? undefined} />
+              <AvatarFallback className="text-[10px]">
+                {(sender?.display_name ?? sender?.username ?? "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          )
         )}
       </div>
       <div className={cn("max-w-[70%] flex flex-col gap-0.5", isMine && "items-end")}>
         {showAvatar && !isMine && (
-          <p className="text-[11px] text-muted-foreground px-1">
-            {sender?.display_name ?? sender?.username ?? "Unknown"}
-          </p>
+          sender?.username ? (
+            <Link
+              to={`/u/${sender.username}`}
+              className="text-[11px] text-muted-foreground px-1 hover:text-foreground transition-colors"
+            >
+              {sender?.display_name ?? sender?.username ?? "Unknown"}
+            </Link>
+          ) : (
+            <p className="text-[11px] text-muted-foreground px-1">
+              {sender?.display_name ?? sender?.username ?? "Unknown"}
+            </p>
+          )
         )}
         <div className="flex items-end gap-1">
           {isMine && (
