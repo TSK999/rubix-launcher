@@ -145,6 +145,36 @@ const RubixProfile = () => {
     }
   };
 
+  const handleBlock = async () => {
+    if (!me || isMine) return;
+    setActionLoading(true);
+    try {
+      await blockUser(me.user_id, profile.user_id);
+      toast.success(`Blocked @${profile.username}`, {
+        description: "They're hidden from search.",
+      });
+      await reload();
+    } catch (e) {
+      toast.error("Couldn't block", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (friendship.kind !== "blocked") return;
+    setActionLoading(true);
+    try {
+      await unblockUser(friendship.row.id);
+      toast("Unblocked");
+      await reload();
+    } catch (e) {
+      toast.error("Couldn't unblock", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleMessage = async () => {
     if (!me || isMine) return;
     try {
