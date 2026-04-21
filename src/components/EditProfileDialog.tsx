@@ -27,6 +27,7 @@ import {
   uploadProfileBackground,
   uploadProfileAvatar,
 } from "@/lib/rubix-profile";
+import { SOCIALS, type SocialKey, type Socials } from "@/lib/socials";
 
 type Props = {
   open: boolean;
