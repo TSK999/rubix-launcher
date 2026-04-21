@@ -110,6 +110,11 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
   const save = async () => {
     setSaving(true);
     try {
+      // Strip empty values from socials before save
+      const cleanSocials: Socials = {};
+      for (const [k, v] of Object.entries(socials)) {
+        if (typeof v === "string" && v.trim()) cleanSocials[k as SocialKey] = v.trim();
+      }
       await updateMyProfile(profile.user_id, {
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
@@ -117,6 +122,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
         background_url: bgUrl,
         background_kind: bgUrl ? bgKind : null,
         privacy,
+        socials: cleanSocials,
       });
       await refreshProfile();
       toast.success("Profile saved");
