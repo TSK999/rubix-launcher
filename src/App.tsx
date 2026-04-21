@@ -17,11 +17,13 @@ import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
 import { UpdateSplash } from "./components/UpdateSplash";
+import { ControllerModeProvider } from "./hooks/useControllerMode";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ControllerModeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -55,6 +57,7 @@ const App = () => (
         </Routes>
       </Router>
     </TooltipProvider>
+    </ControllerModeProvider>
   </QueryClientProvider>
 );
 
