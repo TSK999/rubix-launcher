@@ -12,6 +12,7 @@ import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import RubixProfile from "./pages/RubixProfile.tsx";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
@@ -38,6 +39,14 @@ const App = () => (
                   <LinkSteamPrompt />
                   <Index />
                 </>
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/u/:username"
+            element={
+              <RequireRubixAuth>
+                <RubixProfile />
               </RequireRubixAuth>
             }
           />

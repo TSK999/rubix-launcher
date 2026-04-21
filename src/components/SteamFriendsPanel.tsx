@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play, MessageSquare } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play, MessageSquare, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
-import { fetchRubixSteamMap } from "@/lib/rubix-friends";
+import { fetchRubixSteamMap, type RubixSteamMatch } from "@/lib/rubix-friends";
 import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
 import { getOrCreateDm } from "@/lib/messaging";
 import { SteamProfileDialog } from "@/components/SteamProfileDialog";
@@ -30,8 +31,8 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<SteamFriend[]>([]);
-  // steam_id → rubix user_id (for friends with a Rubix account)
-  const [rubixMap, setRubixMap] = useState<Map<string, string>>(new Map());
+  // steam_id → { user_id, username } (for friends with a Rubix account)
+  const [rubixMap, setRubixMap] = useState<Map<string, RubixSteamMatch>>(new Map());
   // rubix user_id → spotify username (for friends with linked Spotify)
   const [spotifyUsers, setSpotifyUsers] = useState<Map<string, string>>(new Map());
   // rubix user_id → currently playing track
@@ -75,7 +76,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
       setFriends(list);
 
       // Cross-reference Rubix accounts (silent on failure)
-      let map = new Map<string, string>();
+      let map = new Map<string, RubixSteamMatch>();
       try {
         map = await fetchRubixSteamMap(list.map((f) => f.steamId));
         setRubixMap(map);
@@ -84,7 +85,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
       }
 
       // Then check which Rubix friends have linked Spotify
-      const userIds = Array.from(map.values());
+      const userIds = Array.from(map.values()).map((m) => m.user_id);
       try {
         const linked = await fetchSpotifyLinkedUsers(userIds);
         const spotMap = new Map<string, string>();
@@ -229,8 +230,8 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                               >
                                 <span className="truncate">{f.personaName}</span>
                                 {(() => {
-                                  const uid = rubixMap.get(f.steamId);
-                                  if (!uid) return null;
+                                  const match = rubixMap.get(f.steamId);
+                                  if (!match) return null;
                                   return (
                                     <>
                                       <img
@@ -239,11 +240,11 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                         title="Has a Rubix account"
                                         className="h-3.5 w-3.5 shrink-0"
                                       />
-                                      {spotifyUsers.has(uid) && (
+                                      {spotifyUsers.has(match.user_id) && (
                                         <img
                                           src={spotifyIcon}
                                           alt="Spotify"
-                                          title={`Spotify · @${spotifyUsers.get(uid)}`}
+                                          title={`Spotify · @${spotifyUsers.get(match.user_id)}`}
                                           className="h-3.5 w-3.5 shrink-0"
                                           loading="lazy"
                                         />
@@ -259,8 +260,8 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 </div>
                               )}
                               {(() => {
-                                const uid = rubixMap.get(f.steamId);
-                                const track = uid ? tracks.get(uid) : null;
+                                const match = rubixMap.get(f.steamId);
+                                const track = match ? tracks.get(match.user_id) : null;
                                 if (!track || !track.is_playing) return null;
                                 return (
                                   <div className="text-[10px] text-emerald-400/80 truncate flex items-center gap-1">
@@ -273,21 +274,31 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                               })()}
                             </div>
                             {(() => {
-                              const uid = rubixMap.get(f.steamId);
-                              if (!uid) return null;
+                              const match = rubixMap.get(f.steamId);
+                              if (!match) return null;
                               return (
-                                <span
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={(e) => openDm(e, uid)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") openDm(e as unknown as React.MouseEvent, uid);
-                                  }}
-                                  className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                  title={`Message ${f.personaName}`}
-                                >
-                                  <MessageSquare className="h-3 w-3" />
-                                </span>
+                                <>
+                                  <Link
+                                    to={`/u/${match.username}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    title={`Open @${match.username}'s profile`}
+                                  >
+                                    <User className="h-3 w-3" />
+                                  </Link>
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => openDm(e, match.user_id)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") openDm(e as unknown as React.MouseEvent, match.user_id);
+                                    }}
+                                    className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    title={`Message ${f.personaName}`}
+                                  >
+                                    <MessageSquare className="h-3 w-3" />
+                                  </span>
+                                </>
                               );
                             })()}
                             {f.gameId && f.gameName && (

@@ -13,22 +13,23 @@ export const fetchRubixSteamIds = async (steamIds: string[]): Promise<Set<string
   return new Set(data.map((r) => r.steam_id).filter((s): s is string => !!s));
 };
 
+export type RubixSteamMatch = { user_id: string; username: string };
+
 /**
- * Given a list of Steam IDs, return a map of steam_id → Rubix user_id.
+ * Given a list of Steam IDs, return a map of steam_id → { user_id, username }.
  */
 export const fetchRubixSteamMap = async (
   steamIds: string[],
-): Promise<Map<string, string>> => {
+): Promise<Map<string, RubixSteamMatch>> => {
   if (steamIds.length === 0) return new Map();
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, steam_id")
+    .select("user_id, username, steam_id")
     .in("steam_id", steamIds);
   if (error || !data) return new Map();
-  const map = new Map<string, string>();
+  const map = new Map<string, RubixSteamMatch>();
   for (const row of data) {
-    if (row.steam_id) map.set(row.steam_id, row.user_id);
+    if (row.steam_id) map.set(row.steam_id, { user_id: row.user_id, username: row.username });
   }
   return map;
 };
-
