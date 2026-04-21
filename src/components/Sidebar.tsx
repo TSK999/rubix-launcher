@@ -1,5 +1,5 @@
 import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad, Link2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { clearStoredSteamId } from "@/lib/steam-auth";
@@ -8,6 +8,7 @@ import { ThemeManager } from "@/components/ThemeManager";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
 import { MessagesPanel } from "@/components/MessagesPanel";
+import { UserSearchPopover } from "@/components/UserSearchPopover";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
@@ -66,16 +67,21 @@ export const Sidebar = ({
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card/30 backdrop-blur-sm">
       <div className="p-4 border-b border-border flex items-center gap-3">
         <img src={rubixIcon} alt="" className="h-8 w-8 shrink-0" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-base font-bold tracking-tight leading-none">RUBIX</h1>
           {profile ? (
-            <p className="text-[11px] text-muted-foreground mt-1 truncate" title={profile.username}>
+            <Link
+              to={`/u/${profile.username}`}
+              className="text-[11px] text-muted-foreground mt-1 truncate block hover:text-foreground transition-colors"
+              title={`View @${profile.username}'s profile`}
+            >
               @{profile.username}
-            </p>
+            </Link>
           ) : (
             <p className="text-[11px] text-muted-foreground mt-1">Launcher</p>
           )}
         </div>
+        <UserSearchPopover />
       </div>
 
       <SpotifyNowPlaying userId={userId} />
