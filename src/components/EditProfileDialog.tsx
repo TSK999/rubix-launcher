@@ -27,6 +27,7 @@ import {
   uploadProfileBackground,
   uploadProfileAvatar,
 } from "@/lib/rubix-profile";
+import { SOCIALS, type SocialKey, type Socials } from "@/lib/socials";
 
 type Props = {
   open: boolean;
@@ -41,6 +42,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgKind, setBgKind] = useState<"image" | "gif" | "video" | null>(null);
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">("public");
+  const [socials, setSocials] = useState<Socials>({});
   const [saving, setSaving] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -56,7 +58,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
         const { supabase } = await import("@/integrations/supabase/client");
         const { data } = await supabase
           .from("profiles")
-          .select("bio, background_url, background_kind, privacy")
+          .select("bio, background_url, background_kind, privacy, socials")
           .eq("user_id", profile.user_id)
           .maybeSingle();
         if (data) {
@@ -64,6 +66,9 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
           setBgUrl(data.background_url ?? null);
           setBgKind((data.background_kind as "image" | "gif" | "video" | null) ?? null);
           setPrivacy((data.privacy as "public" | "friends" | "private") ?? "public");
+          setSocials(
+            (data.socials && typeof data.socials === "object" ? data.socials : {}) as Socials,
+          );
         }
       })();
     }
@@ -105,6 +110,11 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
   const save = async () => {
     setSaving(true);
     try {
+      // Strip empty values from socials before save
+      const cleanSocials: Socials = {};
+      for (const [k, v] of Object.entries(socials)) {
+        if (typeof v === "string" && v.trim()) cleanSocials[k as SocialKey] = v.trim();
+      }
       await updateMyProfile(profile.user_id, {
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
@@ -112,6 +122,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
         background_url: bgUrl,
         background_kind: bgUrl ? bgKind : null,
         privacy,
+        socials: cleanSocials,
       });
       await refreshProfile();
       toast.success("Profile saved");
@@ -260,7 +271,30 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
           <p className="text-[11px] text-muted-foreground text-right">{bio.length}/280</p>
         </div>
 
-        {/* Privacy */}
+        {/* Socials */}
+        <div className="space-y-2">
+          <Label>Social links</Label>
+          <div className="space-y-2">
+            {SOCIALS.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="flex items-center gap-2">
+                  <div className="h-9 w-9 grid place-items-center rounded-md border border-border bg-secondary/40 shrink-0">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <Input
+                    value={socials[s.key] ?? ""}
+                    onChange={(e) =>
+                      setSocials((prev) => ({ ...prev, [s.key]: e.target.value }))
+                    }
+                    placeholder={`${s.label} — ${s.placeholder}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label>Profile privacy</Label>
           <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>

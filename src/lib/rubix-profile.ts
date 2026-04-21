@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Socials } from "@/lib/socials";
 
 export type RubixPublicProfile = {
   id: string;
@@ -11,6 +12,7 @@ export type RubixPublicProfile = {
   background_kind: "image" | "gif" | "video" | null;
   privacy: "public" | "friends" | "private";
   steam_id: string | null;
+  socials: Socials;
 };
 
 export type FriendshipRow = {
@@ -37,33 +39,37 @@ export const fetchProfileByUsername = async (
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id",
+      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
     )
     .ilike("username", username)
     .maybeSingle();
   if (error || !data) return null;
-  return data as RubixPublicProfile;
+  return normalize(data);
 };
+
+const normalize = (row: Record<string, unknown>): RubixPublicProfile => ({
+  ...(row as unknown as Omit<RubixPublicProfile, "socials">),
+  socials: (row.socials && typeof row.socials === "object" ? row.socials : {}) as Socials,
+});
 
 export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicProfile[]> => {
   if (!q.trim()) return [];
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id",
+      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
     )
     .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
     .limit(limit * 2);
   if (error || !data) return [];
+  const rows = (data as Record<string, unknown>[]).map(normalize);
 
   // Filter out anyone in a blocked friendship with the current viewer
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return (data as RubixPublicProfile[]).slice(0, limit);
-  const otherIds = (data as RubixPublicProfile[]).map((p) => p.user_id);
+  if (!user) return rows.slice(0, limit);
+  const otherIds = rows.map((p) => p.user_id);
   const blockedIds = await fetchBlockedUserIds(user.id, otherIds);
-  return (data as RubixPublicProfile[])
-    .filter((p) => !blockedIds.has(p.user_id))
-    .slice(0, limit);
+  return rows.filter((p) => !blockedIds.has(p.user_id)).slice(0, limit);
 };
 
 /**
@@ -155,7 +161,7 @@ export const updateMyProfile = async (
   patch: Partial<
     Pick<
       RubixPublicProfile,
-      "display_name" | "bio" | "avatar_url" | "background_url" | "background_kind" | "privacy"
+      "display_name" | "bio" | "avatar_url" | "background_url" | "background_kind" | "privacy" | "socials"
     >
   >,
 ) => {
