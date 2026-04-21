@@ -19,7 +19,7 @@ type SocialMeta = {
   key: SocialKey;
   label: string;
   placeholder: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   // Build a URL from the raw user input (handle or full URL)
   toUrl: (raw: string) => string | null;
   // For pure-handle services, what to show as a label
