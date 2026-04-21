@@ -66,7 +66,25 @@ export const Sidebar = ({
   return (
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card/30 backdrop-blur-sm">
       <div className="p-4 border-b border-border flex items-center gap-3">
-        <img src={rubixIcon} alt="" className="h-8 w-8 shrink-0" />
+        {profile ? (
+          <Link
+            to={`/u/${profile.username}`}
+            className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-secondary grid place-items-center hover:ring-2 hover:ring-primary transition-all"
+            title={`View @${profile.username}'s profile`}
+          >
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={`@${profile.username}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <img src={rubixIcon} alt="" className="h-full w-full" />
+            )}
+          </Link>
+        ) : (
+          <img src={rubixIcon} alt="" className="h-8 w-8 shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-base font-bold tracking-tight leading-none">RUBIX</h1>
           {profile ? (
