@@ -113,21 +113,29 @@ export const getOrCreateDm = async (otherUserId: string): Promise<string> => {
   // Find an existing 1:1 conversation that contains exactly these two members
   const { data: mine } = await supabase
     .from("conversation_members")
-    .select("conversation_id, conversations!inner(is_group)")
+    .select("conversation_id")
     .eq("user_id", user.id);
 
-  const dmIds = (mine ?? [])
-    .filter((m: any) => m.conversations?.is_group === false)
-    .map((m: any) => m.conversation_id as string);
+  const myConvIds = (mine ?? []).map((m) => m.conversation_id as string);
 
-  if (dmIds.length > 0) {
-    const { data: theirs } = await supabase
-      .from("conversation_members")
-      .select("conversation_id")
-      .eq("user_id", otherUserId)
-      .in("conversation_id", dmIds);
-    const match = theirs?.[0]?.conversation_id;
-    if (match) return match;
+  if (myConvIds.length > 0) {
+    // Filter to non-group conversations only
+    const { data: convs } = await supabase
+      .from("conversations")
+      .select("id")
+      .in("id", myConvIds)
+      .eq("is_group", false);
+    const dmIds = (convs ?? []).map((c) => c.id as string);
+
+    if (dmIds.length > 0) {
+      const { data: theirs } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", otherUserId)
+        .in("conversation_id", dmIds);
+      const match = theirs?.[0]?.conversation_id;
+      if (match) return match;
+    }
   }
 
   // Create new
