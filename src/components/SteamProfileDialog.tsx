@@ -244,7 +244,6 @@ export const SteamProfileDialog = ({ steamId, viewerSteamId, onClose }: Props) =
                   ))}
                 </ul>
               )}
-            </div>
 
               {/* Games in common */}
               {data.gamesInCommon !== undefined && (
