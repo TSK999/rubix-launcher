@@ -29,6 +29,7 @@ import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
 import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
+import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -69,6 +70,7 @@ const Index = () => {
   const [steamOpen, setSteamOpen] = useState(false);
   const [epicOpen, setEpicOpen] = useState(false);
   const [eaOpen, setEaOpen] = useState(false);
+  const [xboxOpen, setXboxOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -245,6 +247,17 @@ const Index = () => {
       return;
     }
 
+    // Xbox app — launch via shell:AppsFolder
+    if (window.rubix?.isElectron && (g.xboxAppUserModelId || g.xboxPackageFamilyName)) {
+      const res = await window.rubix.xbox.launch({
+        appUserModelId: g.xboxAppUserModelId,
+        packageFamilyName: g.xboxPackageFamilyName,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Xbox`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -325,7 +338,35 @@ const Index = () => {
     });
   };
 
-  // Derived data
+  const importFromXbox = (incoming: XboxImportGame[]) => {
+    setGames((current) => {
+      const byPfn = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.xboxPackageFamilyName) byPfn.set(g.xboxPackageFamilyName, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const e of incoming) {
+        const existing = e.xboxPackageFamilyName ? byPfn.get(e.xboxPackageFamilyName) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...e };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...e, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Xbox library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   const genres = useMemo(() => {
     const s = new Set<string>();
     games.forEach((g) => g.genre && s.add(g.genre));
@@ -342,7 +383,7 @@ const Index = () => {
   }, [games]);
 
   const sourceCounts = useMemo(() => {
-    const c = { steam: 0, epic: 0, ea: 0, other: 0 };
+    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, other: 0 };
     games.forEach((g) => {
       c[getGameSource(g)]++;
     });
@@ -477,6 +518,9 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setEaOpen(true)}>
                   <Gamepad className="h-4 w-4 mr-2" /> Import from EA
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setXboxOpen(true)}>
+                  <Gamepad2 className="h-4 w-4 mr-2" /> Import from Xbox
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Theme</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
@@ -604,6 +648,12 @@ const Index = () => {
         open={eaOpen}
         onOpenChange={setEaOpen}
         onImport={importFromEa}
+      />
+
+      <XboxImportDialog
+        open={xboxOpen}
+        onOpenChange={setXboxOpen}
+        onImport={importFromXbox}
       />
 
       <QuickFindDialog

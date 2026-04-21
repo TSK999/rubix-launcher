@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld("rubix", {
     scanInstalled: () => ipcRenderer.invoke("ea:scan-installed"),
     launch: (payload) => ipcRenderer.invoke("ea:launch", payload),
   },
+  xbox: {
+    scanInstalled: () => ipcRenderer.invoke("xbox:scan-installed"),
+    launch: (payload) => ipcRenderer.invoke("xbox:launch", payload),
+  },
   updater: {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),

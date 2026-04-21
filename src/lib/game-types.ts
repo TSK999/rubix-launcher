@@ -1,5 +1,5 @@
 // Game source: which storefront/launcher does this game come from
-export type GameSource = "steam" | "epic" | "ea" | "other";
+export type GameSource = "steam" | "epic" | "ea" | "xbox" | "other";
 
 export type Game = {
   id: string;
@@ -24,6 +24,10 @@ export type Game = {
   eaAppId?: string;
   eaContentId?: string;
   eaLaunchUri?: string;
+  // Xbox app (Microsoft Store / Gaming Services UWP)
+  xboxPackageFamilyName?: string;
+  xboxAppUserModelId?: string;
+  xboxLaunchUri?: string;
 };
 
 export const STORAGE_KEY = "rubix-launcher-games";
@@ -33,5 +37,6 @@ export const getGameSource = (g: Game): GameSource => {
   if (g.steamAppId) return "steam";
   if (g.epicAppName || g.epicLaunchUri) return "epic";
   if (g.eaAppId || g.eaLaunchUri) return "ea";
+  if (g.xboxPackageFamilyName || g.xboxAppUserModelId || g.xboxLaunchUri) return "xbox";
   return "other";
 };
