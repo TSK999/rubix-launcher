@@ -106,3 +106,36 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Controller-friendly UI mode — bigger targets, bold focus, larger text */
+@layer utilities {
+  body.controller-mode {
+    font-size: 17px;
+  }
+  body.controller-mode button,
+  body.controller-mode a,
+  body.controller-mode [role="button"],
+  body.controller-mode input,
+  body.controller-mode select,
+  body.controller-mode textarea,
+  body.controller-mode [tabindex]:not([tabindex="-1"]) {
+    scroll-margin: 96px;
+  }
+  body.controller-mode :focus-visible,
+  body.controller-mode *:focus {
+    outline: 3px solid hsl(var(--primary)) !important;
+    outline-offset: 3px !important;
+    border-radius: 12px;
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0.25) !important;
+    transition: outline-offset 120ms ease, box-shadow 120ms ease;
+  }
+  body.controller-mode button,
+  body.controller-mode [role="button"] {
+    min-height: 44px;
+  }
+  body.controller-mode .rubix-card-focusable:focus,
+  body.controller-mode .rubix-card-focusable:focus-visible {
+    transform: scale(1.04);
+    z-index: 5;
+  }
+}
