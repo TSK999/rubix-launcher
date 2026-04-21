@@ -90,10 +90,19 @@ export const ControllerModeProvider = ({ children }: { children: ReactNode }) =>
     const focusableSelector =
       'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+    const isNavigable = (el: HTMLElement) => {
+      if (el.hasAttribute("disabled") || el.getAttribute("aria-hidden") === "true") return false;
+      const style = window.getComputedStyle(el);
+      if (style.visibility === "hidden" || style.display === "none") return false;
+      if (Number(style.opacity) === 0) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+
     const moveFocus = (dir: "up" | "down" | "left" | "right") => {
       const active = document.activeElement as HTMLElement | null;
       const all = Array.from(document.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement
+        (el) => el === document.activeElement || isNavigable(el)
       );
       if (all.length === 0) return;
 
