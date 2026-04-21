@@ -518,6 +518,9 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setEaOpen(true)}>
                   <Gamepad className="h-4 w-4 mr-2" /> Import from EA
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setXboxOpen(true)}>
+                  <Gamepad2 className="h-4 w-4 mr-2" /> Import from Xbox
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Theme</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
@@ -645,6 +648,12 @@ const Index = () => {
         open={eaOpen}
         onOpenChange={setEaOpen}
         onImport={importFromEa}
+      />
+
+      <XboxImportDialog
+        open={xboxOpen}
+        onOpenChange={setXboxOpen}
+        onImport={importFromXbox}
       />
 
       <QuickFindDialog
