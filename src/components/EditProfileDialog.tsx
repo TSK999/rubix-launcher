@@ -58,7 +58,7 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
         const { supabase } = await import("@/integrations/supabase/client");
         const { data } = await supabase
           .from("profiles")
-          .select("bio, background_url, background_kind, privacy")
+          .select("bio, background_url, background_kind, privacy, socials")
           .eq("user_id", profile.user_id)
           .maybeSingle();
         if (data) {
