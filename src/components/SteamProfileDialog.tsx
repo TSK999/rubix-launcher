@@ -8,6 +8,7 @@ import { fetchSteamProfile, type SteamProfileResponse } from "@/lib/steam-profil
 
 type Props = {
   steamId: string | null;
+  viewerSteamId?: string | null;
   onClose: () => void;
 };
 
@@ -37,7 +38,7 @@ const launchSteamApp = async (appId: number) => {
   }
 };
 
-export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
+export const SteamProfileDialog = ({ steamId, viewerSteamId, onClose }: Props) => {
   const [data, setData] = useState<SteamProfileResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
     setLoading(true);
     setError(null);
     setData(null);
-    fetchSteamProfile(steamId)
+    fetchSteamProfile(steamId, viewerSteamId)
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -68,7 +69,7 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [steamId]);
+  }, [steamId, viewerSteamId]);
 
   const open = !!steamId;
   const meta = data ? STATUS_LABEL[data.profile.status] : null;
@@ -242,6 +243,56 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {/* Games in common */}
+              {data.gamesInCommon !== undefined && (
+                <div className="mt-4">
+                  <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3 flex items-center gap-2">
+                    Games in common
+                    {data.gamesInCommonCount !== undefined && (
+                      <span className="text-foreground font-semibold normal-case tracking-normal text-xs">
+                        {data.gamesInCommonCount.toLocaleString()}
+                      </span>
+                    )}
+                  </h3>
+                  {data.gamesInCommon.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-6 text-center">
+                      No overlapping games found.
+                    </p>
+                  ) : (
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {data.gamesInCommon.map((g) => (
+                        <li
+                          key={g.appId}
+                          className="group flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                        >
+                          <img
+                            src={g.header}
+                            alt=""
+                            className="h-12 w-24 rounded object-cover shrink-0 bg-secondary"
+                            loading="lazy"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium truncate">{g.name}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {formatPlaytime(g.playtimeForever)} on their account
+                            </div>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => launchSteamApp(g.appId)}
+                            title="Launch via Steam"
+                          >
+                            <Play className="h-3 w-3" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
           </>
