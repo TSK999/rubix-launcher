@@ -8,6 +8,7 @@ import { fetchSteamProfile, type SteamProfileResponse } from "@/lib/steam-profil
 
 type Props = {
   steamId: string | null;
+  viewerSteamId?: string | null;
   onClose: () => void;
 };
 
