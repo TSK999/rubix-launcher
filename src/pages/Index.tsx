@@ -492,11 +492,36 @@ const Index = () => {
                   <span className="flex-1">Controller-friendly UI</span>
                   {controllerMode && <Check className="h-4 w-4 ml-2" />}
                 </DropdownMenuItem>
-                {controllerMode && (
-                  <div className="px-2 py-1 text-[11px] text-muted-foreground">
-                    {controllerConnected ? "Controller connected · D-pad to navigate, A to select, B to back" : "Connect a controller to navigate"}
-                  </div>
-                )}
+                {controllerMode && (() => {
+                  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+                  return (
+                    <div className="px-2 py-1.5 text-[11px] text-muted-foreground space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-block h-1.5 w-1.5 rounded-full ${controllerConnected ? "bg-green-500" : "bg-muted-foreground/50"}`}
+                        />
+                        {controllerConnected
+                          ? "Controller connected · D-pad to navigate, A to select, B to back"
+                          : "Press any controller button to connect"}
+                      </div>
+                      {inIframe && (
+                        <div className="text-amber-500/90">
+                          Preview iframes block gamepad access.{" "}
+                          <button
+                            className="underline hover:text-amber-400"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.open(window.location.href, "_blank");
+                            }}
+                          >
+                            Open in new tab
+                          </button>{" "}
+                          to use a controller.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </DropdownMenuContent>
             </DropdownMenu>
             <input
