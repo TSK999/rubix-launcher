@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
 import { fetchRubixSteamMap } from "@/lib/rubix-friends";
 import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
+import { getOrCreateDm } from "@/lib/messaging";
 import { SteamProfileDialog } from "@/components/SteamProfileDialog";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import spotifyIcon from "@/assets/spotify-icon.png";
@@ -51,6 +52,17 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
       }
     } else {
       window.location.href = target;
+    }
+  };
+
+  const openDm = async (e: React.MouseEvent, rubixUserId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const conversationId = await getOrCreateDm(rubixUserId);
+      window.dispatchEvent(new CustomEvent("rubix:open-dm", { detail: { conversationId } }));
+    } catch (err) {
+      toast.error("Couldn't open DM", { description: err instanceof Error ? err.message : "" });
     }
   };
 
@@ -260,6 +272,24 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                 );
                               })()}
                             </div>
+                            {(() => {
+                              const uid = rubixMap.get(f.steamId);
+                              if (!uid) return null;
+                              return (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => openDm(e, uid)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") openDm(e as unknown as React.MouseEvent, uid);
+                                  }}
+                                  className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  title={`Message ${f.personaName}`}
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                </span>
+                              );
+                            })()}
                             {f.gameId && f.gameName && (
                               <span
                                 role="button"
