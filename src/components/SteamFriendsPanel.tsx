@@ -290,6 +290,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
 
       <SteamProfileDialog
         steamId={selectedSteamId}
+        viewerSteamId={steamId}
         onClose={() => setSelectedSteamId(null)}
       />
     </div>
