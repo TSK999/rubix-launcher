@@ -41,7 +41,13 @@ export const SOCIALS: SocialMeta[] = [
       if (isUrl(v)) return v;
       return `https://youtube.com/@${stripAt(v)}`;
     },
-    display: (raw) => (isUrl(raw) ? raw : `@${stripAt(raw)}`),
+    display: (raw) => {
+      const v = raw.trim();
+      if (!isUrl(v)) return `@${stripAt(v)}`;
+      // Extract handle from a YouTube URL (e.g. https://youtube.com/@channel)
+      const match = v.match(/@([^/?#]+)/);
+      return match ? `@${match[1]}` : v;
+    },
   },
   {
     key: "twitter",
