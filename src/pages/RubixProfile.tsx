@@ -240,6 +240,10 @@ const RubixProfile = () => {
               <Button onClick={() => setEditing(true)} variant="outline">
                 <Pencil className="h-4 w-4 mr-2" /> Edit profile
               </Button>
+            ) : friendship.kind === "blocked" ? (
+              <Button variant="outline" onClick={handleUnblock} disabled={actionLoading}>
+                <ShieldOff className="h-4 w-4 mr-2" /> Unblock
+              </Button>
             ) : (
               <>
                 {friendship.kind === "none" && (
@@ -270,6 +274,22 @@ const RubixProfile = () => {
                 <Button variant="secondary" onClick={handleMessage}>
                   <MessageSquare className="h-4 w-4 mr-2" /> Message
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="More">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={handleBlock}
+                      disabled={actionLoading}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Ban className="h-4 w-4 mr-2" /> Block @{profile.username}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
