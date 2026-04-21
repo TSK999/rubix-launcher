@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play, MessageSquare } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw, Users, Gamepad2, Music, Play, MessageSquare, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Collapsible,
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/steam-friends";
-import { fetchRubixSteamMap } from "@/lib/rubix-friends";
+import { fetchRubixSteamMap, type RubixSteamMatch } from "@/lib/rubix-friends";
 import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
 import { getOrCreateDm } from "@/lib/messaging";
 import { SteamProfileDialog } from "@/components/SteamProfileDialog";
@@ -30,8 +31,8 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<SteamFriend[]>([]);
-  // steam_id → rubix user_id (for friends with a Rubix account)
-  const [rubixMap, setRubixMap] = useState<Map<string, string>>(new Map());
+  // steam_id → { user_id, username } (for friends with a Rubix account)
+  const [rubixMap, setRubixMap] = useState<Map<string, RubixSteamMatch>>(new Map());
   // rubix user_id → spotify username (for friends with linked Spotify)
   const [spotifyUsers, setSpotifyUsers] = useState<Map<string, string>>(new Map());
   // rubix user_id → currently playing track
@@ -75,7 +76,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
       setFriends(list);
 
       // Cross-reference Rubix accounts (silent on failure)
-      let map = new Map<string, string>();
+      let map = new Map<string, RubixSteamMatch>();
       try {
         map = await fetchRubixSteamMap(list.map((f) => f.steamId));
         setRubixMap(map);
@@ -84,7 +85,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
       }
 
       // Then check which Rubix friends have linked Spotify
-      const userIds = Array.from(map.values());
+      const userIds = Array.from(map.values()).map((m) => m.user_id);
       try {
         const linked = await fetchSpotifyLinkedUsers(userIds);
         const spotMap = new Map<string, string>();
