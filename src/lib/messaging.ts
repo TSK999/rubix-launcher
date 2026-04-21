@@ -139,20 +139,19 @@ export const getOrCreateDm = async (otherUserId: string): Promise<string> => {
   }
 
   // Create new
-  const { data: conv, error: convErr } = await supabase
+  const conversationId = crypto.randomUUID();
+  const { error: convErr } = await supabase
     .from("conversations")
-    .insert({ is_group: false, created_by: user.id })
-    .select("id")
-    .single();
-  if (convErr || !conv) throw convErr ?? new Error("Failed to create conversation");
+    .insert({ id: conversationId, is_group: false, created_by: user.id });
+  if (convErr) throw convErr;
 
   const { error: memErr } = await supabase.from("conversation_members").insert([
-    { conversation_id: conv.id, user_id: user.id, is_admin: true },
-    { conversation_id: conv.id, user_id: otherUserId },
+    { conversation_id: conversationId, user_id: user.id, is_admin: true },
+    { conversation_id: conversationId, user_id: otherUserId },
   ]);
   if (memErr) throw memErr;
 
-  return conv.id;
+  return conversationId;
 };
 
 /** Create a group conversation with given members (current user added automatically). */
@@ -164,28 +163,28 @@ export const createGroup = async (
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data: conv, error } = await supabase
+  const conversationId = crypto.randomUUID();
+  const { error } = await supabase
     .from("conversations")
     .insert({
+      id: conversationId,
       is_group: true,
       name: name.trim() || "New group",
       avatar_url: avatarUrl ?? null,
       created_by: user.id,
     })
-    .select("id")
-    .single();
-  if (error || !conv) throw error ?? new Error("Failed to create group");
+  if (error) throw error;
 
   const rows = [
-    { conversation_id: conv.id, user_id: user.id, is_admin: true },
+    { conversation_id: conversationId, user_id: user.id, is_admin: true },
     ...memberIds
       .filter((id) => id !== user.id)
-      .map((id) => ({ conversation_id: conv.id, user_id: id, is_admin: false })),
+      .map((id) => ({ conversation_id: conversationId, user_id: id, is_admin: false })),
   ];
   const { error: memErr } = await supabase.from("conversation_members").insert(rows);
   if (memErr) throw memErr;
 
-  return conv.id;
+  return conversationId;
 };
 
 /** List messages with attachments and reactions. */
