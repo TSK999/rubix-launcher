@@ -39,13 +39,18 @@ export const fetchProfileByUsername = async (
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id",
+      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
     )
     .ilike("username", username)
     .maybeSingle();
   if (error || !data) return null;
-  return data as RubixPublicProfile;
+  return normalize(data);
 };
+
+const normalize = (row: Record<string, unknown>): RubixPublicProfile => ({
+  ...(row as unknown as Omit<RubixPublicProfile, "socials">),
+  socials: (row.socials && typeof row.socials === "object" ? row.socials : {}) as Socials,
+});
 
 export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicProfile[]> => {
   if (!q.trim()) return [];
