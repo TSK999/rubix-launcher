@@ -338,7 +338,35 @@ const Index = () => {
     });
   };
 
-  // Derived data
+  const importFromXbox = (incoming: XboxImportGame[]) => {
+    setGames((current) => {
+      const byPfn = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.xboxPackageFamilyName) byPfn.set(g.xboxPackageFamilyName, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const e of incoming) {
+        const existing = e.xboxPackageFamilyName ? byPfn.get(e.xboxPackageFamilyName) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...e };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...e, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Xbox library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   const genres = useMemo(() => {
     const s = new Set<string>();
     games.forEach((g) => g.genre && s.add(g.genre));
