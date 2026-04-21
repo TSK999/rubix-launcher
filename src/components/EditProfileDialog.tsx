@@ -66,6 +66,9 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
           setBgUrl(data.background_url ?? null);
           setBgKind((data.background_kind as "image" | "gif" | "video" | null) ?? null);
           setPrivacy((data.privacy as "public" | "friends" | "private") ?? "public");
+          setSocials(
+            (data.socials && typeof data.socials === "object" ? data.socials : {}) as Socials,
+          );
         }
       })();
     }
