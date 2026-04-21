@@ -56,7 +56,8 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Xbox App Support
 * Playtime Tracker
 * Rubix profiles
-
+* Controler support
+* Controler friendly ui
 
 
 ---
