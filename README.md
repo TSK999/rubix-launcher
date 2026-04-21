@@ -42,6 +42,9 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Built in Spotify
 * Rubix Accounts
 * General cleanup & polish
+* Messaging
+* Instant game laucnher from friend list
+* In-launcher Steam profiles (no new tab)
 
 ---
 
@@ -51,10 +54,8 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Built-in theme store
 * Website
 * Xbox App Support
-* Messaging
 * Playtime Tracker
-* Instant game laucnher from friend list
-* In-launcher Steam profiles (no new tab)
+* Rubix profiles
 
 
 
