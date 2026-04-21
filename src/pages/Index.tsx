@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
+import { useControllerMode } from "@/hooks/useControllerMode";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,7 @@ const RECENT_WINDOW_DAYS = 30;
 
 const Index = () => {
   const themeInputRef = useRef<HTMLInputElement>(null);
+  const { enabled: controllerMode, toggle: toggleControllerMode, controllerConnected } = useControllerMode();
 
   const handleThemeFile = async (file: File) => {
     try {
@@ -483,6 +485,18 @@ const Index = () => {
                 <DropdownMenuItem onClick={handleResetTheme}>
                   <RotateCcw className="h-4 w-4 mr-2" /> Reset to default
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Accessibility</DropdownMenuLabel>
+                <DropdownMenuItem onClick={(e) => { e.preventDefault(); toggleControllerMode(); }}>
+                  <Gamepad2 className="h-4 w-4 mr-2" />
+                  <span className="flex-1">Controller-friendly UI</span>
+                  {controllerMode && <Check className="h-4 w-4 ml-2" />}
+                </DropdownMenuItem>
+                {controllerMode && (
+                  <div className="px-2 py-1 text-[11px] text-muted-foreground">
+                    {controllerConnected ? "Controller connected · D-pad to navigate, A to select, B to back" : "Connect a controller to navigate"}
+                  </div>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <input
