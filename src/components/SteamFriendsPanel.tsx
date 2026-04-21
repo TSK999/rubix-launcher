@@ -235,10 +235,11 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
                                   return (
                                     <>
                                       <img
-                                        src={rubixIcon}
-                                        alt="Rubix user"
-                                        title="Has a Rubix account"
-                                        className="h-3.5 w-3.5 shrink-0"
+                                        src={match.avatar_url ?? rubixIcon}
+                                        alt={match.avatar_url ? `@${match.username}` : "Rubix user"}
+                                        title={`@${match.username} on Rubix`}
+                                        className="h-3.5 w-3.5 shrink-0 rounded-full object-cover ring-1 ring-primary/40"
+                                        loading="lazy"
                                       />
                                       {spotifyUsers.has(match.user_id) && (
                                         <img
