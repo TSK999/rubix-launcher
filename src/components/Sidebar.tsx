@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeManager } from "@/components/ThemeManager";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
+import { MessagesPanel } from "@/components/MessagesPanel";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
@@ -78,6 +79,8 @@ export const Sidebar = ({
       </div>
 
       <SpotifyNowPlaying userId={userId} />
+
+      <MessagesPanel />
 
       <SteamFriendsPanel steamId={steamId} />
 
