@@ -7,7 +7,10 @@ import {
   Loader2,
   Lock,
   MessageSquare,
+  MoreVertical,
   Pencil,
+  ShieldOff,
+  Ban,
   UserMinus,
   UserPlus,
   Users,
@@ -16,13 +19,21 @@ import {
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import {
   acceptFriendRequest,
+  blockUser,
   fetchFriendship,
   fetchProfileByUsername,
   removeFriendship,
   sendFriendRequest,
+  unblockUser,
   type FriendshipState,
   type RubixPublicProfile,
 } from "@/lib/rubix-profile";
