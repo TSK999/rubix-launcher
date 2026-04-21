@@ -45,6 +45,10 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Messaging
 * Instant game laucnher from friend list
 * In-launcher Steam profiles (no new tab)
+* Rubix profiles
+* Controler support
+* Controler friendly ui
+* Xbox App Support
 
 ---
 
@@ -55,9 +59,6 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Website
 * Xbox App Support
 * Playtime Tracker
-* Rubix profiles
-* Controler support
-* Controler friendly ui
 
 
 ---
