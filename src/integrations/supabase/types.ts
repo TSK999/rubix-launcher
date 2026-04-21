@@ -388,6 +388,10 @@ export type Database = {
     }
     Functions: {
       are_rubix_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      get_or_create_direct_conversation: {
+        Args: { _other_user_id: string }
+        Returns: string
+      }
       get_spotify_linked_users: {
         Args: { _user_ids: string[] }
         Returns: {
