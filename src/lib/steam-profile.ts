@@ -31,16 +31,29 @@ export type SteamProfileBackground = {
   movie?: string;
 };
 
+export type SteamGameInCommon = {
+  appId: number;
+  name: string;
+  header: string;
+  icon?: string;
+  playtimeForever: number;
+};
+
 export type SteamProfileResponse = {
   profile: SteamProfile;
   recentGames: SteamRecentGame[];
   totalGames?: number;
   profileBackground?: SteamProfileBackground;
+  gamesInCommon?: SteamGameInCommon[];
+  gamesInCommonCount?: number;
 };
 
-export const fetchSteamProfile = async (steamId: string): Promise<SteamProfileResponse> => {
+export const fetchSteamProfile = async (
+  steamId: string,
+  viewerSteamId?: string | null,
+): Promise<SteamProfileResponse> => {
   const { data, error } = await supabase.functions.invoke("steam-profile", {
-    body: { steamId },
+    body: { steamId, viewerSteamId: viewerSteamId ?? undefined },
   });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
