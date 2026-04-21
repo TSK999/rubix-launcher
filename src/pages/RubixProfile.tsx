@@ -297,7 +297,15 @@ const RubixProfile = () => {
 
         {/* Bio / private gate */}
         <div className="mt-6 pb-12">
-          {!canView ? (
+          {friendship.kind === "blocked" ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-2">
+              <Ban className="h-6 w-6 mx-auto text-destructive" />
+              <p className="font-medium">You blocked @{profile.username}</p>
+              <p className="text-sm text-muted-foreground">
+                They're hidden from your search results. Unblock to interact again.
+              </p>
+            </div>
+          ) : !canView ? (
             <div className="rounded-xl border border-border bg-card/50 p-8 text-center space-y-2">
               <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
               <p className="font-medium">This profile is {profile.privacy}</p>
