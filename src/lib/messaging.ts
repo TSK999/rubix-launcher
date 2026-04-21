@@ -109,49 +109,12 @@ export const getOrCreateDm = async (otherUserId: string): Promise<string> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   if (user.id === otherUserId) throw new Error("Cannot DM yourself");
-
-  // Find an existing 1:1 conversation that contains exactly these two members
-  const { data: mine } = await supabase
-    .from("conversation_members")
-    .select("conversation_id")
-    .eq("user_id", user.id);
-
-  const myConvIds = (mine ?? []).map((m) => m.conversation_id as string);
-
-  if (myConvIds.length > 0) {
-    // Filter to non-group conversations only
-    const { data: convs } = await supabase
-      .from("conversations")
-      .select("id")
-      .in("id", myConvIds)
-      .eq("is_group", false);
-    const dmIds = (convs ?? []).map((c) => c.id as string);
-
-    if (dmIds.length > 0) {
-      const { data: theirs } = await supabase
-        .from("conversation_members")
-        .select("conversation_id")
-        .eq("user_id", otherUserId)
-        .in("conversation_id", dmIds);
-      const match = theirs?.[0]?.conversation_id;
-      if (match) return match;
-    }
-  }
-
-  // Create new
-  const conversationId = crypto.randomUUID();
-  const { error: convErr } = await supabase
-    .from("conversations")
-    .insert({ id: conversationId, is_group: false, created_by: user.id });
-  if (convErr) throw convErr;
-
-  const { error: memErr } = await supabase.from("conversation_members").insert([
-    { conversation_id: conversationId, user_id: user.id, is_admin: true },
-    { conversation_id: conversationId, user_id: otherUserId },
-  ]);
-  if (memErr) throw memErr;
-
-  return conversationId;
+  const { data, error } = await supabase.rpc("get_or_create_direct_conversation", {
+    _other_user_id: otherUserId,
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Failed to create conversation");
+  return data;
 };
 
 /** Create a group conversation with given members (current user added automatically). */
