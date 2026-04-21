@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const steamId: string = String(body?.steamId ?? "").trim();
+    const viewerSteamIdRaw: string = String(body?.viewerSteamId ?? "").trim();
+    const viewerSteamId = STEAM_ID_RE.test(viewerSteamIdRaw) && viewerSteamIdRaw !== steamId
+      ? viewerSteamIdRaw
+      : undefined;
 
     if (!STEAM_ID_RE.test(steamId)) {
       return new Response(
@@ -37,6 +41,22 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    type OwnedGame = {
+      appid: number;
+      name?: string;
+      playtime_forever?: number;
+      img_icon_url?: string;
+    };
+    const fetchOwnedGames = async (sid: string): Promise<OwnedGame[]> => {
+      const url =
+        `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/` +
+        `?key=${STEAM_API_KEY}&steamid=${sid}&include_appinfo=true&include_played_free_games=true&format=json`;
+      const r = await fetch(url);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (j?.response?.games ?? []) as OwnedGame[];
+    };
 
     // 1) Player summary
     const psUrl =
