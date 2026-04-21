@@ -53,9 +53,56 @@ export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicP
       "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id",
     )
     .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-    .limit(limit);
+    .limit(limit * 2);
   if (error || !data) return [];
-  return data as RubixPublicProfile[];
+
+  // Filter out anyone in a blocked friendship with the current viewer
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return (data as RubixPublicProfile[]).slice(0, limit);
+  const otherIds = (data as RubixPublicProfile[]).map((p) => p.user_id);
+  const blockedIds = await fetchBlockedUserIds(user.id, otherIds);
+  return (data as RubixPublicProfile[])
+    .filter((p) => !blockedIds.has(p.user_id))
+    .slice(0, limit);
+};
+
+/**
+ * Returns a set of user_ids that the viewer has blocked (or that have blocked the viewer).
+ * Scoped to a candidate list to keep queries small.
+ */
+export const fetchBlockedUserIds = async (
+  meId: string,
+  candidateIds: string[],
+): Promise<Set<string>> => {
+  if (candidateIds.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from("rubix_friendships")
+    .select("user_a, user_b, status")
+    .eq("status", "blocked")
+    .or(`user_a.eq.${meId},user_b.eq.${meId}`);
+  if (error || !data) return new Set();
+  const blocked = new Set<string>();
+  for (const row of data) {
+    const other = row.user_a === meId ? row.user_b : row.user_a;
+    if (candidateIds.includes(other)) blocked.add(other);
+  }
+  return blocked;
+};
+
+export const blockUser = async (meId: string, otherId: string) => {
+  if (meId === otherId) throw new Error("Cannot block yourself");
+  const [ua, ub] = orderPair(meId, otherId);
+  // Upsert into the unique pair: delete any existing then insert blocked
+  await supabase.from("rubix_friendships").delete().eq("user_a", ua).eq("user_b", ub);
+  const { error } = await supabase
+    .from("rubix_friendships")
+    .insert({ user_a: ua, user_b: ub, requested_by: meId, status: "blocked" });
+  if (error) throw error;
+};
+
+export const unblockUser = async (rowId: string) => {
+  const { error } = await supabase.from("rubix_friendships").delete().eq("id", rowId);
+  if (error) throw error;
 };
 
 const orderPair = (a: string, b: string): [string, string] =>

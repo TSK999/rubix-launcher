@@ -7,7 +7,10 @@ import {
   Loader2,
   Lock,
   MessageSquare,
+  MoreVertical,
   Pencil,
+  ShieldOff,
+  Ban,
   UserMinus,
   UserPlus,
   Users,
@@ -16,13 +19,21 @@ import {
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import {
   acceptFriendRequest,
+  blockUser,
   fetchFriendship,
   fetchProfileByUsername,
   removeFriendship,
   sendFriendRequest,
+  unblockUser,
   type FriendshipState,
   type RubixPublicProfile,
 } from "@/lib/rubix-profile";
@@ -134,6 +145,36 @@ const RubixProfile = () => {
     }
   };
 
+  const handleBlock = async () => {
+    if (!me || isMine) return;
+    setActionLoading(true);
+    try {
+      await blockUser(me.user_id, profile.user_id);
+      toast.success(`Blocked @${profile.username}`, {
+        description: "They're hidden from search.",
+      });
+      await reload();
+    } catch (e) {
+      toast.error("Couldn't block", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (friendship.kind !== "blocked") return;
+    setActionLoading(true);
+    try {
+      await unblockUser(friendship.row.id);
+      toast("Unblocked");
+      await reload();
+    } catch (e) {
+      toast.error("Couldn't unblock", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleMessage = async () => {
     if (!me || isMine) return;
     try {
@@ -199,6 +240,10 @@ const RubixProfile = () => {
               <Button onClick={() => setEditing(true)} variant="outline">
                 <Pencil className="h-4 w-4 mr-2" /> Edit profile
               </Button>
+            ) : friendship.kind === "blocked" ? (
+              <Button variant="outline" onClick={handleUnblock} disabled={actionLoading}>
+                <ShieldOff className="h-4 w-4 mr-2" /> Unblock
+              </Button>
             ) : (
               <>
                 {friendship.kind === "none" && (
@@ -229,6 +274,22 @@ const RubixProfile = () => {
                 <Button variant="secondary" onClick={handleMessage}>
                   <MessageSquare className="h-4 w-4 mr-2" /> Message
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" title="More">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={handleBlock}
+                      disabled={actionLoading}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Ban className="h-4 w-4 mr-2" /> Block @{profile.username}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
@@ -236,7 +297,15 @@ const RubixProfile = () => {
 
         {/* Bio / private gate */}
         <div className="mt-6 pb-12">
-          {!canView ? (
+          {friendship.kind === "blocked" ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-2">
+              <Ban className="h-6 w-6 mx-auto text-destructive" />
+              <p className="font-medium">You blocked @{profile.username}</p>
+              <p className="text-sm text-muted-foreground">
+                They're hidden from your search results. Unblock to interact again.
+              </p>
+            </div>
+          ) : !canView ? (
             <div className="rounded-xl border border-border bg-card/50 p-8 text-center space-y-2">
               <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
               <p className="font-medium">This profile is {profile.privacy}</p>
