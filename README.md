@@ -57,7 +57,6 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Multi-language support
 * Built-in theme store
 * Website
-* Xbox App Support
 * Playtime Tracker
 
 
