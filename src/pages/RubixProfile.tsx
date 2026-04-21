@@ -39,6 +39,8 @@ import {
 } from "@/lib/rubix-profile";
 import { getOrCreateDm } from "@/lib/messaging";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { SOCIALS } from "@/lib/socials";
+import { ExternalLink } from "lucide-react";
 
 const RubixProfile = () => {
   const { username } = useParams<{ username: string }>();
