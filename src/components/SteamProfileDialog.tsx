@@ -38,7 +38,7 @@ const launchSteamApp = async (appId: number) => {
   }
 };
 
-export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
+export const SteamProfileDialog = ({ steamId, viewerSteamId, onClose }: Props) => {
   const [data, setData] = useState<SteamProfileResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
     setLoading(true);
     setError(null);
     setData(null);
-    fetchSteamProfile(steamId)
+    fetchSteamProfile(steamId, viewerSteamId)
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -69,7 +69,7 @@ export const SteamProfileDialog = ({ steamId, onClose }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [steamId]);
+  }, [steamId, viewerSteamId]);
 
   const open = !!steamId;
   const meta = data ? STATUS_LABEL[data.profile.status] : null;
