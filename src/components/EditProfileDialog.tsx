@@ -271,7 +271,30 @@ export const EditProfileDialog = ({ open, onOpenChange }: Props) => {
           <p className="text-[11px] text-muted-foreground text-right">{bio.length}/280</p>
         </div>
 
-        {/* Privacy */}
+        {/* Socials */}
+        <div className="space-y-2">
+          <Label>Social links</Label>
+          <div className="space-y-2">
+            {SOCIALS.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="flex items-center gap-2">
+                  <div className="h-9 w-9 grid place-items-center rounded-md border border-border bg-secondary/40 shrink-0">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <Input
+                    value={socials[s.key] ?? ""}
+                    onChange={(e) =>
+                      setSocials((prev) => ({ ...prev, [s.key]: e.target.value }))
+                    }
+                    placeholder={`${s.label} — ${s.placeholder}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label>Profile privacy</Label>
           <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>
