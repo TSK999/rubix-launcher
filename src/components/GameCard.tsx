@@ -38,8 +38,17 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
       ref={setNodeRef}
       style={style}
       onClick={() => onOpen(game)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(game);
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open ${game.title}`}
       className={cn(
-        "group relative rounded-3xl bg-card border border-border overflow-hidden cursor-pointer",
+        "group rubix-card-focusable relative rounded-3xl bg-card border border-border overflow-hidden cursor-pointer",
         "transition-all hover:-translate-y-1 hover:shadow-[var(--glow-primary)] hover:border-primary/40",
         isDragging && "ring-2 ring-primary"
       )}
@@ -107,14 +116,14 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-2 left-2 h-8 w-8 grid place-items-center rounded-full bg-background/70 backdrop-blur-sm text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        className="absolute top-2 left-2 h-8 w-8 grid place-items-center rounded-full bg-background/70 backdrop-blur-sm text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
         <GripVertical className="h-4 w-4" />
       </button>
 
       {/* Play button overlay */}
-      <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none">
         <Button
           onClick={(e) => {
             e.stopPropagation();
