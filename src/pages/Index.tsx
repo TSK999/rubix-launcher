@@ -29,6 +29,7 @@ import { Sidebar, type Collection } from "@/components/Sidebar";
 import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImportDialog";
 import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
+import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -69,6 +70,7 @@ const Index = () => {
   const [steamOpen, setSteamOpen] = useState(false);
   const [epicOpen, setEpicOpen] = useState(false);
   const [eaOpen, setEaOpen] = useState(false);
+  const [xboxOpen, setXboxOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -245,6 +247,17 @@ const Index = () => {
       return;
     }
 
+    // Xbox app — launch via shell:AppsFolder
+    if (window.rubix?.isElectron && (g.xboxAppUserModelId || g.xboxPackageFamilyName)) {
+      const res = await window.rubix.xbox.launch({
+        appUserModelId: g.xboxAppUserModelId,
+        packageFamilyName: g.xboxPackageFamilyName,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Xbox`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -342,7 +355,7 @@ const Index = () => {
   }, [games]);
 
   const sourceCounts = useMemo(() => {
-    const c = { steam: 0, epic: 0, ea: 0, other: 0 };
+    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, other: 0 };
     games.forEach((g) => {
       c[getGameSource(g)]++;
     });

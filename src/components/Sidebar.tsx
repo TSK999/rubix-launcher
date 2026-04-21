@@ -24,7 +24,7 @@ type Props = {
   counts: { all: number; favorites: number; recent: number };
   selectedSource: GameSource | null;
   onSource: (s: GameSource | null) => void;
-  sourceCounts: { steam: number; epic: number; ea: number; other: number };
+  sourceCounts: { steam: number; epic: number; ea: number; xbox: number; other: number };
 };
 
 export const Sidebar = ({
@@ -60,6 +60,7 @@ export const Sidebar = ({
     { id: "steam", label: "Steam", icon: Gamepad2, count: sourceCounts.steam },
     { id: "epic", label: "Epic Games", icon: Store, count: sourceCounts.epic },
     { id: "ea", label: "EA app", icon: Gamepad, count: sourceCounts.ea },
+    { id: "xbox", label: "Xbox", icon: Gamepad2, count: sourceCounts.xbox },
     { id: "other", label: "Other", icon: Box, count: sourceCounts.other },
   ];
 
