@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Socials } from "@/lib/socials";
 
 export type RubixPublicProfile = {
   id: string;
@@ -11,6 +12,7 @@ export type RubixPublicProfile = {
   background_kind: "image" | "gif" | "video" | null;
   privacy: "public" | "friends" | "private";
   steam_id: string | null;
+  socials: Socials;
 };
 
 export type FriendshipRow = {
