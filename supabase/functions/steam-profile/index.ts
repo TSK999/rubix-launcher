@@ -167,25 +167,52 @@ Deno.serve(async (req) => {
       /* ignore — backgrounds are optional */
     }
 
-    // 4) Owned games count (best-effort)
+    // 4) Owned games (target user) — used for total + games-in-common
     let totalGames: number | undefined;
+    let targetOwned: OwnedGame[] = [];
     try {
-      const ogUrl =
-        `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/` +
-        `?key=${STEAM_API_KEY}&steamid=${steamId}&include_played_free_games=true&format=json`;
-      const ogRes = await fetch(ogUrl);
-      if (ogRes.ok) {
-        const ogData = await ogRes.json();
-        totalGames = Number(ogData?.response?.game_count ?? 0) || undefined;
-      }
+      targetOwned = await fetchOwnedGames(steamId);
+      totalGames = targetOwned.length || undefined;
     } catch {
       /* ignore */
     }
 
-    return new Response(JSON.stringify({ profile, recentGames, totalGames, profileBackground }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // 5) Games in common (best-effort, requires both profiles to expose game details)
+    let gamesInCommon: Array<{ appId: number; name: string; header: string; icon?: string; playtimeForever: number }> | undefined;
+    let gamesInCommonCount: number | undefined;
+    if (viewerSteamId && targetOwned.length > 0) {
+      try {
+        const viewerOwned = await fetchOwnedGames(viewerSteamId);
+        if (viewerOwned.length > 0) {
+          const viewerSet = new Set(viewerOwned.map((g) => g.appid));
+          const targetMap = new Map(targetOwned.map((g) => [g.appid, g]));
+          const intersection = targetOwned.filter((g) => viewerSet.has(g.appid));
+          gamesInCommonCount = intersection.length;
+          // Sort: most-played by target friend first
+          intersection.sort((a, b) => (b.playtime_forever ?? 0) - (a.playtime_forever ?? 0));
+          gamesInCommon = intersection.slice(0, 24).map((g) => {
+            const t = targetMap.get(g.appid) ?? g;
+            const icon = t.img_icon_url
+              ? `https://media.steampowered.com/steamcommunity/public/images/apps/${g.appid}/${t.img_icon_url}.jpg`
+              : undefined;
+            return {
+              appId: g.appid,
+              name: String(t.name ?? `App ${g.appid}`),
+              header: `https://steamcdn-a.akamaihd.net/steam/apps/${g.appid}/header.jpg`,
+              icon,
+              playtimeForever: Number(t.playtime_forever ?? 0),
+            };
+          });
+        }
+      } catch {
+        /* ignore — common games are optional */
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ profile, recentGames, totalGames, profileBackground, gamesInCommon, gamesInCommonCount }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("steam-profile error:", message);
