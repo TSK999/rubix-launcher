@@ -488,6 +488,159 @@ ipcMain.handle("ea:launch", async (_evt, payload) => {
   }
 });
 
+// ---------- Xbox app (Microsoft Store / Gaming Services UWP) integration ----------
+
+function runPowerShell(script, timeoutMs = 15000) {
+  if (process.platform !== "win32") {
+    throw new Error("Xbox library scanning requires Windows");
+  }
+  const { execFileSync } = require("child_process");
+  const out = execFileSync(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+    { encoding: "utf-8", windowsHide: true, timeout: timeoutMs, maxBuffer: 1024 * 1024 * 8 }
+  );
+  return out;
+}
+
+// Heuristic: drop system / framework / first-party utility packages.
+function isLikelyXboxGame(pkg) {
+  if (!pkg || !pkg.PackageFamilyName) return false;
+  if (pkg.IsFramework) return false;
+  if (!pkg.InstallLocation) return false;
+  const name = String(pkg.Name || "");
+  const blocklist = [
+    /^Microsoft\.Windows/i, /^Microsoft\.VCLibs/i, /^Microsoft\.NET/i, /^Microsoft\.UI/i,
+    /^Microsoft\.Services\.Store/i, /^Microsoft\.WebMediaExtensions/i, /ImageExtension/i,
+    /VideoExtension/i, /^Microsoft\.MicrosoftEdge/i, /^Microsoft\.GamingApp$/i,
+    /^Microsoft\.XboxApp$/i, /^Microsoft\.Xbox\./i, /^Microsoft\.XboxIdentityProvider/i,
+    /^Microsoft\.XboxGameOverlay/i, /^Microsoft\.XboxGamingOverlay/i,
+    /^Microsoft\.XboxSpeechToTextOverlay/i, /^Microsoft\.GamingServices/i,
+    /^Microsoft\.StorePurchaseApp/i, /^Microsoft\.WindowsStore/i,
+    /^Microsoft\.DesktopAppInstaller/i, /^Microsoft\.WindowsTerminal/i,
+    /^Microsoft\.Paint/i, /^Microsoft\.ScreenSketch/i, /^Microsoft\.YourPhone/i,
+    /^Microsoft\.Office/i, /^Microsoft\.OneDrive/i, /^Microsoft\.Getstarted/i,
+    /^Microsoft\.GetHelp/i, /^Microsoft\.People/i, /^Microsoft\.ZuneMusic/i,
+    /^Microsoft\.ZuneVideo/i, /^Microsoft\.WindowsCalculator/i, /^Microsoft\.WindowsCamera/i,
+    /^Microsoft\.WindowsAlarms/i, /^Microsoft\.WindowsFeedbackHub/i,
+    /^Microsoft\.WindowsMaps/i, /^Microsoft\.WindowsSoundRecorder/i,
+    /^Microsoft\.MixedReality/i, /^Microsoft\.Bing/i, /^MicrosoftCorporationII\./i,
+    /^MicrosoftWindows\./i, /^windows\./i, /^NVIDIA/i, /^AMDExtension/i, /^Realtek/i,
+  ];
+  if (blocklist.some((rx) => rx.test(name))) return false;
+  return true;
+}
+
+ipcMain.handle("xbox:scan-installed", async () => {
+  if (process.platform !== "win32") {
+    return { ok: false, scannedDir: null, games: [], error: "Xbox scanning requires Windows" };
+  }
+  try {
+    const script = `
+$ErrorActionPreference = 'SilentlyContinue';
+$startApps = @{};
+try {
+  Get-StartApps | ForEach-Object {
+    if ($_.AppID -match '^([^!]+)!') {
+      $pfn = $matches[1];
+      if (-not $startApps.ContainsKey($pfn)) { $startApps[$pfn] = $_.AppID; }
+    }
+  }
+} catch {}
+$pkgs = Get-AppxPackage | Where-Object { -not $_.IsFramework -and $_.SignatureKind -ne 'System' };
+$out = @();
+foreach ($p in $pkgs) {
+  $aumid = $startApps[$p.PackageFamilyName];
+  if (-not $aumid) { continue; }
+  $logo = '';
+  $displayName = $p.Name;
+  $publisher = $p.Publisher;
+  try {
+    $manifest = Get-AppxPackageManifest -Package $p.PackageFullName;
+    if ($manifest) {
+      $dn = $manifest.Package.Properties.DisplayName;
+      if ($dn -and $dn -notlike 'ms-resource:*') { $displayName = $dn; }
+      $pn = $manifest.Package.Properties.PublisherDisplayName;
+      if ($pn -and $pn -notlike 'ms-resource:*') { $publisher = $pn; }
+      $logoRel = $manifest.Package.Properties.Logo;
+      if ($logoRel -and $p.InstallLocation) {
+        $logoPath = Join-Path $p.InstallLocation $logoRel;
+        if (Test-Path $logoPath) { $logo = $logoPath; }
+      }
+    }
+  } catch {}
+  $out += [pscustomobject]@{
+    Name = $p.Name;
+    PackageFamilyName = $p.PackageFamilyName;
+    AppUserModelId = $aumid;
+    DisplayName = $displayName;
+    Publisher = $publisher;
+    InstallLocation = $p.InstallLocation;
+    InstallSize = 0;
+    Logo = $logo;
+    IsFramework = $p.IsFramework;
+  };
+}
+$out | ConvertTo-Json -Depth 4 -Compress
+`;
+    const raw = runPowerShell(script, 30000);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw || "[]");
+    } catch {
+      parsed = [];
+    }
+    if (!Array.isArray(parsed)) parsed = [parsed];
+
+    const games = parsed
+      .filter(isLikelyXboxGame)
+      .map((p) => ({
+        packageFamilyName: p.PackageFamilyName,
+        appUserModelId: p.AppUserModelId,
+        displayName: p.DisplayName || p.Name,
+        installLocation: p.InstallLocation || "",
+        publisher: p.Publisher || "",
+        installSize: Number(p.InstallSize) || 0,
+        logo: p.Logo || "",
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    return {
+      ok: true,
+      scannedDir: "Get-AppxPackage (UWP / Microsoft Store)",
+      games,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      scannedDir: null,
+      games: [],
+      error: String(err?.message || err),
+    };
+  }
+});
+
+ipcMain.handle("xbox:launch", async (_evt, payload) => {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, error: "Invalid launch payload" };
+  }
+  const { appUserModelId, packageFamilyName } = payload;
+  const aumid = appUserModelId || (packageFamilyName ? `${packageFamilyName}!App` : "");
+  if (!aumid) return { ok: false, error: "Missing Xbox app identifier" };
+
+  try {
+    const child = spawn("explorer.exe", [`shell:AppsFolder\\${aumid}`], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.unref();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
