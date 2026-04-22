@@ -3,6 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Gamepad2, GripVertical, Heart, Play } from "lucide-react";
 import { getGameSource, type Game } from "@/lib/game-types";
 import { Button } from "@/components/ui/button";
+import { StoreIcon } from "@/components/StoreIcon";
 import { cn } from "@/lib/utils";
 
 const SOURCE_LABEL: Record<"steam" | "epic" | "ea" | "xbox" | "riot", string> = {
@@ -83,10 +84,11 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
           return (
             <span
               className={cn(
-                "absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm",
+                "absolute bottom-2 left-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm",
                 SOURCE_STYLES[src],
               )}
             >
+              <StoreIcon source={src} className="mr-1.5 h-3 w-3" />
               {SOURCE_LABEL[src]}
             </span>
           );

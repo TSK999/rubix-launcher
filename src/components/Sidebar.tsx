@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad, Link2, Shield } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles, Box, Link2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
 import { MessagesPanel } from "@/components/MessagesPanel";
 import { UserSearchPopover } from "@/components/UserSearchPopover";
+import { StoreIcon } from "@/components/StoreIcon";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
@@ -56,13 +57,13 @@ export const Sidebar = ({
     { id: "recent", label: "Recently played", icon: Clock, count: counts.recent },
   ];
 
-  const stores: { id: GameSource; label: string; icon: typeof Library; count: number }[] = [
-    { id: "steam", label: "Steam", icon: Gamepad2, count: sourceCounts.steam },
-    { id: "epic", label: "Epic Games", icon: Store, count: sourceCounts.epic },
-    { id: "ea", label: "EA app", icon: Gamepad, count: sourceCounts.ea },
-    { id: "xbox", label: "Xbox", icon: Gamepad2, count: sourceCounts.xbox },
-    { id: "riot", label: "Riot", icon: Shield, count: sourceCounts.riot },
-    { id: "other", label: "Other", icon: Box, count: sourceCounts.other },
+  const stores: { id: GameSource; label: string; count: number }[] = [
+    { id: "steam", label: "Steam", count: sourceCounts.steam },
+    { id: "epic", label: "Epic Games", count: sourceCounts.epic },
+    { id: "ea", label: "EA app", count: sourceCounts.ea },
+    { id: "xbox", label: "Xbox", count: sourceCounts.xbox },
+    { id: "riot", label: "Riot", count: sourceCounts.riot },
+    { id: "other", label: "Other", count: sourceCounts.other },
   ];
 
   return (
@@ -151,7 +152,7 @@ export const Sidebar = ({
           <Library className={cn("h-4 w-4", selectedSource === null && "text-primary")} />
           <span className="flex-1 text-left">All stores</span>
         </button>
-        {stores.map(({ id, label, icon: Icon, count }) => {
+        {stores.map(({ id, label, count }) => {
           const active = selectedSource === id;
           return (
             <button
@@ -164,7 +165,11 @@ export const Sidebar = ({
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               )}
             >
-              <Icon className={cn("h-4 w-4", active && "text-primary")} />
+              {id === "other" ? (
+                <Box className={cn("h-4 w-4", active && "text-primary")} />
+              ) : (
+                <StoreIcon source={id} className={cn(active && "opacity-100", !active && "opacity-70")} />
+              )}
               <span className="flex-1 text-left">{label}</span>
               <span className="text-xs text-muted-foreground">{count}</span>
             </button>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Gamepad2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StoreIcon } from "@/components/StoreIcon";
 import { STEAM_ID_KEY } from "@/lib/game-types";
 
 export type SteamLibraryItem = {
@@ -154,7 +155,7 @@ export const SteamImportDialog = ({ open, onOpenChange, onImport }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Gamepad2 className="h-5 w-5" /> Import from Steam
+            <StoreIcon source="steam" className="h-5 w-5" /> Import from Steam
           </DialogTitle>
           <DialogDescription>
             Sync your owned games. Your Steam profile and game details must be set to{" "}

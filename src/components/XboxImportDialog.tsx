@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Gamepad, FolderSearch } from "lucide-react";
+import { Loader2, Search, FolderSearch } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StoreIcon } from "@/components/StoreIcon";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
 import type { XboxScanGame } from "@/types/electron";
@@ -160,7 +161,7 @@ export const XboxImportDialog = ({ open, onOpenChange, onImport }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Gamepad className="h-5 w-5" /> Import from Xbox app
+            <StoreIcon source="xbox" className="h-5 w-5" /> Import from Xbox app
           </DialogTitle>
           <DialogDescription>
             Scans installed Microsoft Store / Xbox / Game Pass titles. Covers are pulled from RAWG.
@@ -169,7 +170,7 @@ export const XboxImportDialog = ({ open, onOpenChange, onImport }: Props) => {
 
         {!isElectron ? (
           <div className="rounded-xl border border-border bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
-            <Gamepad className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+            <StoreIcon source="xbox" className="h-8 w-8 mx-auto mb-3 opacity-70" />
             Xbox library scanning requires the RUBIX desktop app on Windows. You can still add Xbox games
             manually using a <code className="font-mono">shell:AppsFolder\…</code> path.
           </div>
@@ -233,7 +234,7 @@ export const XboxImportDialog = ({ open, onOpenChange, onImport }: Props) => {
                             {g.logo ? (
                               <img src={`file://${g.logo}`} alt="" className="h-full w-full object-cover" />
                             ) : (
-                              <Gamepad className="h-4 w-4 text-muted-foreground" />
+                              <StoreIcon source="xbox" className="h-5 w-5 opacity-70" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
