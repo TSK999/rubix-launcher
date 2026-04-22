@@ -488,6 +488,169 @@ ipcMain.handle("ea:launch", async (_evt, payload) => {
   }
 });
 
+
+// ---------- Riot Client integration ----------
+
+const RIOT_PRODUCTS = {
+  valorant: { productId: "valorant", patchline: "live", displayName: "VALORANT" },
+  league_of_legends: { productId: "league_of_legends", patchline: "live", displayName: "League of Legends" },
+  lor: { productId: "bacon", patchline: "live", displayName: "Legends of Runeterra" },
+};
+
+function getRiotRoots() {
+  if (process.platform !== "win32") return [];
+  const roots = [];
+  const programData = process.env.PROGRAMDATA || "C:\\ProgramData";
+  const programFiles = process.env.PROGRAMFILES || "C:\\Program Files";
+  const programFilesX86 = process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
+  roots.push(
+    path.join(programData, "Riot Games"),
+    path.join(programFiles, "Riot Games"),
+    path.join(programFilesX86, "Riot Games"),
+    "C:\\Riot Games"
+  );
+  return [...new Set(roots)];
+}
+
+function readRiotClientPath() {
+  const programData = process.env.PROGRAMDATA || "C:\\ProgramData";
+  const installsPath = path.join(programData, "Riot Games", "RiotClientInstalls.json");
+  try {
+    const data = JSON.parse(fs.readFileSync(installsPath, "utf-8"));
+    const candidate = data.rc_default || data.rc_live || data.associated_client;
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  } catch {
+    /* ignore missing installs file */
+  }
+
+  for (const root of getRiotRoots()) {
+    const candidate = path.join(root, "Riot Client", "RiotClientServices.exe");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return "";
+}
+
+function parseRiotSettingsYaml(raw) {
+  const get = (key) => {
+    const match = raw.match(new RegExp(`^\\s*${key}:\\s*["']?([^"'\\r\\n]+)["']?`, "mi"));
+    return match ? match[1].trim() : "";
+  };
+  return {
+    productId: get("product_id") || get("product"),
+    patchline: get("patchline") || "live",
+    displayName: get("product_name") || get("name"),
+    installLocation: get("product_install_full_path") || get("install_full_path"),
+  };
+}
+
+function normalizeRiotProduct(id, dirName) {
+  const raw = String(id || dirName || "").toLowerCase();
+  if (raw.includes("valorant")) return RIOT_PRODUCTS.valorant;
+  if (raw.includes("league")) return RIOT_PRODUCTS.league_of_legends;
+  if (raw.includes("bacon") || raw.includes("runeterra") || raw === "lor") return RIOT_PRODUCTS.lor;
+  return null;
+}
+
+function readRiotMetadataGames() {
+  const games = [];
+  const metadataDir = path.join(process.env.PROGRAMDATA || "C:\\ProgramData", "Riot Games", "Metadata");
+  if (!fs.existsSync(metadataDir)) return { games, scannedDir: null };
+
+  for (const entry of fs.readdirSync(metadataDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const settingsPath = path.join(metadataDir, entry.name, `${entry.name}.product_settings.yaml`);
+    if (!fs.existsSync(settingsPath)) continue;
+    try {
+      const parsed = parseRiotSettingsYaml(fs.readFileSync(settingsPath, "utf-8"));
+      const product = normalizeRiotProduct(parsed.productId, entry.name);
+      if (!product) continue;
+      games.push({
+        productId: product.productId,
+        patchline: parsed.patchline || product.patchline,
+        displayName: parsed.displayName || product.displayName,
+        installLocation: parsed.installLocation || "",
+        clientPath: readRiotClientPath(),
+        installSize: 0,
+      });
+    } catch {
+      /* skip unreadable metadata */
+    }
+  }
+  return { games, scannedDir: metadataDir };
+}
+
+function scanRiotKnownFolders() {
+  const games = [];
+  const clientPath = readRiotClientPath();
+  for (const root of getRiotRoots()) {
+    const candidates = [
+      { product: RIOT_PRODUCTS.valorant, dir: path.join(root, "VALORANT") },
+      { product: RIOT_PRODUCTS.league_of_legends, dir: path.join(root, "League of Legends") },
+      { product: RIOT_PRODUCTS.lor, dir: path.join(root, "LoR") },
+    ];
+    for (const { product, dir } of candidates) {
+      if (!fs.existsSync(dir)) continue;
+      games.push({
+        productId: product.productId,
+        patchline: product.patchline,
+        displayName: product.displayName,
+        installLocation: dir,
+        clientPath,
+        installSize: 0,
+      });
+    }
+  }
+  return games;
+}
+
+ipcMain.handle("riot:scan-installed", async () => {
+  if (process.platform !== "win32") {
+    return { ok: false, scannedDir: null, games: [], error: "Riot scanning requires Windows" };
+  }
+  try {
+    const { games: metadataGames, scannedDir } = readRiotMetadataGames();
+    const folderGames = scanRiotKnownFolders();
+    const seen = new Map();
+    for (const g of [...metadataGames, ...folderGames]) {
+      if (!g.productId) continue;
+      const key = `${g.productId}:${g.patchline || "live"}`;
+      if (!seen.has(key)) seen.set(key, g);
+      else seen.set(key, { ...g, ...seen.get(key), installLocation: seen.get(key).installLocation || g.installLocation });
+    }
+    const games = Array.from(seen.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return {
+      ok: true,
+      scannedDir: scannedDir || getRiotRoots().filter((d) => fs.existsSync(d)).join(" | ") || null,
+      games,
+    };
+  } catch (err) {
+    return { ok: false, scannedDir: null, games: [], error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("riot:launch", async (_evt, payload) => {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, error: "Invalid launch payload" };
+  }
+  const productId = payload.productId;
+  const patchline = payload.patchline || "live";
+  const clientPath = payload.clientPath || readRiotClientPath();
+  if (!productId) return { ok: false, error: "Missing Riot product ID" };
+  if (!clientPath || !fs.existsSync(clientPath)) return { ok: false, error: "Riot Client not found" };
+
+  try {
+    const child = spawn(clientPath, [`--launch-product=${productId}`, `--launch-patchline=${patchline}`], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.unref();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
 // ---------- Xbox app (Microsoft Store / Gaming Services UWP) integration ----------
 
 function runPowerShell(script, timeoutMs = 15000) {
