@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FolderSearch, Loader2, Search, Shield } from "lucide-react";
+import { FolderSearch, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StoreIcon } from "@/components/StoreIcon";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
 import type { RiotScanGame } from "@/types/electron";
@@ -162,7 +163,7 @@ export const RiotImportDialog = ({ open, onOpenChange, onImport }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" /> Import from Riot
+            <StoreIcon source="riot" className="h-5 w-5" /> Import from Riot
           </DialogTitle>
           <DialogDescription>
             Scans Riot Client metadata for installed titles. Covers are pulled from RAWG.
@@ -171,7 +172,7 @@ export const RiotImportDialog = ({ open, onOpenChange, onImport }: Props) => {
 
         {!isElectron ? (
           <div className="rounded-xl border border-border bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
-            <Shield className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+            <StoreIcon source="riot" className="h-8 w-8 mx-auto mb-3 opacity-70" />
             Riot library scanning requires the RUBIX desktop app on Windows. You can still add Riot
             games manually and launch them from the desktop app.
           </div>
@@ -233,7 +234,7 @@ export const RiotImportDialog = ({ open, onOpenChange, onImport }: Props) => {
                         >
                           <Checkbox checked={checked} />
                           <div className="h-12 w-9 rounded bg-secondary grid place-items-center shrink-0">
-                            <Shield className="h-4 w-4 text-muted-foreground" />
+                            <StoreIcon source="riot" className="h-5 w-5 opacity-70" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{g.displayName}</div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Store, FolderSearch } from "lucide-react";
+import { Loader2, Search, FolderSearch } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StoreIcon } from "@/components/StoreIcon";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
 import type { EpicScanGame } from "@/types/electron";
@@ -168,7 +169,7 @@ export const EpicImportDialog = ({ open, onOpenChange, onImport }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Store className="h-5 w-5" /> Import from Epic Games
+            <StoreIcon source="epic" className="h-5 w-5" /> Import from Epic Games
           </DialogTitle>
           <DialogDescription>
             Scans your local Epic Games Launcher for installed titles. Covers are pulled from RAWG.
@@ -177,7 +178,7 @@ export const EpicImportDialog = ({ open, onOpenChange, onImport }: Props) => {
 
         {!isElectron ? (
           <div className="rounded-xl border border-border bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
-            <Store className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+            <StoreIcon source="epic" className="h-8 w-8 mx-auto mb-3 opacity-70" />
             Epic library scanning requires the RUBIX desktop app. You can still add Epic games
             manually using a <code className="font-mono">com.epicgames.launcher://</code> URI as the launch path.
           </div>
@@ -238,7 +239,7 @@ export const EpicImportDialog = ({ open, onOpenChange, onImport }: Props) => {
                         >
                           <Checkbox checked={checked} />
                           <div className="h-12 w-9 rounded bg-secondary grid place-items-center shrink-0">
-                            <Store className="h-4 w-4 text-muted-foreground" />
+                            <StoreIcon source="epic" className="h-5 w-5 opacity-70" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{g.displayName}</div>
