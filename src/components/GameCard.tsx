@@ -84,7 +84,7 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
           return (
             <span
               className={cn(
-                "absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm",
+                "absolute bottom-2 left-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm",
                 SOURCE_STYLES[src],
               )}
             >
