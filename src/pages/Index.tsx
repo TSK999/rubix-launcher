@@ -381,6 +381,35 @@ const Index = () => {
     });
   };
 
+  const importFromRiot = (incoming: RiotImportGame[]) => {
+    setGames((current) => {
+      const byProduct = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.riotProductId) byProduct.set(`${g.riotProductId}:${g.riotPatchline || "live"}`, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const r of incoming) {
+        const existing = r.riotProductId ? byProduct.get(`${r.riotProductId}:${r.riotPatchline || "live"}`) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...r };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...r, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Riot library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   const genres = useMemo(() => {
     const s = new Set<string>();
     games.forEach((g) => g.genre && s.add(g.genre));
@@ -397,7 +426,7 @@ const Index = () => {
   }, [games]);
 
   const sourceCounts = useMemo(() => {
-    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, other: 0 };
+    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 };
     games.forEach((g) => {
       c[getGameSource(g)]++;
     });
