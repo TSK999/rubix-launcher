@@ -5,18 +5,20 @@ import { getGameSource, type Game } from "@/lib/game-types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const SOURCE_LABEL: Record<"steam" | "epic" | "ea" | "xbox", string> = {
+const SOURCE_LABEL: Record<"steam" | "epic" | "ea" | "xbox" | "riot", string> = {
   steam: "Steam",
   epic: "Epic",
   ea: "EA",
   xbox: "Xbox",
+  riot: "Riot",
 };
 
-const SOURCE_STYLES: Record<"steam" | "epic" | "ea" | "xbox", string> = {
+const SOURCE_STYLES: Record<"steam" | "epic" | "ea" | "xbox" | "riot", string> = {
   steam: "bg-[#1b2838]/90 text-[#66c0f4] border border-[#66c0f4]/30",
   epic: "bg-black/80 text-white border border-white/20",
   ea: "bg-[#ea0029]/90 text-white border border-white/20",
   xbox: "bg-[#107c10]/90 text-white border border-white/20",
+  riot: "bg-[#d13639]/90 text-white border border-white/20",
 };
 
 type Props = {
