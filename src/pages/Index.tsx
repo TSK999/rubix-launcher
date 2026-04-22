@@ -32,6 +32,7 @@ import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
 import { RiotImportDialog, type RiotImportGame } from "@/components/RiotImportDialog";
 import { StoreIcon } from "@/components/StoreIcon";
+import { LaunchAnimation } from "@/components/LaunchAnimation";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -78,6 +79,7 @@ const Index = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [launchingGame, setLaunchingGame] = useState<Game | null>(null);
 
   // Load
   useEffect(() => {
@@ -218,6 +220,7 @@ const Index = () => {
   };
 
   const launchGame = async (g: Game) => {
+    setLaunchingGame(g);
     // Update stats first
     setGames((all) =>
       all.map((x) =>
@@ -671,6 +674,10 @@ const Index = () => {
           )}
         </main>
       </div>
+
+      {launchingGame && (
+        <LaunchAnimation game={launchingGame} onComplete={() => setLaunchingGame(null)} />
+      )}
 
       <GameFormDialog
         open={formOpen}
