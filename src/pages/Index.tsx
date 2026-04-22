@@ -564,6 +564,9 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setXboxOpen(true)}>
                   <Gamepad2 className="h-4 w-4 mr-2" /> Import from Xbox
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRiotOpen(true)}>
+                  <Shield className="h-4 w-4 mr-2" /> Import from Riot
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Theme</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
@@ -697,6 +700,12 @@ const Index = () => {
         open={xboxOpen}
         onOpenChange={setXboxOpen}
         onImport={importFromXbox}
+      />
+
+      <RiotImportDialog
+        open={riotOpen}
+        onOpenChange={setRiotOpen}
+        onImport={importFromRiot}
       />
 
       <QuickFindDialog
