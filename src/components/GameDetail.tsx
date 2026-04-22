@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Clock, Gamepad2, Heart, Loader2, Pencil, Play, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { LaunchAnimation } from "@/components/LaunchAnimation";
 import { cn } from "@/lib/utils";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
@@ -33,6 +34,13 @@ export const GameDetail = ({
   onUpdate,
 }: Props) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [launchingGame, setLaunchingGame] = useState<Game | null>(null);
+
+  const completeLaunch = useCallback(() => {
+    if (!launchingGame) return;
+    onLaunch(launchingGame);
+    setLaunchingGame(null);
+  }, [launchingGame, onLaunch]);
 
   const refreshMetadata = async () => {
     if (!game) return;
@@ -60,11 +68,13 @@ export const GameDetail = ({
   };
 
   return (
-    <Sheet open={!!game} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-2xl bg-card border-border p-0 overflow-y-auto"
-      >
+    <>
+      {launchingGame && <LaunchAnimation game={launchingGame} onComplete={completeLaunch} />}
+      <Sheet open={!!game} onOpenChange={(o) => !o && onClose()}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl bg-card border-border p-0 overflow-y-auto"
+        >
         {game && (
           <>
             {/* Hero banner */}
@@ -125,7 +135,7 @@ export const GameDetail = ({
 
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={() => onLaunch(game)}
+                  onClick={() => setLaunchingGame(game)}
                   size="lg"
                   className="rounded-2xl bg-[image:var(--gradient-primary)] shadow-[var(--glow-primary)] flex-1 min-w-[140px]"
                 >
@@ -205,7 +215,8 @@ export const GameDetail = ({
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
