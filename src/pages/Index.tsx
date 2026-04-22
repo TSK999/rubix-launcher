@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check, Shield } from "lucide-react";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImpor
 import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
+import { RiotImportDialog, type RiotImportGame } from "@/components/RiotImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -71,6 +72,7 @@ const Index = () => {
   const [epicOpen, setEpicOpen] = useState(false);
   const [eaOpen, setEaOpen] = useState(false);
   const [xboxOpen, setXboxOpen] = useState(false);
+  const [riotOpen, setRiotOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -254,6 +256,18 @@ const Index = () => {
         packageFamilyName: g.xboxPackageFamilyName,
       });
       if (res.ok) toast.success(`Launching ${g.title} via Xbox`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
+    // Riot Client — launch selected product through RiotClientServices.exe
+    if (window.rubix?.isElectron && g.riotProductId) {
+      const res = await window.rubix.riot.launch({
+        productId: g.riotProductId,
+        patchline: g.riotPatchline,
+        clientPath: g.riotClientPath,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Riot`);
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
