@@ -49,6 +49,7 @@ Made with only the finest **AI slop code**, **Rubix Launcher** is a solution for
 * Controler support
 * Controler friendly ui
 * Xbox App Support
+* Riot games support 
 
 ---
 
