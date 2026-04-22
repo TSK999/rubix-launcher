@@ -1,7 +1,7 @@
 import steamIcon from "@/assets/steam-icon.png";
 import epicIcon from "@/assets/epic-games-icon.png";
 import eaIcon from "@/assets/ea-icon.svg";
-import xboxIcon from "@/assets/xbox-icon.svg";
+import xboxIcon from "@/assets/xbox-icon.png";
 import riotIcon from "@/assets/riot-games-icon.png";
 import { cn } from "@/lib/utils";
 import type { GameSource } from "@/lib/game-types";
