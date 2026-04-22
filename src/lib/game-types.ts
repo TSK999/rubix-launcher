@@ -1,5 +1,5 @@
 // Game source: which storefront/launcher does this game come from
-export type GameSource = "steam" | "epic" | "ea" | "xbox" | "other";
+export type GameSource = "steam" | "epic" | "ea" | "xbox" | "riot" | "other";
 
 export type Game = {
   id: string;
@@ -28,6 +28,11 @@ export type Game = {
   xboxPackageFamilyName?: string;
   xboxAppUserModelId?: string;
   xboxLaunchUri?: string;
+  // Riot Client
+  riotProductId?: string;
+  riotPatchline?: string;
+  riotClientPath?: string;
+  riotLaunchUri?: string;
 };
 
 export const STORAGE_KEY = "rubix-launcher-games";
@@ -38,5 +43,6 @@ export const getGameSource = (g: Game): GameSource => {
   if (g.epicAppName || g.epicLaunchUri) return "epic";
   if (g.eaAppId || g.eaLaunchUri) return "ea";
   if (g.xboxPackageFamilyName || g.xboxAppUserModelId || g.xboxLaunchUri) return "xbox";
+  if (g.riotProductId || g.riotLaunchUri) return "riot";
   return "other";
 };

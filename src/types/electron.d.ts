@@ -46,6 +46,21 @@ export type XboxLaunchPayload = {
   packageFamilyName?: string;
 };
 
+export type RiotScanGame = {
+  productId: string;
+  patchline: string;
+  displayName: string;
+  installLocation: string;
+  clientPath: string;
+  installSize: number;
+};
+
+export type RiotLaunchPayload = {
+  productId: string;
+  patchline?: string;
+  clientPath?: string;
+};
+
 export type UpdaterStatus =
   | { status: "checking"; payload?: undefined }
   | { status: "available"; payload: { version: string } }
@@ -86,6 +101,15 @@ declare global {
           error?: string;
         }>;
         launch: (payload: XboxLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
+      };
+      riot: {
+        scanInstalled: () => Promise<{
+          ok: boolean;
+          scannedDir: string | null;
+          games: RiotScanGame[];
+          error?: string;
+        }>;
+        launch: (payload: RiotLaunchPayload) => Promise<{ ok: boolean; error?: string }>;
       };
       updater: {
         check: () => Promise<{ ok: boolean; version?: string; error?: string }>;
