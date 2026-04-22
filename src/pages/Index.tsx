@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
+import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check, Shield } from "lucide-react";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import { SteamImportDialog, type SteamGameDetail } from "@/components/SteamImpor
 import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDialog";
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
+import { RiotImportDialog, type RiotImportGame } from "@/components/RiotImportDialog";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -71,6 +72,7 @@ const Index = () => {
   const [epicOpen, setEpicOpen] = useState(false);
   const [eaOpen, setEaOpen] = useState(false);
   const [xboxOpen, setXboxOpen] = useState(false);
+  const [riotOpen, setRiotOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editing, setEditing] = useState<Game | null>(null);
@@ -258,6 +260,18 @@ const Index = () => {
       return;
     }
 
+    // Riot Client — launch selected product through RiotClientServices.exe
+    if (window.rubix?.isElectron && g.riotProductId) {
+      const res = await window.rubix.riot.launch({
+        productId: g.riotProductId,
+        patchline: g.riotPatchline,
+        clientPath: g.riotClientPath,
+      });
+      if (res.ok) toast.success(`Launching ${g.title} via Riot`);
+      else toast.error(`Failed to launch ${g.title}`, { description: res.error });
+      return;
+    }
+
     if (!g.path) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
@@ -367,6 +381,35 @@ const Index = () => {
     });
   };
 
+  const importFromRiot = (incoming: RiotImportGame[]) => {
+    setGames((current) => {
+      const byProduct = new Map<string, Game>();
+      current.forEach((g) => {
+        if (g.riotProductId) byProduct.set(`${g.riotProductId}:${g.riotPatchline || "live"}`, g);
+      });
+      const updated = [...current];
+      let added = 0;
+      let refreshed = 0;
+      for (const r of incoming) {
+        const existing = r.riotProductId ? byProduct.get(`${r.riotProductId}:${r.riotPatchline || "live"}`) : undefined;
+        if (existing) {
+          const idx = updated.findIndex((x) => x.id === existing.id);
+          if (idx !== -1) {
+            updated[idx] = { ...existing, ...r };
+            refreshed++;
+          }
+        } else {
+          updated.unshift({ ...r, id: crypto.randomUUID(), addedAt: Date.now() });
+          added++;
+        }
+      }
+      toast.success("Riot library synced", {
+        description: `${added} added · ${refreshed} updated`,
+      });
+      return updated;
+    });
+  };
+
   const genres = useMemo(() => {
     const s = new Set<string>();
     games.forEach((g) => g.genre && s.add(g.genre));
@@ -383,7 +426,7 @@ const Index = () => {
   }, [games]);
 
   const sourceCounts = useMemo(() => {
-    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, other: 0 };
+    const c = { steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 };
     games.forEach((g) => {
       c[getGameSource(g)]++;
     });
@@ -521,6 +564,9 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setXboxOpen(true)}>
                   <Gamepad2 className="h-4 w-4 mr-2" /> Import from Xbox
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRiotOpen(true)}>
+                  <Shield className="h-4 w-4 mr-2" /> Import from Riot
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Theme</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => themeInputRef.current?.click()}>
@@ -654,6 +700,12 @@ const Index = () => {
         open={xboxOpen}
         onOpenChange={setXboxOpen}
         onImport={importFromXbox}
+      />
+
+      <RiotImportDialog
+        open={riotOpen}
+        onOpenChange={setRiotOpen}
+        onImport={importFromRiot}
       />
 
       <QuickFindDialog

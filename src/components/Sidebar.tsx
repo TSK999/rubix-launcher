@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad, Link2 } from "lucide-react";
+import { Clock, Heart, Library, LogOut, Sparkles, Store, Gamepad2, Box, Gamepad, Link2, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ type Props = {
   counts: { all: number; favorites: number; recent: number };
   selectedSource: GameSource | null;
   onSource: (s: GameSource | null) => void;
-  sourceCounts: { steam: number; epic: number; ea: number; xbox: number; other: number };
+  sourceCounts: { steam: number; epic: number; ea: number; xbox: number; riot: number; other: number };
 };
 
 export const Sidebar = ({
@@ -61,6 +61,7 @@ export const Sidebar = ({
     { id: "epic", label: "Epic Games", icon: Store, count: sourceCounts.epic },
     { id: "ea", label: "EA app", icon: Gamepad, count: sourceCounts.ea },
     { id: "xbox", label: "Xbox", icon: Gamepad2, count: sourceCounts.xbox },
+    { id: "riot", label: "Riot", icon: Shield, count: sourceCounts.riot },
     { id: "other", label: "Other", icon: Box, count: sourceCounts.other },
   ];
 
