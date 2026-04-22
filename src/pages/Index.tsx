@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Download, Sparkles, Wand2, Store, Gamepad, MoreHorizontal, Upload, RotateCcw, Check, Shield } from "lucide-react";
+import { Plus, Gamepad2, Search, Sparkles, Wand2, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import {
   DropdownMenu,
@@ -31,6 +31,7 @@ import { EpicImportDialog, type EpicImportGame } from "@/components/EpicImportDi
 import { EaImportDialog, type EaImportGame } from "@/components/EaImportDialog";
 import { XboxImportDialog, type XboxImportGame } from "@/components/XboxImportDialog";
 import { RiotImportDialog, type RiotImportGame } from "@/components/RiotImportDialog";
+import { StoreIcon } from "@/components/StoreIcon";
 import { QuickFindDialog } from "@/components/QuickFindDialog";
 import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
@@ -553,19 +554,19 @@ const Index = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Import library</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => setSteamOpen(true)}>
-                  <Download className="h-4 w-4 mr-2" /> Import from Steam
+                  <StoreIcon source="steam" className="mr-2" /> Import from Steam
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEpicOpen(true)}>
-                  <Store className="h-4 w-4 mr-2" /> Import from Epic
+                  <StoreIcon source="epic" className="mr-2" /> Import from Epic
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEaOpen(true)}>
-                  <Gamepad className="h-4 w-4 mr-2" /> Import from EA
+                  <StoreIcon source="ea" className="mr-2" /> Import from EA
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setXboxOpen(true)}>
-                  <Gamepad2 className="h-4 w-4 mr-2" /> Import from Xbox
+                  <StoreIcon source="xbox" className="mr-2" /> Import from Xbox
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setRiotOpen(true)}>
-                  <Shield className="h-4 w-4 mr-2" /> Import from Riot
+                  <StoreIcon source="riot" className="mr-2" /> Import from Riot
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Theme</DropdownMenuLabel>
