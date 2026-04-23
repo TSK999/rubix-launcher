@@ -118,7 +118,7 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
 
   return (
     <>
-      <div className="w-60 shrink-0 border-r border-border bg-card/30 flex flex-col">
+      <div className="flex flex-col h-full w-full">
         <div className="p-3 border-b border-border space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold">Direct messages</h3>
