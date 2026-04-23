@@ -13,6 +13,7 @@ import {
 } from "@/lib/messaging";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
+import { playSound } from "@/lib/sounds";
 
 type Props = { conversationId: string; meId: string };
 
@@ -72,7 +73,11 @@ export const ConversationView = ({ conversationId, meId }: Props) => {
               .eq("id", (payload.new as Message).id)
               .single();
             if (data) {
-              setMessages((m) => (m.some((x) => x.id === data.id) ? m : [...m, data as Message]));
+              setMessages((m) => {
+                if (m.some((x) => x.id === data.id)) return m;
+                if ((data as Message).sender_id !== meId) playSound("msg", { volume: 0.4 });
+                return [...m, data as Message];
+              });
               void markRead(conversationId);
             }
           } else if (payload.eventType === "UPDATE") {

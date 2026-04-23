@@ -19,6 +19,7 @@ import {
 } from "@/lib/communities";
 import { findActiveDmCall, startDmCall } from "@/lib/calls";
 import type { Conversation } from "@/lib/messaging";
+import { playSound } from "@/lib/sounds";
 
 type DmMeta = {
   conv: Conversation;
@@ -114,6 +115,7 @@ const Messages = () => {
       return;
     }
     const session = await startDmCall(activeDm.conv.id);
+    playSound("call-start", { volume: 0.5 });
     setDmCallId(session.id);
     setInDmCall(true);
   };
