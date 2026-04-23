@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Sparkles, Wand2, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
+import { Plus, Gamepad2, Search, Sparkles, Wand2, MoreHorizontal, Upload, RotateCcw, Check, Settings } from "lucide-react";
 import { useControllerMode } from "@/hooks/useControllerMode";
+import { useNavigate } from "react-router-dom";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { useRubixAuth } from "@/hooks/useRubixAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +47,9 @@ const RECENT_WINDOW_DAYS = 30;
 const Index = () => {
   const themeInputRef = useRef<HTMLInputElement>(null);
   const { enabled: controllerMode, toggle: toggleControllerMode, controllerConnected } = useControllerMode();
+  const navigate = useNavigate();
+  const { profile } = useRubixAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleThemeFile = async (file: File) => {
     try {
@@ -526,6 +532,16 @@ const Index = () => {
               </div>
             </div>
 
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-2xl h-11 w-11 shrink-0"
+              title="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -734,6 +750,14 @@ const Index = () => {
         onDelete={removeGame}
         onToggleFavorite={toggleFavorite}
         onUpdate={updateGame}
+      />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        userId={profile?.user_id ?? null}
+        steamId={profile?.steam_id ?? null}
+        onSignedOut={() => navigate("/login", { replace: true })}
       />
     </div>
   );
