@@ -52,18 +52,15 @@ const Messages = () => {
 
   const meId = user?.id ?? "";
 
-  // Handle deep link ?conv=xxx&join=yyy from incoming-call toast
   useEffect(() => {
     const conv = params.get("conv");
     const join = params.get("join");
     if (conv) {
       setSelected({ kind: "dms" });
-      // Will be picked up by DmChannelRail when conv loads; for direct join we set call id
       if (join) {
         setDmCallId(join);
         setInDmCall(true);
       }
-      // Strip params after applying
       const next = new URLSearchParams(params);
       next.delete("conv");
       next.delete("join");
@@ -72,14 +69,12 @@ const Messages = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset call/channel state when switching scope
   useEffect(() => {
     setInDmCall(false);
     setDmCallId(null);
     setActiveChannel(null);
   }, [selected.kind === "dms" ? "dms" : (selected as { id: string }).id]);
 
-  // Watch active DM's call session
   useEffect(() => {
     if (!activeDm) {
       setDmCallId(null);
@@ -88,7 +83,6 @@ const Messages = () => {
     void findActiveDmCall(activeDm.conv.id).then((s) => setDmCallId(s?.id ?? null));
   }, [activeDm]);
 
-  // Load community members when a community is selected
   useEffect(() => {
     if (selected.kind !== "community") {
       setCommunityMembers([]);
@@ -125,7 +119,7 @@ const Messages = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Top bar */}
       <header className="h-12 border-b border-border bg-card/40 backdrop-blur-sm flex items-center px-3 gap-3 shrink-0">
         <Link
@@ -136,7 +130,9 @@ const Messages = () => {
           Library
         </Link>
         <div className="h-5 w-px bg-border" />
-        <h1 className="text-sm font-bold">Rubix Messaging</h1>
+        <h1 className="text-sm font-bold tracking-tight">
+          Rubix <span className="text-primary">Messaging</span>
+        </h1>
         <div className="ml-auto flex items-center gap-2">
           {profile && (
             <Link to={`/u/${profile.username}`} className="flex items-center gap-2 hover:opacity-80">
@@ -152,44 +148,46 @@ const Messages = () => {
         </div>
       </header>
 
-      {/* Main 3-column layout */}
-      <div className="flex-1 flex min-h-0">
-        <ServerRail
-          selected={selected}
-          onSelect={setSelected}
-          onCreate={() => setCreateOpen(true)}
-          onJoin={() => setJoinOpen(true)}
-          meId={meId}
-        />
+      {/* Horizontal community switcher */}
+      <ServerRail
+        selected={selected}
+        onSelect={setSelected}
+        onCreate={() => setCreateOpen(true)}
+        onJoin={() => setJoinOpen(true)}
+        meId={meId}
+      />
 
-        {selected.kind === "dms" ? (
-          <DmChannelRail
-            meId={meId}
-            activeId={activeDm?.conv.id ?? null}
-            onSelect={(id, meta) => setActiveDm(meta)}
-          />
-        ) : (
-          <CommunityChannelRail
-            communityId={selected.id}
-            meId={meId}
-            isAdmin={isAdmin}
-            isOwner={isOwner}
-            activeChannelId={activeChannel?.id ?? null}
-            onSelect={setActiveChannel}
-            onLeftOrDeleted={() => {
-              setSelected({ kind: "dms" });
-              setActiveChannel(null);
-            }}
-          />
-        )}
+      {/* Workspace: single sidebar + main pane (+ optional members) */}
+      <div className="flex-1 flex min-h-0 p-3 gap-3">
+        <aside className="w-64 shrink-0 rounded-2xl border border-border bg-card/40 overflow-hidden flex flex-col">
+          {selected.kind === "dms" ? (
+            <DmChannelRail
+              meId={meId}
+              activeId={activeDm?.conv.id ?? null}
+              onSelect={(id, meta) => setActiveDm(meta)}
+            />
+          ) : (
+            <CommunityChannelRail
+              communityId={selected.id}
+              meId={meId}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              activeChannelId={activeChannel?.id ?? null}
+              onSelect={setActiveChannel}
+              onLeftOrDeleted={() => {
+                setSelected({ kind: "dms" });
+                setActiveChannel(null);
+              }}
+            />
+          )}
+        </aside>
 
-        {/* Main pane */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 rounded-2xl border border-border bg-card/40 overflow-hidden flex flex-col min-w-0">
           {selected.kind === "dms" ? (
             activeDm ? (
               <>
-                <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
+                <div className="px-4 py-3 border-b border-border flex items-center gap-3 bg-card/60">
+                  <Avatar className="h-8 w-8 ring-2 ring-primary/30">
                     <AvatarImage src={activeDm.avatar ?? undefined} />
                     <AvatarFallback className="text-[10px]">
                       {activeDm.conv.is_group ? <Users className="h-3 w-3" /> : activeDm.title.slice(0, 2).toUpperCase()}
@@ -210,18 +208,17 @@ const Messages = () => {
                 )}
               </>
             ) : (
-              <EmptyState text="Select a conversation or start a new one" />
+              <EmptyState text="Pick a chat from your inbox — or start a new one." />
             )
           ) : activeChannel ? (
             <CommunityChannelView channel={activeChannel} meId={meId} />
           ) : (
-            <EmptyState text="Select a channel to start chatting" />
+            <EmptyState text="Pick a channel to dive in." />
           )}
-        </div>
+        </main>
 
-        {/* Member list (community only) */}
         {selected.kind === "community" && (
-          <div className="hidden lg:flex w-56 shrink-0 border-l border-border bg-card/30 flex-col">
+          <aside className="hidden lg:flex w-56 shrink-0 rounded-2xl border border-border bg-card/40 flex-col overflow-hidden">
             <div className="px-3 py-2 border-b border-border">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Members — {communityMembers.length}
@@ -250,7 +247,7 @@ const Messages = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </aside>
         )}
       </div>
 
@@ -269,7 +266,9 @@ const Messages = () => {
 };
 
 const EmptyState = ({ text }: { text: string }) => (
-  <div className="flex-1 grid place-items-center text-sm text-muted-foreground">{text}</div>
+  <div className="flex-1 grid place-items-center text-sm text-muted-foreground p-8 text-center">
+    {text}
+  </div>
 );
 
 export default Messages;

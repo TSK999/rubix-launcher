@@ -91,7 +91,7 @@ export const CommunityChannelRail = ({
 
   return (
     <>
-      <div className="w-60 shrink-0 border-r border-border bg-card/30 flex flex-col">
+      <div className="flex flex-col h-full w-full">
         <button
           onClick={() => setSettingsOpen(true)}
           className="px-4 py-3 border-b border-border flex items-center justify-between hover:bg-secondary/30 text-left"
