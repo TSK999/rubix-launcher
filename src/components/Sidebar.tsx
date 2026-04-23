@@ -1,18 +1,16 @@
-import { Clock, Heart, Library, LogOut, Sparkles, Box, Link2 } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { clearStoredSteamId } from "@/lib/steam-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { ThemeManager } from "@/components/ThemeManager";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
 import { MessagesPanel } from "@/components/MessagesPanel";
 import { UserSearchPopover } from "@/components/UserSearchPopover";
 import { StoreIcon } from "@/components/StoreIcon";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
+import { useState } from "react";
 
 export type Collection = "all" | "favorites" | "recent";
 
@@ -40,16 +38,10 @@ export const Sidebar = ({
   sourceCounts,
 }: Props) => {
   const navigate = useNavigate();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile } = useRubixAuth();
   const steamId = profile?.steam_id ?? null;
   const userId = profile?.user_id ?? null;
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    clearStoredSteamId();
-    toast("Signed out of Rubix");
-    navigate("/login", { replace: true });
-  };
 
   const items: { id: Collection; label: string; icon: typeof Library; count: number }[] = [
     { id: "all", label: "All games", icon: Library, count: counts.all },
@@ -215,36 +207,22 @@ export const Sidebar = ({
         </div>
       )}
 
-      <div className="mt-auto">
-        <ThemeManager />
-      </div>
-
-      <div className="p-3 border-t border-border">
-        {!steamId && (
-          <button
-            onClick={() => {
-              localStorage.removeItem("rubix:steam-link-skipped");
-              window.location.reload();
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors mb-1"
-          >
-            <Link2 className="h-4 w-4" />
-            <span>Link Steam</span>
-          </button>
-        )}
-        {steamId && (
-          <p className="px-3 pb-2 text-[11px] text-muted-foreground font-mono truncate" title={steamId}>
-            Steam · {steamId.slice(-6)}
-          </p>
-        )}
+      <div className="mt-auto p-3 border-t border-border">
         <button
-          onClick={handleSignOut}
+          onClick={() => setSettingsOpen(true)}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
         >
-          <LogOut className="h-4 w-4" />
-          <span>Sign out</span>
+          <Settings className="h-4 w-4" />
+          <span>Settings</span>
         </button>
       </div>
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        userId={userId}
+        steamId={steamId}
+        onSignedOut={() => navigate("/login", { replace: true })}
+      />
     </aside>
   );
 };
