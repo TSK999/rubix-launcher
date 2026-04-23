@@ -751,6 +751,14 @@ const Index = () => {
         onToggleFavorite={toggleFavorite}
         onUpdate={updateGame}
       />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        userId={profile?.user_id ?? null}
+        steamId={profile?.steam_id ?? null}
+        onSignedOut={() => navigate("/login", { replace: true })}
+      />
     </div>
   );
 };
