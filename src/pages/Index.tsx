@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Gamepad2, Search, Sparkles, Wand2, MoreHorizontal, Upload, RotateCcw, Check } from "lucide-react";
+import { Plus, Gamepad2, Search, Sparkles, Wand2, MoreHorizontal, Upload, RotateCcw, Check, Settings } from "lucide-react";
 import { useControllerMode } from "@/hooks/useControllerMode";
+import { useNavigate } from "react-router-dom";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { useRubixAuth } from "@/hooks/useRubixAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +47,9 @@ const RECENT_WINDOW_DAYS = 30;
 const Index = () => {
   const themeInputRef = useRef<HTMLInputElement>(null);
   const { enabled: controllerMode, toggle: toggleControllerMode, controllerConnected } = useControllerMode();
+  const navigate = useNavigate();
+  const { profile } = useRubixAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleThemeFile = async (file: File) => {
     try {
