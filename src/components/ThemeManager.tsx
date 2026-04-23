@@ -11,7 +11,11 @@ import {
 } from "@/lib/theme-loader";
 import { THEME_FILE_EXT, type RubixTheme } from "@/lib/theme-schema";
 
-export const ThemeManager = () => {
+type Props = {
+  embedded?: boolean;
+};
+
+export const ThemeManager = ({ embedded = false }: Props) => {
   const [active, setActive] = useState<RubixTheme | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +49,7 @@ export const ThemeManager = () => {
 
   return (
     <div
-      className="p-3 border-t border-border"
+      className={cn(!embedded && "p-3 border-t border-border")}
       onDragOver={(e) => {
         e.preventDefault();
       }}
@@ -55,14 +59,14 @@ export const ThemeManager = () => {
         if (file) handleFile(file);
       }}
     >
-      <div className="flex items-center gap-2 px-3 pt-2 pb-2">
+      <div className={cn("flex items-center gap-2 pb-2", !embedded && "px-3 pt-2")}>
         <Palette className="h-3 w-3 text-muted-foreground" />
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           Theme
         </p>
       </div>
 
-      <div className="px-3 pb-2">
+      <div className={cn("pb-2", !embedded && "px-3")}>
         <p className="text-xs text-foreground truncate" title={active?.name ?? "Default"}>
           {active?.name ?? "Default"}
         </p>
