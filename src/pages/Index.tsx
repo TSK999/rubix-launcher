@@ -532,6 +532,16 @@ const Index = () => {
               </div>
             </div>
 
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-2xl h-11 w-11 shrink-0"
+              title="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
