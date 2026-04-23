@@ -163,6 +163,32 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function normalizeReturnTo(value: unknown, origin: string) {
+  const fallback = origin || "/";
+  if (typeof value !== "string" || !value.trim()) return fallback;
+
+  try {
+    const parsed = new URL(value, origin || undefined);
+    if (origin && parsed.origin !== origin) return fallback;
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
+function appendSpotifyStatus(target: string, status: "linked" | "error") {
+  try {
+    const parsed = new URL(target, "http://rubix.local");
+    parsed.searchParams.set("spotify", status);
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      return parsed.toString();
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return `/?spotify=${status}`;
+  }
+}
+
 function htmlRedirect(target: string) {
   // Spotify redirects the browser here directly; we bounce back to the app.
   // Use referer-derived origin if absolute URL not provided.
