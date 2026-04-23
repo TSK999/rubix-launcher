@@ -14,6 +14,304 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_participants: {
+        Row: {
+          call_id: string
+          joined_at: string
+          left_at: string | null
+          peer_id: string
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          joined_at?: string
+          left_at?: string | null
+          peer_id: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          joined_at?: string
+          left_at?: string | null
+          peer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_sessions: {
+        Row: {
+          channel_id: string | null
+          conversation_id: string | null
+          ended_at: string | null
+          id: string
+          started_at: string
+          started_by: string
+        }
+        Insert: {
+          channel_id?: string | null
+          conversation_id?: string | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          started_by: string
+        }
+        Update: {
+          channel_id?: string | null
+          conversation_id?: string | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          started_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communities: {
+        Row: {
+          banner_url: string | null
+          created_at: string
+          icon_url: string | null
+          id: string
+          invite_code: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          invite_code: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_channels: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          position: number
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          position?: number
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_members: {
+        Row: {
+          community_id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["community_role"]
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["community_role"]
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["community_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_message_attachments: {
+        Row: {
+          created_at: string
+          external_url: string | null
+          file_name: string | null
+          height: number | null
+          id: string
+          kind: string
+          message_id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          external_url?: string | null
+          file_name?: string | null
+          height?: number | null
+          id?: string
+          kind: string
+          message_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          external_url?: string | null
+          file_name?: string | null
+          height?: number | null
+          id?: string
+          kind?: string
+          message_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_messages: {
+        Row: {
+          channel_id: string
+          content: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          reply_to_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          channel_id: string
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          reply_to_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_members: {
         Row: {
           conversation_id: string
@@ -388,6 +686,16 @@ export type Database = {
     }
     Functions: {
       are_rubix_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      channel_community: { Args: { _chid: string }; Returns: string }
+      community_role_of: {
+        Args: { _cid: string; _uid: string }
+        Returns: Database["public"]["Enums"]["community_role"]
+      }
+      create_community: {
+        Args: { _icon_url?: string; _name: string }
+        Returns: string
+      }
+      gen_invite_code: { Args: never; Returns: string }
       get_or_create_direct_conversation: {
         Args: { _other_user_id: string }
         Returns: string
@@ -402,13 +710,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_community_admin: {
+        Args: { _cid: string; _uid: string }
+        Returns: boolean
+      }
+      is_community_member: {
+        Args: { _cid: string; _uid: string }
+        Returns: boolean
+      }
       is_conversation_member: {
         Args: { _conv: string; _user: string }
         Returns: boolean
       }
+      join_community_by_code: { Args: { _code: string }; Returns: string }
+      message_community: { Args: { _mid: string }; Returns: string }
+      regenerate_invite_code: { Args: { _cid: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      community_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -535,6 +854,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      community_role: ["owner", "admin", "member"],
+    },
   },
 } as const
