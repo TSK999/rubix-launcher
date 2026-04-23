@@ -44,10 +44,18 @@ export const ServerRail = ({ selected, onSelect, onCreate, onJoin, meId }: Props
         () => void refresh(),
       )
       .subscribe();
+    // Also poll occasionally as a safety net (covers realtime publication gaps)
+    const interval = window.setInterval(() => void refresh(), 5000);
     return () => {
       void supabase.removeChannel(ch);
+      window.clearInterval(interval);
     };
   }, [meId]);
+
+  // Refresh whenever selection changes (so newly created/joined communities appear instantly)
+  useEffect(() => {
+    void refresh();
+  }, [selected.kind === "community" ? selected.id : "dms"]);
 
   const dmsActive = selected.kind === "dms";
 
