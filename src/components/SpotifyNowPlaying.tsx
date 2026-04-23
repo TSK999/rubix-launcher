@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  ExternalLink,
   Loader2,
   Music,
   Pause,
   Play,
+  RefreshCw,
   SkipBack,
   SkipForward,
   Unlink,
@@ -111,7 +113,7 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
   const handleLink = async () => {
     setLinking(true);
     try {
-      const url = await startSpotifyOAuth(window.location.pathname);
+      const url = await startSpotifyOAuth(window.location.href);
       window.location.href = url;
     } catch (e) {
       toast.error("Couldn't start Spotify login", {
@@ -178,18 +180,37 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
   return (
     <div className="p-3 border-b border-border bg-card/40">
       <div className="flex items-center justify-between px-1 pb-2">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-          <Music className="h-3 w-3" />
-          <span>Spotify</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            <Music className="h-3 w-3" />
+            <span>Spotify Client</span>
+          </div>
+          {connection && (
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+              Connected as {connection.display_name ?? connection.spotify_username ?? connection.spotify_id}
+            </p>
+          )}
         </div>
         {connection && (
-          <button
-            onClick={handleUnlink}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Disconnect Spotify"
-          >
-            <Unlink className="h-3 w-3" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={loadTrack}
+              disabled={loading}
+              className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-40"
+              title="Refresh Spotify"
+              aria-label="Refresh Spotify"
+            >
+              <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
+            </button>
+            <button
+              onClick={handleUnlink}
+              className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              title="Disconnect Spotify"
+              aria-label="Disconnect Spotify"
+            >
+              <Unlink className="h-3 w-3" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -204,7 +225,7 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
           ) : (
             <img src={spotifyIcon} alt="" className="h-4 w-4" width={16} height={16} loading="lazy" />
           )}
-          <span>Link Spotify</span>
+          <span>Connect Spotify</span>
         </button>
       ) : (
         <>
@@ -280,6 +301,17 @@ export const SpotifyNowPlaying = ({ userId }: Props) => {
           ) : null}
 
           <div className="px-1 mt-2 space-y-2">
+            {track?.url && (
+              <a
+                href={track.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in Spotify
+              </a>
+            )}
             <div className="flex items-center justify-center gap-1">
               <button
                 onClick={() => runControl({ action: "previous" })}

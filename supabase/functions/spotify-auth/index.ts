@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json().catch(() => ({}));
-      const returnTo = body.returnTo || "/";
+      const origin = req.headers.get("Origin") || "";
+      const returnTo = normalizeReturnTo(body.returnTo, origin);
       // state encodes user id + return path so callback can attribute tokens
       const state = btoa(JSON.stringify({ uid: userData.user.id, returnTo }));
 
@@ -71,14 +72,14 @@ Deno.serve(async (req) => {
       const errParam = url.searchParams.get("error");
 
       if (errParam || !code || !stateRaw) {
-        return htmlRedirect(`/?spotify=error`);
+        return htmlRedirect(appendSpotifyStatus("/", "error"));
       }
 
       let state: { uid: string; returnTo: string };
       try {
         state = JSON.parse(atob(stateRaw));
       } catch {
-        return htmlRedirect(`/?spotify=error`);
+        return htmlRedirect(appendSpotifyStatus("/", "error"));
       }
 
       // Exchange code for tokens
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
 
       if (!tokenRes.ok) {
         console.error("Token exchange failed", await tokenRes.text());
-        return htmlRedirect(`${state.returnTo}?spotify=error`);
+        return htmlRedirect(appendSpotifyStatus(state.returnTo, "error"));
       }
 
       const tokens = await tokenRes.json() as {
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
       });
       if (!meRes.ok) {
         console.error("Profile fetch failed", await meRes.text());
-        return htmlRedirect(`${state.returnTo}?spotify=error`);
+        return htmlRedirect(appendSpotifyStatus(state.returnTo, "error"));
       }
       const me = await meRes.json();
 
@@ -142,10 +143,10 @@ Deno.serve(async (req) => {
 
       if (upsertError) {
         console.error("Upsert failed", upsertError);
-        return htmlRedirect(`${state.returnTo}?spotify=error`);
+        return htmlRedirect(appendSpotifyStatus(state.returnTo, "error"));
       }
 
-      return htmlRedirect(`${state.returnTo}?spotify=linked`);
+      return htmlRedirect(appendSpotifyStatus(state.returnTo, "linked"));
     }
 
     return json({ error: "Unknown path" }, 404);
@@ -160,6 +161,32 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function normalizeReturnTo(value: unknown, origin: string) {
+  const fallback = origin || "/";
+  if (typeof value !== "string" || !value.trim()) return fallback;
+
+  try {
+    const parsed = new URL(value, origin || undefined);
+    if (origin && parsed.origin !== origin) return fallback;
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
+function appendSpotifyStatus(target: string, status: "linked" | "error") {
+  try {
+    const parsed = new URL(target, "http://rubix.local");
+    parsed.searchParams.set("spotify", status);
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      return parsed.toString();
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return `/?spotify=${status}`;
+  }
 }
 
 function htmlRedirect(target: string) {
