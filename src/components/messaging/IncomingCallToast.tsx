@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
+import { playSound, stopSound } from "@/lib/sounds";
 
 export const IncomingCallToast = () => {
   const { user } = useRubixAuth();
@@ -52,11 +53,16 @@ export const IncomingCallToast = () => {
             .maybeSingle();
           const name = caller?.display_name ?? caller?.username ?? "Someone";
 
+          playSound("call-receive", { loop: true, volume: 0.6 });
+
           toast(`📞 Incoming call from ${name}`, {
             duration: 30_000,
+            onDismiss: () => stopSound("call-receive"),
+            onAutoClose: () => stopSound("call-receive"),
             action: {
               label: "Join",
               onClick: () => {
+                stopSound("call-receive");
                 navigate(`/messages?conv=${session.conversation_id}&join=${session.id}`);
               },
             },
