@@ -75,7 +75,9 @@ const GameForm = () => {
         title: g.title,
         description: g.description ?? "",
         price_cents: g.price_cents,
-        age_rating: g.age_rating,
+        age_rating: (AGE_RATINGS as readonly string[]).includes(g.age_rating)
+          ? (g.age_rating as (typeof AGE_RATINGS)[number])
+          : "E",
       });
       const [{ data: ss }, { data: rq }, { data: bs }] = await Promise.all([
         supabase.from("game_screenshots").select("*").eq("game_id", g.id).order("sort_order"),
