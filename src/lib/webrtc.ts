@@ -162,16 +162,13 @@ export class CallManager {
     if (!payload || payload.from === this.peerId) return;
 
     if (payload.type === "hello" || payload.type === "ready") {
-      // A peer joined/announced readiness → deterministically create one offerer.
-      if (this.peerId < payload.from) {
-        const pc = this.getOrCreatePeer(payload.from);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: offer });
-      } else {
-        // Pre-create the peer entry so onTrack works once they offer
-        this.getOrCreatePeer(payload.from);
-      }
+      // The peer receiving the hello is already in the room, so it must offer.
+      // If only the lower peer id offered, half of joins never negotiated.
+      const pc = this.getOrCreatePeer(payload.from);
+      if (pc.signalingState !== "stable") return;
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: offer });
       return;
     }
 
