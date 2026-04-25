@@ -404,6 +404,213 @@ export type Database = {
         }
         Relationships: []
       }
+      developer_applications: {
+        Row: {
+          company_name: string
+          contact_email: string
+          created_at: string
+          description: string
+          full_name: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_email: string
+          created_at?: string
+          description: string
+          full_name: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string
+          created_at?: string
+          description?: string
+          full_name?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      game_builds: {
+        Row: {
+          created_at: string
+          external_url: string | null
+          file_path: string | null
+          file_size: number | null
+          game_id: string
+          id: string
+          platform: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          game_id: string
+          id?: string
+          platform?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          game_id?: string
+          id?: string
+          platform?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_builds_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_requirements: {
+        Row: {
+          cpu: string | null
+          created_at: string
+          game_id: string
+          gpu: string | null
+          id: string
+          os: string | null
+          ram_gb: number | null
+          storage_gb: number | null
+          type: string
+        }
+        Insert: {
+          cpu?: string | null
+          created_at?: string
+          game_id: string
+          gpu?: string | null
+          id?: string
+          os?: string | null
+          ram_gb?: number | null
+          storage_gb?: number | null
+          type: string
+        }
+        Update: {
+          cpu?: string | null
+          created_at?: string
+          game_id?: string
+          gpu?: string | null
+          id?: string
+          os?: string | null
+          ram_gb?: number | null
+          storage_gb?: number | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_requirements_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_screenshots: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_screenshots_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          age_rating: string
+          cover_url: string | null
+          created_at: string
+          description: string
+          developer_id: string
+          id: string
+          price_cents: number
+          rejection_reason: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          age_rating?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string
+          developer_id: string
+          id?: string
+          price_cents?: number
+          rejection_reason?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          age_rating?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string
+          developer_id?: string
+          id?: string
+          price_cents?: number
+          rejection_reason?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           created_at: string
@@ -527,6 +734,41 @@ export type Database = {
             columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          price_cents: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          price_cents?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          price_cents?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]
@@ -680,6 +922,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -710,6 +973,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_community_admin: {
         Args: { _cid: string; _uid: string }
         Returns: boolean
@@ -725,8 +995,13 @@ export type Database = {
       join_community_by_code: { Args: { _code: string }; Returns: string }
       message_community: { Args: { _mid: string }; Returns: string }
       regenerate_invite_code: { Args: { _cid: string }; Returns: string }
+      user_owns_game: {
+        Args: { _game: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "user" | "developer" | "admin"
       community_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
@@ -855,6 +1130,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["user", "developer", "admin"],
       community_role: ["owner", "admin", "member"],
     },
   },
