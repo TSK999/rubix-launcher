@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CallManager, type RemotePeer } from "@/lib/webrtc";
 import {
+  endCall,
   joinCall,
   leaveCall,
   listActiveParticipants,
@@ -116,7 +117,7 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
       window.clearTimeout(pendingTimer);
       pendingLeaveTimers.delete(leaveKey);
     }
-    void leaveCall(callId);
+    void endCall(callId);
     onLeave();
   };
 
