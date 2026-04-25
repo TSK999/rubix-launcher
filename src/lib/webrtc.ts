@@ -118,7 +118,16 @@ export class CallManager {
     this.peers.set(remoteId, entry);
 
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => pc.addTrack(track, this.localStream!));
+      this.localStream.getTracks().forEach((track) => {
+        const sender = pc.addTrack(track, this.localStream!);
+        if (track.kind === "audio") {
+          const params = sender.getParameters();
+          params.encodings = [
+            { maxBitrate: 128_000, priority: "high", networkPriority: "high" } as RTCRtpEncodingParameters,
+          ];
+          void sender.setParameters(params).catch(() => undefined);
+        }
+      });
     }
 
     pc.onicecandidate = (e) => {
@@ -150,6 +159,35 @@ export class CallManager {
     return pc;
   }
 
+  private upgradeAudioSdp(sdp: string): string {
+    // Force stereo + high-quality Opus on both directions.
+    return sdp.replace(
+      /a=fmtp:111 ([^\r\n]*)/g,
+      (_match, params: string) => {
+        const filtered = params
+          .split(";")
+          .map((p) => p.trim())
+          .filter(
+            (p) =>
+              p &&
+              !p.startsWith("stereo=") &&
+              !p.startsWith("sprop-stereo=") &&
+              !p.startsWith("maxaveragebitrate=") &&
+              !p.startsWith("maxplaybackrate=") &&
+              !p.startsWith("useinbandfec="),
+          );
+        filtered.push(
+          "stereo=1",
+          "sprop-stereo=1",
+          "maxaveragebitrate=128000",
+          "maxplaybackrate=48000",
+          "useinbandfec=1",
+        );
+        return `a=fmtp:111 ${filtered.join(";")}`;
+      },
+    );
+  }
+
   private removePeer(remoteId: string) {
     const entry = this.peers.get(remoteId);
     if (!entry) return;
@@ -167,8 +205,9 @@ export class CallManager {
       const pc = this.getOrCreatePeer(payload.from);
       if (pc.signalingState !== "stable") return;
       const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: offer });
+      const tunedOffer = { ...offer, sdp: this.upgradeAudioSdp(offer.sdp ?? "") };
+      await pc.setLocalDescription(tunedOffer);
+      this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: tunedOffer });
       return;
     }
 
@@ -176,13 +215,18 @@ export class CallManager {
 
     if (payload.type === "offer") {
       const pc = this.getOrCreatePeer(payload.from);
-      await pc.setRemoteDescription(payload.sdp);
+      const remote = { ...payload.sdp, sdp: this.upgradeAudioSdp(payload.sdp.sdp ?? "") };
+      await pc.setRemoteDescription(remote);
       const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      this.broadcast({ type: "answer", from: this.peerId, to: payload.from, sdp: answer });
+      const tuned = { ...answer, sdp: this.upgradeAudioSdp(answer.sdp ?? "") };
+      await pc.setLocalDescription(tuned);
+      this.broadcast({ type: "answer", from: this.peerId, to: payload.from, sdp: tuned });
     } else if (payload.type === "answer") {
       const entry = this.peers.get(payload.from);
-      if (entry) await entry.pc.setRemoteDescription(payload.sdp);
+      if (entry) {
+        const remote = { ...payload.sdp, sdp: this.upgradeAudioSdp(payload.sdp.sdp ?? "") };
+        await entry.pc.setRemoteDescription(remote);
+      }
     } else if (payload.type === "ice") {
       const entry = this.peers.get(payload.from);
       if (entry && payload.candidate) {

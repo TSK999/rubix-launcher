@@ -10,6 +10,9 @@ export const requestCallMicrophone = async (): Promise<MediaStream> => {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
+      channelCount: 2,
+      sampleRate: 48000,
+      sampleSize: 16,
     },
     video: false,
   });
