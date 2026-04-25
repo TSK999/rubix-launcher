@@ -1,5 +1,5 @@
 import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
@@ -39,11 +39,23 @@ export const Sidebar = ({
   sourceCounts,
 }: Props) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile } = useRubixAuth();
   const { isDeveloper, isAdmin } = useUserRoles();
   const steamId = profile?.steam_id ?? null;
   const userId = profile?.user_id ?? null;
+
+  const navItems: { to: string; label: string; icon: typeof Library; show: boolean }[] = [
+    { to: "/", label: "Launcher", icon: Gamepad2, show: true },
+    { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
+    { to: "/library", label: "Library", icon: LibraryIcon, show: true },
+    { to: "/developer", label: "Developer", icon: Code2, show: isDeveloper },
+    { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
+  ];
+
+  const isActive = (to: string) =>
+    to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
 
   const items: { id: Collection; label: string; icon: typeof Library; count: number }[] = [
     { id: "all", label: "All games", icon: Library, count: counts.all },
@@ -106,52 +118,56 @@ export const Sidebar = ({
       <SteamFriendsPanel steamId={steamId} />
 
       <nav className="p-3 space-y-1">
-        <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-          RUBIX
+        <p className="px-3 pt-2 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          Navigate
         </p>
-        <Link
-          to="/"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-        >
-          <Gamepad2 className="h-4 w-4" />
-          <span className="flex-1">Launcher</span>
-        </Link>
-        <Link
-          to="/store"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-        >
-          <ShoppingBag className="h-4 w-4" />
-          <span className="flex-1">RUBIX Store</span>
-        </Link>
-        <Link
-          to="/library"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-        >
-          <LibraryIcon className="h-4 w-4" />
-          <span className="flex-1">Library</span>
-        </Link>
-        {isDeveloper && (
-          <Link
-            to="/developer"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-          >
-            <Code2 className="h-4 w-4" />
-            <span className="flex-1">Developer</span>
-          </Link>
-        )}
-        {isAdmin && (
-          <Link
-            to="/admin/review"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-          >
-            <Shield className="h-4 w-4" />
-            <span className="flex-1">Admin</span>
-          </Link>
-        )}
+        <div className="space-y-0.5 rounded-2xl bg-secondary/20 p-1.5 border border-border/50">
+          {navItems.filter((i) => i.show).map(({ to, label, icon: Icon }) => {
+            const active = isActive(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={cn(
+                  "relative w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl text-sm transition-all",
+                  active
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                )}
+              >
+                {active && (
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-[image:var(--gradient-primary)] shadow-[var(--glow-primary)]" />
+                )}
+                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "")} />
+                <span className="flex-1">{label}</span>
+              </Link>
+            );
+          })}
+        </div>
 
-        <p className="px-3 pt-4 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+        <p className="px-3 pt-5 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           Local library
         </p>
+        {items.map(({ id, label, icon: Icon, count }) => {
+          const active = collection === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onCollection(id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors",
+                active
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", active && "text-primary")} />
+              <span className="flex-1 text-left">{label}</span>
+              <span className="text-xs text-muted-foreground">{count}</span>
+            </button>
+          );
+        })}
+      </nav>
         {items.map(({ id, label, icon: Icon, count }) => {
           const active = collection === id;
           return (
