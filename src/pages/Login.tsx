@@ -104,20 +104,77 @@ const Login = () => {
     toast("Demo games loaded — sign in to access the launcher");
   };
 
+  const stars = Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    top: `${Math.random() * 100}%`,
+    left: `${Math.random() * 100}%`,
+    size: Math.random() * 2 + 1,
+    delay: `${Math.random() * 3}s`,
+    duration: `${2 + Math.random() * 3}s`,
+  }));
+
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex items-center justify-center px-6">
+      {/* Animated grid */}
+      <div aria-hidden className="absolute inset-0 login-grid pointer-events-none opacity-60" />
+
+      {/* Aurora gradient sweep */}
       <div
         aria-hidden
-        className="absolute inset-0 opacity-40 pointer-events-none"
+        className="absolute -top-1/3 left-1/2 -translate-x-1/2 w-[140%] h-[80%] login-aurora pointer-events-none blur-3xl"
         style={{
           background:
-            "radial-gradient(60% 50% at 30% 20%, hsl(var(--primary) / 0.25), transparent 60%), radial-gradient(40% 40% at 80% 80%, hsl(var(--primary) / 0.15), transparent 70%)",
+            "conic-gradient(from 90deg at 50% 50%, hsl(var(--primary) / 0.35), transparent 30%, hsl(220 90% 60% / 0.3) 60%, transparent 80%, hsl(var(--primary) / 0.35))",
         }}
       />
 
-      <main className="relative w-full max-w-md">
+      {/* Floating orbs */}
+      <div
+        aria-hidden
+        className="login-orb absolute top-[10%] left-[8%] w-72 h-72 rounded-full pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.5), transparent 70%)" }}
+      />
+      <div
+        aria-hidden
+        className="login-orb-b absolute bottom-[8%] right-[10%] w-96 h-96 rounded-full pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, hsl(220 90% 60% / 0.45), transparent 70%)" }}
+      />
+      <div
+        aria-hidden
+        className="login-orb-c absolute top-[40%] right-[20%] w-60 h-60 rounded-full pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, hsl(320 90% 60% / 0.35), transparent 70%)" }}
+      />
+
+      {/* Twinkling stars */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        {stars.map((s) => (
+          <span
+            key={s.id}
+            className="login-star absolute rounded-full bg-foreground"
+            style={{
+              top: s.top,
+              left: s.left,
+              width: s.size,
+              height: s.size,
+              animationDelay: s.delay,
+              animationDuration: s.duration,
+            }}
+          />
+        ))}
+      </div>
+
+      <main className="relative w-full max-w-md animate-fade-in">
         <div className="flex flex-col items-center text-center mb-8">
-          
+          <div className="relative mb-5">
+            <div
+              className="login-logo-ring relative h-20 w-20 rounded-2xl flex items-center justify-center"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <div className="login-logo-spin absolute inset-1 rounded-xl border border-primary-foreground/30 border-dashed" />
+              <span className="relative text-3xl font-black tracking-tighter text-primary-foreground">R</span>
+            </div>
+          </div>
+
           <h1 className="text-4xl font-bold tracking-tight">RUBIX LAUNCHER</h1>
           <p className="text-muted-foreground mt-2 max-w-xs">
             Sign in or create your Rubix account.
