@@ -14,6 +14,7 @@ const ICE_CONFIG: RTCConfiguration = {
 
 type SignalPayload =
   | { type: "hello"; from: string }
+  | { type: "ready"; from: string }
   | { type: "offer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { type: "answer"; from: string; to: string; sdp: RTCSessionDescriptionInit }
   | { type: "ice"; from: string; to: string; candidate: RTCIceCandidateInit }
@@ -66,8 +67,10 @@ export class CallManager {
       });
     });
 
-    // Announce ourselves so existing peers will create offers to us
+    // Announce ourselves so existing peers will create offers to us. Repeat once
+    // because Realtime broadcasts can miss peers that are subscribing at the same time.
     this.broadcast({ type: "hello", from: this.peerId });
+    window.setTimeout(() => this.broadcast({ type: "ready", from: this.peerId }), 1200);
   }
 
   setMuted(muted: boolean) {
@@ -159,8 +162,8 @@ export class CallManager {
   private async handleSignal(payload: SignalPayload) {
     if (!payload || payload.from === this.peerId) return;
 
-    if (payload.type === "hello") {
-      // A new peer joined → we initiate offer to them (deterministic: lower id is the offerer)
+    if (payload.type === "hello" || payload.type === "ready") {
+      // A peer joined/announced readiness → deterministically create one offerer.
       if (this.peerId < payload.from) {
         const pc = this.getOrCreatePeer(payload.from);
         const offer = await pc.createOffer();
