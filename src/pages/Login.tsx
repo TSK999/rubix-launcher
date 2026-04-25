@@ -19,6 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     document.title = "Sign in — RUBIX";
@@ -66,6 +67,27 @@ const Login = () => {
       description: "Check your email to verify your address, then sign in.",
     });
     setTab("signin");
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Enter your email", {
+        description: "Type your account email above, then click 'Forgot password?'.",
+      });
+      return;
+    }
+    setRecovering(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setRecovering(false);
+    if (error) {
+      toast.error("Couldn't send reset email", { description: error.message });
+      return;
+    }
+    toast.success("Check your inbox", {
+      description: "We've sent a recovery link to your email.",
+    });
   };
 
 
@@ -214,6 +236,14 @@ const Login = () => {
                   {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}
                   Sign in
                 </Button>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={recovering || loading}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  {recovering ? "Sending recovery link…" : "Forgot password?"}
+                </button>
               </form>
             </TabsContent>
 
