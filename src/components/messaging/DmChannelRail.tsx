@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquarePlus, Search, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,15 +26,18 @@ type ConvWithMeta = {
 type Props = {
   meId: string;
   activeId: string | null;
+  preferredId?: string | null;
   onSelect: (id: string, meta: ConvWithMeta) => void;
 };
 
-export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
+export const DmChannelRail = ({ meId, activeId, preferredId, onSelect }: Props) => {
   const [convs, setConvs] = useState<ConvWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<ProfileLite[]>([]);
   const [groupOpen, setGroupOpen] = useState(false);
+  const selectedOnceRef = useRef(false);
+  const preferredHandledRef = useRef<string | null>(null);
 
   const refresh = async () => {
     if (!meId) return;
@@ -65,6 +68,16 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
         return { conv: c, members: ids, title, avatar };
       });
       setConvs(enriched);
+      const preferred = preferredId ? enriched.find((c) => c.conv.id === preferredId) : null;
+      if (preferred && preferredHandledRef.current !== preferredId) {
+        preferredHandledRef.current = preferredId;
+        selectedOnceRef.current = true;
+        onSelect(preferred.conv.id, preferred);
+      } else if (!selectedOnceRef.current && !activeId && enriched.length > 0) {
+        selectedOnceRef.current = true;
+        onSelect(enriched[0].conv.id, enriched[0]);
+      }
+      return enriched;
     } finally {
       setLoading(false);
     }
@@ -85,7 +98,7 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
       void supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meId]);
+  }, [meId, preferredId]);
 
   useEffect(() => {
     let cancel = false;
@@ -107,11 +120,10 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
     const id = await getOrCreateDm(otherId);
     setQ("");
     setResults([]);
-    await refresh();
-    const meta = convs.find((c) => c.conv.id === id);
+    const refreshed = await refresh();
+    const meta = refreshed?.find((c) => c.conv.id === id) ?? convs.find((c) => c.conv.id === id);
     if (meta) onSelect(id, meta);
     else {
-      // refresh produced fresh data, but state may not have updated yet; just select anyway
       onSelect(id, { conv: { id } as Conversation, members: [meId, otherId], title: "Direct message", avatar: null });
     }
   };
