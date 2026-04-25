@@ -31,6 +31,15 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
   const leaveKeyRef = useRef(`${callId}:${meId}`);
 
   useEffect(() => {
+    const leaveKey = `${callId}:${meId}`;
+    leaveKeyRef.current = leaveKey;
+
+    const pendingTimer = pendingLeaveTimers.get(leaveKey);
+    if (pendingTimer) {
+      window.clearTimeout(pendingTimer);
+      pendingLeaveTimers.delete(leaveKey);
+    }
+
     let stopped = false;
     let intervalId: number | null = null;
     let mgr: CallManager | null = null;
@@ -87,14 +96,18 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
     return () => {
       stopped = true;
       if (intervalId !== null) window.clearInterval(intervalId);
-      // Defer teardown so StrictMode's double-mount doesn't immediately end the call.
       const m = managerRef.current;
       managerRef.current = null;
-      void leaveCall(callId);
       void m?.stop();
+
+      const timer = window.setTimeout(() => {
+        pendingLeaveTimers.delete(leaveKey);
+        void leaveCall(callId);
+      }, 750);
+      pendingLeaveTimers.set(leaveKey, timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callId]);
+  }, [callId, meId]);
 
   const toggleMute = () => {
     const next = !muted;
