@@ -23,7 +23,7 @@ export type Attachment = {
   message_id: string;
   storage_path: string | null;
   external_url: string | null;
-  kind: "image" | "video" | "file" | "gif";
+  kind: "image" | "video" | "file" | "gif" | "audio";
   mime_type: string | null;
   file_name: string | null;
   size_bytes: number | null;

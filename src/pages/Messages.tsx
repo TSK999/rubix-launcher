@@ -223,17 +223,32 @@ const Messages = () => {
           {selected.kind === "dms" ? (
             activeDm ? (
               <>
-                <div className="px-4 py-3 border-b border-border flex items-center gap-3 bg-card/60">
-                  <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                    <AvatarImage src={activeDm.avatar ?? undefined} />
-                    <AvatarFallback className="text-[10px]">
-                      {activeDm.conv.is_group ? <Users className="h-3 w-3" /> : activeDm.title.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                <div className="px-4 py-2.5 border-b border-border/60 flex items-center gap-3 bg-gradient-to-r from-card/80 to-card/40 backdrop-blur-sm">
+                  <div className="relative">
+                    <Avatar className="h-9 w-9 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
+                      <AvatarImage src={activeDm.avatar ?? undefined} />
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                        {activeDm.conv.is_group ? <Users className="h-3.5 w-3.5" /> : activeDm.title.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!activeDm.conv.is_group && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{activeDm.title}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {activeDm.conv.is_group ? `${activeDm.members.length} members` : "Direct message"}
+                    <p className="text-sm font-semibold truncate leading-tight">{activeDm.title}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                      {activeDm.conv.is_group ? (
+                        <>
+                          <Users className="h-2.5 w-2.5" />
+                          {activeDm.members.length} members
+                        </>
+                      ) : (
+                        <>
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          Active now
+                        </>
+                      )}
                     </p>
                   </div>
                   <CallButton inCall={inDmCall} onToggle={startOrJoinDmCall} />
