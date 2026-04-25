@@ -39,6 +39,7 @@ import {
 } from "@/lib/rubix-profile";
 import { getOrCreateDm } from "@/lib/messaging";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { RoleBadges } from "@/components/RoleBadges";
 import { SOCIALS } from "@/lib/socials";
 import { ExternalLink } from "lucide-react";
 
@@ -230,9 +231,12 @@ const RubixProfile = () => {
               </AvatarFallback>
             </Avatar>
             <div className="pb-2">
-              <h1 className="text-2xl font-bold leading-tight">
-                {profile.display_name ?? profile.username}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-bold leading-tight">
+                  {profile.display_name ?? profile.username}
+                </h1>
+                <RoleBadges userId={profile.user_id} />
+              </div>
               <p className="text-sm text-muted-foreground">@{profile.username}</p>
             </div>
           </div>
