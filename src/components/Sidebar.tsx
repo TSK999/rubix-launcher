@@ -107,7 +107,43 @@ export const Sidebar = ({
 
       <nav className="p-3 space-y-1">
         <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-          Library
+          RUBIX
+        </p>
+        <Link
+          to="/store"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+        >
+          <ShoppingBag className="h-4 w-4" />
+          <span className="flex-1">RUBIX Store</span>
+        </Link>
+        <Link
+          to="/library"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+        >
+          <LibraryIcon className="h-4 w-4" />
+          <span className="flex-1">Library</span>
+        </Link>
+        {isDeveloper && (
+          <Link
+            to="/developer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          >
+            <Code2 className="h-4 w-4" />
+            <span className="flex-1">Developer</span>
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            to="/admin/review"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          >
+            <Shield className="h-4 w-4" />
+            <span className="flex-1">Admin</span>
+          </Link>
+        )}
+
+        <p className="px-3 pt-4 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          Local library
         </p>
         {items.map(({ id, label, icon: Icon, count }) => {
           const active = collection === id;
