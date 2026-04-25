@@ -173,6 +173,7 @@ const Messages = () => {
             <DmChannelRail
               meId={meId}
               activeId={activeDm?.conv.id ?? null}
+              preferredId={pendingJoinRef.current?.convId ?? null}
               onSelect={(id, meta) => setActiveDm(meta)}
             />
           ) : (
