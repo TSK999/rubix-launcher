@@ -165,16 +165,6 @@ const Login = () => {
 
       <main className="relative w-full max-w-md animate-fade-in">
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="relative mb-5">
-            <div
-              className="login-logo-ring relative h-20 w-20 rounded-2xl flex items-center justify-center"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              <div className="login-logo-spin absolute inset-1 rounded-xl border border-primary-foreground/30 border-dashed" />
-              <span className="relative text-3xl font-black tracking-tighter text-primary-foreground">R</span>
-            </div>
-          </div>
-
           <h1 className="text-4xl font-bold tracking-tight">RUBIX LAUNCHER</h1>
           <p className="text-muted-foreground mt-2 max-w-xs">
             Sign in or create your Rubix account.
