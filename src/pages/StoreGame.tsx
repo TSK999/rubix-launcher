@@ -20,6 +20,7 @@ import {
   HardDrive,
   Monitor,
   Gauge,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -102,7 +103,6 @@ const StoreGame = () => {
     })();
   }, [slug, user]);
 
-  // Keyboard arrow navigation for the carousel
   useEffect(() => {
     if (screenshots.length < 2) return;
     const onKey = (e: KeyboardEvent) => {
@@ -139,6 +139,8 @@ const StoreGame = () => {
   const rec = reqs.find((r) => r.type === "recommended");
   const hasReqs = !!(min || rec);
 
+  const heroImage = screenshots[0]?.url || game?.cover_url || null;
+
   return (
     <div className="min-h-screen flex bg-background text-foreground">
       <Sidebar
@@ -153,51 +155,206 @@ const StoreGame = () => {
         sourceCounts={{ steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 }}
       />
       <main className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-5xl mx-auto">
-          <button
-            onClick={() => navigate("/store")}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to store
-          </button>
-
-          {loading ? (
+        {loading ? (
+          <div className="p-8 max-w-6xl mx-auto">
             <Skeleton className="h-96 rounded-2xl" />
-          ) : !game ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <p>Game not found.</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="md:col-span-1">
-                  <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary">
-                    {game.cover_url ? (
-                      <img
-                        src={game.cover_url}
-                        alt={game.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : null}
-                  </div>
-                </div>
-                <div className="md:col-span-2 space-y-4">
-                  <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                      {game.title}
-                    </h1>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline">{game.age_rating}</Badge>
-                      <span className="text-2xl font-bold text-primary">
-                        {formatPrice(game.price_cents)}
-                      </span>
+          </div>
+        ) : !game ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p>Game not found.</p>
+          </div>
+        ) : (
+          <>
+            {/* Cinematic backdrop hero */}
+            <section className="relative">
+              <div className="relative h-[420px] overflow-hidden border-b border-border">
+                {heroImage && (
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 scale-110"
+                    style={{
+                      backgroundImage: `url(${heroImage})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
+
+                <div className="relative h-full max-w-6xl mx-auto px-8 flex flex-col">
+                  <button
+                    onClick={() => navigate("/store")}
+                    className="self-start mt-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back to store
+                  </button>
+
+                  <div className="mt-auto pb-8 flex items-end gap-6">
+                    <div className="hidden md:block w-44 aspect-[3/4] rounded-2xl overflow-hidden bg-secondary border border-border shadow-2xl shrink-0">
+                      {game.cover_url && (
+                        <img
+                          src={game.cover_url}
+                          alt={game.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Badge
+                        variant="outline"
+                        className="bg-background/60 backdrop-blur mb-3"
+                      >
+                        <Shield className="h-3 w-3 mr-1" />
+                        {game.age_rating}
+                      </Badge>
+                      <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+                        {game.title}
+                      </h1>
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="max-w-6xl mx-auto px-8 py-8 grid lg:grid-cols-[1fr_320px] gap-8">
+              <div className="space-y-10 min-w-0">
+                {/* Carousel */}
+                {screenshots.length > 0 && (
+                  <section>
+                    <div className="relative group rounded-2xl overflow-hidden bg-secondary border border-border">
+                      <img
+                        src={screenshots[shotIdx].url}
+                        alt={`Screenshot ${shotIdx + 1}`}
+                        className="w-full aspect-video object-cover"
+                      />
+                      {screenshots.length > 1 && (
+                        <>
+                          <button
+                            aria-label="Previous screenshot"
+                            onClick={() =>
+                              setShotIdx(
+                                (i) =>
+                                  (i - 1 + screenshots.length) %
+                                  screenshots.length,
+                              )
+                            }
+                            className="absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center h-11 w-11 rounded-full bg-background/70 backdrop-blur border border-border/60 text-foreground hover:bg-background hover:border-primary/60 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </button>
+                          <button
+                            aria-label="Next screenshot"
+                            onClick={() =>
+                              setShotIdx((i) => (i + 1) % screenshots.length)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center h-11 w-11 rounded-full bg-background/70 backdrop-blur border border-border/60 text-foreground hover:bg-background hover:border-primary/60 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/70 backdrop-blur border border-border/60 text-xs text-foreground">
+                            {shotIdx + 1} / {screenshots.length}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {screenshots.length > 1 && (
+                      <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                        {screenshots.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setShotIdx(i)}
+                            className={`shrink-0 rounded-lg overflow-hidden ring-2 transition ${
+                              i === shotIdx
+                                ? "ring-primary"
+                                : "ring-transparent opacity-60 hover:opacity-100"
+                            }`}
+                          >
+                            <img
+                              src={s.url}
+                              alt=""
+                              className="h-16 w-28 object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {/* About */}
+                <section>
+                  <h2 className="text-lg font-semibold mb-3">About</h2>
                   <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
                     {game.description || "No description provided."}
                   </p>
+                </section>
+
+                {/* Requirements */}
+                {hasReqs && (
+                  <section>
+                    <h2 className="text-lg font-semibold mb-3">
+                      System requirements
+                    </h2>
+                    <Card className="rounded-2xl border-border bg-card/40 overflow-hidden">
+                      <div className="grid grid-cols-[120px_1fr_1fr] text-sm">
+                        <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Spec
+                        </div>
+                        <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Minimum
+                        </div>
+                        <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-primary">
+                          Recommended
+                        </div>
+                        {REQ_FIELDS.map(({ key, label, icon: Icon, fmt }) => {
+                          const minV = min?.[key];
+                          const recV = rec?.[key];
+                          if (minV == null && recV == null) return null;
+                          return (
+                            <div key={key} className="contents">
+                              <div className="px-4 py-3 border-t border-border flex items-center gap-2 text-muted-foreground">
+                                <Icon className="h-4 w-4" />
+                                {label}
+                              </div>
+                              <div className="px-4 py-3 border-t border-border">
+                                {minV != null && minV !== ""
+                                  ? fmt
+                                    ? fmt(minV)
+                                    : String(minV)
+                                  : "—"}
+                              </div>
+                              <div className="px-4 py-3 border-t border-border font-medium">
+                                {recV != null && recV !== ""
+                                  ? fmt
+                                    ? fmt(recV)
+                                    : String(recV)
+                                  : "—"}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+                  </section>
+                )}
+              </div>
+
+              {/* Sticky purchase panel */}
+              <aside className="lg:sticky lg:top-6 self-start">
+                <Card className="p-5 rounded-2xl border-border bg-card/60 backdrop-blur space-y-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                      Price
+                    </p>
+                    <p className="text-3xl font-bold text-primary">
+                      {game.price_cents === 0
+                        ? "Free"
+                        : formatPrice(game.price_cents)}
+                    </p>
+                  </div>
                   {owned ? (
-                    <Button asChild size="lg" className="rounded-2xl">
+                    <Button asChild size="lg" className="w-full rounded-xl">
                       <Link to="/library">
                         <Check className="h-4 w-4 mr-2" /> In your library
                       </Link>
@@ -207,138 +364,41 @@ const StoreGame = () => {
                       size="lg"
                       onClick={handleBuy}
                       disabled={buying}
-                      className="rounded-2xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)]"
+                      className="w-full rounded-xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)]"
                     >
                       {buying ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <ShoppingCart className="h-4 w-4 mr-2" />
                       )}
-                      {game.price_cents === 0
-                        ? "Get for free"
-                        : `Buy for ${formatPrice(game.price_cents)}`}
+                      {game.price_cents === 0 ? "Get for free" : "Buy now"}
                     </Button>
                   ) : (
-                    <Button asChild size="lg" className="rounded-2xl">
+                    <Button asChild size="lg" className="w-full rounded-xl">
                       <Link to="/login">Sign in to buy</Link>
                     </Button>
                   )}
-                </div>
-              </div>
-
-              {screenshots.length > 0 && (
-                <section>
-                  <h2 className="text-lg font-semibold mb-3">Screenshots</h2>
-                  <div className="relative group rounded-2xl overflow-hidden bg-secondary">
-                    <img
-                      src={screenshots[shotIdx].url}
-                      alt={`Screenshot ${shotIdx + 1}`}
-                      className="w-full aspect-video object-cover"
-                    />
-                    {screenshots.length > 1 && (
-                      <>
-                        <button
-                          aria-label="Previous screenshot"
-                          onClick={() =>
-                            setShotIdx(
-                              (i) =>
-                                (i - 1 + screenshots.length) %
-                                screenshots.length,
-                            )
-                          }
-                          className="absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background transition opacity-0 group-hover:opacity-100"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <button
-                          aria-label="Next screenshot"
-                          onClick={() =>
-                            setShotIdx((i) => (i + 1) % screenshots.length)
-                          }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background transition opacity-0 group-hover:opacity-100"
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 backdrop-blur text-xs text-foreground">
-                          {shotIdx + 1} / {screenshots.length}
-                        </div>
-                      </>
-                    )}
+                  <div className="pt-2 border-t border-border space-y-2 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <span>Age rating</span>
+                      <span className="text-foreground font-medium">{game.age_rating}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Platform</span>
+                      <span className="text-foreground font-medium">PC</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Released</span>
+                      <span className="text-foreground font-medium">
+                        {new Date(game.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
-                  {screenshots.length > 1 && (
-                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-                      {screenshots.map((s, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setShotIdx(i)}
-                          className={`shrink-0 rounded-lg overflow-hidden ring-2 transition ${
-                            i === shotIdx
-                              ? "ring-primary"
-                              : "ring-transparent opacity-60 hover:opacity-100"
-                          }`}
-                        >
-                          <img
-                            src={s.url}
-                            alt=""
-                            className="h-16 w-28 object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {hasReqs && (
-                <section>
-                  <h2 className="text-lg font-semibold mb-3">
-                    System requirements
-                  </h2>
-                  <Card className="rounded-2xl border-border bg-card/40 overflow-hidden">
-                    <div className="grid grid-cols-[120px_1fr_1fr] text-sm">
-                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Spec
-                      </div>
-                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Minimum
-                      </div>
-                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-primary">
-                        Recommended
-                      </div>
-                      {REQ_FIELDS.map(({ key, label, icon: Icon, fmt }) => {
-                        const minV = min?.[key];
-                        const recV = rec?.[key];
-                        if (minV == null && recV == null) return null;
-                        return (
-                          <div key={key} className="contents">
-                            <div className="px-4 py-3 border-t border-border flex items-center gap-2 text-muted-foreground">
-                              <Icon className="h-4 w-4" />
-                              {label}
-                            </div>
-                            <div className="px-4 py-3 border-t border-border">
-                              {minV != null && minV !== ""
-                                ? fmt
-                                  ? fmt(minV)
-                                  : String(minV)
-                                : "—"}
-                            </div>
-                            <div className="px-4 py-3 border-t border-border font-medium">
-                              {recV != null && recV !== ""
-                                ? fmt
-                                  ? fmt(recV)
-                                  : String(recV)
-                                : "—"}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                </section>
-              )}
+                </Card>
+              </aside>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </div>
   );
