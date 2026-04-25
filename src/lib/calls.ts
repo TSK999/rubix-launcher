@@ -98,6 +98,17 @@ export const joinCall = async (callId: string, peerId: string) => {
 export const leaveCall = async (callId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
+  // Only mark ourselves as left if we were actually a participant — prevents
+  // StrictMode double-mount cleanup from ending a session before we join.
+  const { data: existing } = await supabase
+    .from("call_participants")
+    .select("user_id")
+    .eq("call_id", callId)
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+  if (!existing) return;
+
   await supabase
     .from("call_participants")
     .update({ left_at: new Date().toISOString() })
