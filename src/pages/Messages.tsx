@@ -18,8 +18,10 @@ import {
   type CommunityMember,
 } from "@/lib/communities";
 import { findActiveDmCall, startDmCall } from "@/lib/calls";
+import { requestCallMicrophone, stashCallStream, stopCallStream } from "@/lib/call-media";
 import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
+import { toast } from "sonner";
 
 type DmMeta = {
   conv: Conversation;
@@ -41,6 +43,7 @@ const Messages = () => {
   const [activeDm, setActiveDm] = useState<DmMeta | null>(null);
   const [dmCallId, setDmCallId] = useState<string | null>(null);
   const [inDmCall, setInDmCall] = useState(false);
+  const [dmCallStream, setDmCallStream] = useState<MediaStream | null>(null);
   const pendingJoinRef = useRef<{ convId: string; callId: string } | null>(null);
 
   // Community state
@@ -125,12 +128,30 @@ const Messages = () => {
     if (!activeDm) return;
     if (inDmCall) {
       setInDmCall(false);
+      setDmCallStream((stream) => {
+        stopCallStream(stream);
+        return null;
+      });
       return;
     }
-    const session = await startDmCall(activeDm.conv.id);
-    playSound("call-start", { volume: 0.5 });
-    setDmCallId(session.id);
-    setInDmCall(true);
+    let stream: MediaStream;
+    try {
+      stream = await requestCallMicrophone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Microphone permission denied");
+      return;
+    }
+    try {
+      const session = await startDmCall(activeDm.conv.id);
+      stashCallStream(session.id, stream);
+      playSound("call-start", { volume: 0.5 });
+      setDmCallStream(stream);
+      setDmCallId(session.id);
+      setInDmCall(true);
+    } catch (err) {
+      stopCallStream(stream);
+      toast.error(err instanceof Error ? err.message : "Failed to start call");
+    }
   };
 
   return (
@@ -218,7 +239,7 @@ const Messages = () => {
                   <CallButton inCall={inDmCall} onToggle={startOrJoinDmCall} />
                 </div>
                 {inDmCall && dmCallId ? (
-                  <CallRoom callId={dmCallId} meId={meId} onLeave={() => setInDmCall(false)} />
+                  <CallRoom callId={dmCallId} meId={meId} initialStream={dmCallStream} onLeave={() => setInDmCall(false)} />
                 ) : (
                   <ConversationView conversationId={activeDm.conv.id} meId={meId} />
                 )}

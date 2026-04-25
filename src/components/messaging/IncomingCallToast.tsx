@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
+import { requestCallMicrophone, stashCallStream } from "@/lib/call-media";
 import { playSound, stopSound } from "@/lib/sounds";
 
 export const IncomingCallToast = () => {
@@ -61,8 +62,15 @@ export const IncomingCallToast = () => {
             onAutoClose: () => stopSound("call-receive"),
             action: {
               label: "Join",
-              onClick: () => {
+              onClick: async () => {
                 stopSound("call-receive");
+                try {
+                  const stream = await requestCallMicrophone();
+                  stashCallStream(session.id, stream);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Microphone permission denied");
+                  return;
+                }
                 navigate(`/messages?conv=${session.conversation_id}&join=${session.id}`);
               },
             },

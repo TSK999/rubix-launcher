@@ -39,19 +39,18 @@ export class CallManager {
   private peers = new Map<string, { pc: RTCPeerConnection; stream: MediaStream | null }>();
   private muted = false;
 
-  constructor(callId: string, private events: CallEvents) {
+  constructor(callId: string, private events: CallEvents, localStream?: MediaStream) {
     this.callId = callId;
     this.peerId = `${Math.random().toString(36).slice(2)}-${Date.now()}`;
+    this.localStream = localStream ?? null;
   }
 
   async start() {
-    try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      this.events.onLocalStream(this.localStream);
-    } catch (e) {
+    if (!this.localStream) {
       this.events.onError(new Error("Microphone permission denied"));
-      throw e;
+      throw new Error("Microphone permission denied");
     }
+    this.events.onLocalStream(this.localStream);
 
     this.channel = supabase.channel(`call:${this.callId}`, {
       config: { broadcast: { self: false, ack: false } },
