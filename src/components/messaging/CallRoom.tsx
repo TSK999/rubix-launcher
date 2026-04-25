@@ -29,20 +29,24 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
 
   useEffect(() => {
     let stopped = false;
+    let intervalId: number | null = null;
+    let mgr: CallManager | null = null;
 
-    (async () => {
+    const init = async () => {
       // Capacity check
       const current = await listActiveParticipants(callId);
+      if (stopped) return;
       if (current.length >= MESH_LIMIT && !current.some((p) => p.user_id === meId)) {
         toast.error(`Call is full (max ${MESH_LIMIT})`);
         onLeave();
         return;
       }
 
-      const mgr = new CallManager(callId, {
+      mgr = new CallManager(callId, {
         onPeersChange: (p) => !stopped && setPeers(p),
         onLocalStream: () => !stopped && setConnecting(false),
         onError: (err) => {
+          if (stopped) return;
           toast.error(err.message);
           onLeave();
         },
@@ -51,15 +55,19 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
 
       try {
         await mgr.start();
+        if (stopped) {
+          await mgr.stop();
+          return;
+        }
         await joinCall(callId, mgr.peerId);
       } catch (e) {
         if (!stopped) {
           toast.error(e instanceof Error ? e.message : "Failed to join call");
           onLeave();
         }
+        return;
       }
 
-      // Load roster
       const refreshRoster = async () => {
         const list = await listActiveParticipants(callId);
         if (stopped) return;
@@ -68,16 +76,19 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
         if (!stopped) setProfiles(profMap);
       };
       void refreshRoster();
-      const interval = window.setInterval(refreshRoster, 4000);
+      intervalId = window.setInterval(refreshRoster, 4000);
+    };
 
-      return () => window.clearInterval(interval);
-    })();
+    void init();
 
     return () => {
       stopped = true;
-      void leaveCall(callId);
-      void managerRef.current?.stop();
+      if (intervalId !== null) window.clearInterval(intervalId);
+      // Defer teardown so StrictMode's double-mount doesn't immediately end the call.
+      const m = managerRef.current;
       managerRef.current = null;
+      void leaveCall(callId);
+      void m?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId]);
