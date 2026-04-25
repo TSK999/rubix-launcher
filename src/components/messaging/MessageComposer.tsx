@@ -92,7 +92,7 @@ export const MessageComposer = ({ conversationId, replyTo, onClearReply }: Props
   useEffect(() => {
     return () => {
       if (recordTimerRef.current) window.clearInterval(recordTimerRef.current);
-      recorderRef.current?.state === "recording" && recorderRef.current.stop();
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       recordStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [conversationId]);
@@ -259,7 +259,7 @@ export const MessageComposer = ({ conversationId, replyTo, onClearReply }: Props
         recordStreamRef.current = null;
       };
     }
-    rec?.state === "recording" && rec.stop();
+    if (rec?.state === "recording") rec.stop();
     recorderRef.current = null;
     setRecording(false);
     setRecordMs(0);
