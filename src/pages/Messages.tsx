@@ -57,16 +57,22 @@ const Messages = () => {
   useEffect(() => {
     const conv = params.get("conv");
     const join = params.get("join");
-    if (conv && join) {
-      pendingJoinRef.current = { convId: conv, callId: join };
-      setSelected({ kind: "dms" });
+    if (!conv || !join) return;
+
+    pendingJoinRef.current = { convId: conv, callId: join };
+    setSelected({ kind: "dms" });
+
+    if (activeDm?.conv.id === conv) {
+      pendingJoinRef.current = null;
+      setDmCallId(join);
+      setInDmCall(true);
     }
+
     const next = new URLSearchParams(params);
     next.delete("conv");
     next.delete("join");
-    if (next.toString() !== params.toString()) setParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setParams(next, { replace: true });
+  }, [params, setParams, activeDm?.conv.id]);
 
   useEffect(() => {
     setInDmCall(false);
