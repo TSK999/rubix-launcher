@@ -123,7 +123,7 @@ export class CallManager {
         if (track.kind === "audio") {
           const params = sender.getParameters();
           params.encodings = [
-            { maxBitrate: 128_000, priority: "high", networkPriority: "high" } as RTCRtpEncodingParameters,
+            { maxBitrate: 510_000, priority: "high", networkPriority: "high" } as RTCRtpEncodingParameters,
           ];
           void sender.setParameters(params).catch(() => undefined);
         }
@@ -179,9 +179,12 @@ export class CallManager {
         filtered.push(
           "stereo=1",
           "sprop-stereo=1",
-          "maxaveragebitrate=128000",
+          "maxaveragebitrate=510000",
           "maxplaybackrate=48000",
+          "minptime=10",
+          "ptime=20",
           "useinbandfec=1",
+          "cbr=0",
         );
         return `a=fmtp:111 ${filtered.join(";")}`;
       },
