@@ -66,6 +66,11 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
         return { conv: c, members: ids, title, avatar };
       });
       setConvs(enriched);
+      if (!selectedOnceRef.current && !activeId && enriched.length > 0) {
+        selectedOnceRef.current = true;
+        onSelect(enriched[0].conv.id, enriched[0]);
+      }
+      return enriched;
     } finally {
       setLoading(false);
     }
