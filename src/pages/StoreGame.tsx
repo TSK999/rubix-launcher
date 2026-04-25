@@ -8,8 +8,47 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { formatPrice } from "@/lib/store";
-import { Loader2, ShoppingCart, Check, ArrowLeft } from "lucide-react";
+import {
+  Loader2,
+  ShoppingCart,
+  Check,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Monitor,
+  Gauge,
+} from "lucide-react";
 import { toast } from "sonner";
+
+type ReqRow = {
+  type: "minimum" | "recommended";
+  os: string | null;
+  cpu: string | null;
+  gpu: string | null;
+  ram_gb: number | null;
+  storage_gb: number | null;
+};
+
+const REQ_FIELDS: {
+  key: keyof ReqRow;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  fmt?: (v: any) => string;
+}[] = [
+  { key: "os", label: "OS", icon: Monitor },
+  { key: "cpu", label: "CPU", icon: Cpu },
+  { key: "gpu", label: "GPU", icon: Gauge },
+  { key: "ram_gb", label: "RAM", icon: MemoryStick, fmt: (v) => `${v} GB` },
+  {
+    key: "storage_gb",
+    label: "Storage",
+    icon: HardDrive,
+    fmt: (v) => `${v} GB`,
+  },
+];
 
 const StoreGame = () => {
   const { slug } = useParams();
@@ -17,10 +56,11 @@ const StoreGame = () => {
   const { user } = useRubixAuth();
   const [game, setGame] = useState<any>(null);
   const [screenshots, setScreenshots] = useState<{ url: string }[]>([]);
-  const [reqs, setReqs] = useState<any[]>([]);
+  const [reqs, setReqs] = useState<ReqRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [owned, setOwned] = useState(false);
   const [buying, setBuying] = useState(false);
+  const [shotIdx, setShotIdx] = useState(0);
 
   useEffect(() => {
     if (!slug) return;
@@ -39,11 +79,15 @@ const StoreGame = () => {
       document.title = `${g.title} — RUBIX Store`;
 
       const [{ data: ss }, { data: rq }] = await Promise.all([
-        supabase.from("game_screenshots").select("url").eq("game_id", g.id).order("sort_order"),
+        supabase
+          .from("game_screenshots")
+          .select("url")
+          .eq("game_id", g.id)
+          .order("sort_order"),
         supabase.from("game_requirements").select("*").eq("game_id", g.id),
       ]);
       setScreenshots(ss ?? []);
-      setReqs(rq ?? []);
+      setReqs((rq ?? []) as ReqRow[]);
 
       if (user) {
         const { data: o } = await supabase
@@ -57,6 +101,19 @@ const StoreGame = () => {
       setLoading(false);
     })();
   }, [slug, user]);
+
+  // Keyboard arrow navigation for the carousel
+  useEffect(() => {
+    if (screenshots.length < 2) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight")
+        setShotIdx((i) => (i + 1) % screenshots.length);
+      if (e.key === "ArrowLeft")
+        setShotIdx((i) => (i - 1 + screenshots.length) % screenshots.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [screenshots.length]);
 
   const handleBuy = async () => {
     if (!user || !game) return;
@@ -73,11 +130,14 @@ const StoreGame = () => {
       return;
     }
     setOwned(true);
-    toast.success("Added to your library!", { description: "Open the Library to download." });
+    toast.success("Added to your library!", {
+      description: "Open the Library to download.",
+    });
   };
 
   const min = reqs.find((r) => r.type === "minimum");
   const rec = reqs.find((r) => r.type === "recommended");
+  const hasReqs = !!(min || rec);
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
@@ -113,13 +173,19 @@ const StoreGame = () => {
                 <div className="md:col-span-1">
                   <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary">
                     {game.cover_url ? (
-                      <img src={game.cover_url} alt={game.title} className="w-full h-full object-cover" />
+                      <img
+                        src={game.cover_url}
+                        alt={game.title}
+                        className="w-full h-full object-cover"
+                      />
                     ) : null}
                   </div>
                 </div>
                 <div className="md:col-span-2 space-y-4">
                   <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{game.title}</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                      {game.title}
+                    </h1>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline">{game.age_rating}</Badge>
                       <span className="text-2xl font-bold text-primary">
@@ -148,7 +214,9 @@ const StoreGame = () => {
                       ) : (
                         <ShoppingCart className="h-4 w-4 mr-2" />
                       )}
-                      {game.price_cents === 0 ? "Get for free" : `Buy for ${formatPrice(game.price_cents)}`}
+                      {game.price_cents === 0
+                        ? "Get for free"
+                        : `Buy for ${formatPrice(game.price_cents)}`}
                     </Button>
                   ) : (
                     <Button asChild size="lg" className="rounded-2xl">
@@ -161,42 +229,111 @@ const StoreGame = () => {
               {screenshots.length > 0 && (
                 <section>
                   <h2 className="text-lg font-semibold mb-3">Screenshots</h2>
-                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
-                    {screenshots.map((s, i) => (
-                      <img
-                        key={i}
-                        src={s.url}
-                        alt=""
-                        className="h-56 rounded-xl object-cover snap-start shrink-0"
-                      />
-                    ))}
+                  <div className="relative group rounded-2xl overflow-hidden bg-secondary">
+                    <img
+                      src={screenshots[shotIdx].url}
+                      alt={`Screenshot ${shotIdx + 1}`}
+                      className="w-full aspect-video object-cover"
+                    />
+                    {screenshots.length > 1 && (
+                      <>
+                        <button
+                          aria-label="Previous screenshot"
+                          onClick={() =>
+                            setShotIdx(
+                              (i) =>
+                                (i - 1 + screenshots.length) %
+                                screenshots.length,
+                            )
+                          }
+                          className="absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background transition opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <button
+                          aria-label="Next screenshot"
+                          onClick={() =>
+                            setShotIdx((i) => (i + 1) % screenshots.length)
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center h-10 w-10 rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background transition opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 backdrop-blur text-xs text-foreground">
+                          {shotIdx + 1} / {screenshots.length}
+                        </div>
+                      </>
+                    )}
                   </div>
+                  {screenshots.length > 1 && (
+                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                      {screenshots.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setShotIdx(i)}
+                          className={`shrink-0 rounded-lg overflow-hidden ring-2 transition ${
+                            i === shotIdx
+                              ? "ring-primary"
+                              : "ring-transparent opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <img
+                            src={s.url}
+                            alt=""
+                            className="h-16 w-28 object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </section>
               )}
 
-              {(min || rec) && (
+              {hasReqs && (
                 <section>
-                  <h2 className="text-lg font-semibold mb-3">System requirements</h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {[
-                      { label: "Minimum", req: min },
-                      { label: "Recommended", req: rec },
-                    ].map(
-                      ({ label, req }) =>
-                        req && (
-                          <Card key={label} className="p-4 rounded-xl border-border bg-card/40">
-                            <h3 className="font-semibold mb-2">{label}</h3>
-                            <dl className="text-sm text-muted-foreground space-y-1">
-                              {req.os && <div><span className="text-foreground">OS:</span> {req.os}</div>}
-                              {req.cpu && <div><span className="text-foreground">CPU:</span> {req.cpu}</div>}
-                              {req.gpu && <div><span className="text-foreground">GPU:</span> {req.gpu}</div>}
-                              {req.ram_gb && <div><span className="text-foreground">RAM:</span> {req.ram_gb} GB</div>}
-                              {req.storage_gb && <div><span className="text-foreground">Storage:</span> {req.storage_gb} GB</div>}
-                            </dl>
-                          </Card>
-                        )
-                    )}
-                  </div>
+                  <h2 className="text-lg font-semibold mb-3">
+                    System requirements
+                  </h2>
+                  <Card className="rounded-2xl border-border bg-card/40 overflow-hidden">
+                    <div className="grid grid-cols-[120px_1fr_1fr] text-sm">
+                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Spec
+                      </div>
+                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Minimum
+                      </div>
+                      <div className="px-4 py-3 bg-secondary/40 text-xs font-semibold uppercase tracking-wide text-primary">
+                        Recommended
+                      </div>
+                      {REQ_FIELDS.map(({ key, label, icon: Icon, fmt }) => {
+                        const minV = min?.[key];
+                        const recV = rec?.[key];
+                        if (minV == null && recV == null) return null;
+                        return (
+                          <div key={key} className="contents">
+                            <div className="px-4 py-3 border-t border-border flex items-center gap-2 text-muted-foreground">
+                              <Icon className="h-4 w-4" />
+                              {label}
+                            </div>
+                            <div className="px-4 py-3 border-t border-border">
+                              {minV != null && minV !== ""
+                                ? fmt
+                                  ? fmt(minV)
+                                  : String(minV)
+                                : "—"}
+                            </div>
+                            <div className="px-4 py-3 border-t border-border font-medium">
+                              {recV != null && recV !== ""
+                                ? fmt
+                                  ? fmt(recV)
+                                  : String(recV)
+                                : "—"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
                 </section>
               )}
             </div>
