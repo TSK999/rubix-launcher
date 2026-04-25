@@ -35,6 +35,7 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<ProfileLite[]>([]);
   const [groupOpen, setGroupOpen] = useState(false);
+  const selectedOnceRef = useRef(false);
 
   const refresh = async () => {
     if (!meId) return;
