@@ -15,6 +15,13 @@ import AuthCallback from "./pages/AuthCallback.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RubixProfile from "./pages/RubixProfile.tsx";
 import Messages from "./pages/Messages.tsx";
+import Store from "./pages/Store.tsx";
+import StoreGame from "./pages/StoreGame.tsx";
+import Library from "./pages/Library.tsx";
+import DeveloperApply from "./pages/DeveloperApply.tsx";
+import DeveloperDashboard from "./pages/DeveloperDashboard.tsx";
+import GameForm from "./pages/GameForm.tsx";
+import AdminReview from "./pages/AdminReview.tsx";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
@@ -62,6 +69,48 @@ const App = () => (
             element={
               <RequireRubixAuth>
                 <RubixProfile />
+              </RequireRubixAuth>
+            }
+          />
+          <Route path="/store" element={<Store />} />
+          <Route path="/store/:slug" element={<StoreGame />} />
+          <Route
+            path="/library"
+            element={
+              <RequireRubixAuth>
+                <Library />
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/developer/apply"
+            element={
+              <RequireRubixAuth>
+                <DeveloperApply />
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/developer"
+            element={
+              <RequireRubixAuth>
+                <DeveloperDashboard />
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/developer/games/:id"
+            element={
+              <RequireRubixAuth>
+                <GameForm />
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/admin/review"
+            element={
+              <RequireRubixAuth>
+                <AdminReview />
               </RequireRubixAuth>
             }
           />
