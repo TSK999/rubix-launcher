@@ -41,6 +41,7 @@ const Messages = () => {
   const [activeDm, setActiveDm] = useState<DmMeta | null>(null);
   const [dmCallId, setDmCallId] = useState<string | null>(null);
   const [inDmCall, setInDmCall] = useState(false);
+  const pendingJoinRef = useRef<{ convId: string; callId: string } | null>(null);
 
   // Community state
   const [activeChannel, setActiveChannel] = useState<CommunityChannel | null>(null);
