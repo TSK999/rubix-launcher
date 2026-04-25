@@ -113,11 +113,10 @@ export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
     const id = await getOrCreateDm(otherId);
     setQ("");
     setResults([]);
-    await refresh();
-    const meta = convs.find((c) => c.conv.id === id);
+    const refreshed = await refresh();
+    const meta = refreshed?.find((c) => c.conv.id === id) ?? convs.find((c) => c.conv.id === id);
     if (meta) onSelect(id, meta);
     else {
-      // refresh produced fresh data, but state may not have updated yet; just select anyway
       onSelect(id, { conv: { id } as Conversation, members: [meId, otherId], title: "Direct message", avatar: null });
     }
   };
