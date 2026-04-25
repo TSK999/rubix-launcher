@@ -52,6 +52,15 @@ const AttachmentView = ({ a }: { a: Attachment }) => {
   if (a.kind === "video") {
     return <video src={url} controls className="max-h-72 max-w-xs rounded-md" />;
   }
+  if (a.kind === "audio") {
+    return (
+      <audio
+        src={url}
+        controls
+        className="h-10 max-w-[280px] rounded-full"
+      />
+    );
+  }
   return (
     <a
       href={url}
