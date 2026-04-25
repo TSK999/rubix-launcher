@@ -68,7 +68,12 @@ export const DmChannelRail = ({ meId, activeId, preferredId, onSelect }: Props) 
         return { conv: c, members: ids, title, avatar };
       });
       setConvs(enriched);
-      if (!selectedOnceRef.current && !activeId && enriched.length > 0) {
+      const preferred = preferredId ? enriched.find((c) => c.conv.id === preferredId) : null;
+      if (preferred && preferredHandledRef.current !== preferredId) {
+        preferredHandledRef.current = preferredId;
+        selectedOnceRef.current = true;
+        onSelect(preferred.conv.id, preferred);
+      } else if (!selectedOnceRef.current && !activeId && enriched.length > 0) {
         selectedOnceRef.current = true;
         onSelect(enriched[0].conv.id, enriched[0]);
       }
