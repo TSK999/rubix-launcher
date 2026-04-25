@@ -109,6 +109,17 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, meId]);
 
+  const handleLeave = () => {
+    const leaveKey = leaveKeyRef.current;
+    const pendingTimer = pendingLeaveTimers.get(leaveKey);
+    if (pendingTimer) {
+      window.clearTimeout(pendingTimer);
+      pendingLeaveTimers.delete(leaveKey);
+    }
+    void leaveCall(callId);
+    onLeave();
+  };
+
   const toggleMute = () => {
     const next = !muted;
     setMuted(next);
