@@ -19,6 +19,8 @@ type Props = {
   onLeave: () => void;
 };
 
+const pendingLeaveTimers = new Map<string, number>();
+
 export const CallRoom = ({ callId, meId, onLeave }: Props) => {
   const [peers, setPeers] = useState<RemotePeer[]>([]);
   const [participants, setParticipants] = useState<CallParticipant[]>([]);
@@ -26,6 +28,7 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
   const [muted, setMuted] = useState(false);
   const [connecting, setConnecting] = useState(true);
   const managerRef = useRef<CallManager | null>(null);
+  const leaveKeyRef = useRef(`${callId}:${meId}`);
 
   useEffect(() => {
     let stopped = false;
