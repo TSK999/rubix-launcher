@@ -69,7 +69,14 @@ const DeveloperApply = () => {
       return;
     }
     setSubmitting(true);
-    const payload = { ...parsed.data, website: parsed.data.website || null, user_id: user.id };
+    const payload = {
+      user_id: user.id,
+      company_name: parsed.data.company_name,
+      full_name: parsed.data.full_name,
+      contact_email: parsed.data.contact_email,
+      description: parsed.data.description,
+      website: parsed.data.website || null,
+    };
     const { error } = existing
       ? await supabase
           .from("developer_applications")

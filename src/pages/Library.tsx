@@ -6,7 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library as LibraryIcon, Download, ExternalLink } from "lucide-react";
+import { Library as LibraryIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 
 type LibraryGame = {
