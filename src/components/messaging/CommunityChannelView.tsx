@@ -12,8 +12,10 @@ import {
 } from "@/lib/communities";
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
 import { startChannelCall, findActiveChannelCall } from "@/lib/calls";
+import { requestCallMicrophone, stashCallStream, stopCallStream } from "@/lib/call-media";
 import { CallRoom } from "./CallRoom";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Props = {
   channel: CommunityChannel;
@@ -185,6 +187,7 @@ const VoiceChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: 
   const [callId, setCallId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [callStream, setCallStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     void findActiveChannelCall(channel.id).then((s) => setCallId(s?.id ?? null));
@@ -193,10 +196,17 @@ const VoiceChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: 
 
   const join = async () => {
     setBusy(true);
+    let stream: MediaStream | null = null;
     try {
+      stream = await requestCallMicrophone();
       const session = await startChannelCall(channel.id);
+      stashCallStream(session.id, stream);
+      setCallStream(stream);
       setCallId(session.id);
       setInCall(true);
+    } catch (err) {
+      stopCallStream(stream);
+      toast.error(err instanceof Error ? err.message : "Failed to join voice");
     } finally {
       setBusy(false);
     }
@@ -209,7 +219,7 @@ const VoiceChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: 
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <p className="text-sm font-semibold">{channel.name}</p>
         </div>
-        <CallRoom callId={callId} meId={meId} onLeave={() => setInCall(false)} />
+        <CallRoom callId={callId} meId={meId} initialStream={callStream} onLeave={() => setInCall(false)} />
       </div>
     );
   }
