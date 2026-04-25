@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
@@ -7,7 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Library as LibraryIcon, Download, Clock, Package } from "lucide-react";
+import {
+  Library as LibraryIcon,
+  Download,
+  Clock,
+  Package,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type LibraryGame = {
@@ -133,14 +140,24 @@ const Library = () => {
     setBusyId(null);
   };
 
-  const recentDownloads = games
-    .map((g) => ({ g, h: history[g.id] }))
-    .filter((x) => x.h)
-    .sort(
-      (a, b) =>
-        +new Date(b.h!.downloaded_at) - +new Date(a.h!.downloaded_at),
-    )
-    .slice(0, 5);
+  const recentDownloads = useMemo(
+    () =>
+      games
+        .map((g) => ({ g, h: history[g.id] }))
+        .filter((x) => x.h)
+        .sort(
+          (a, b) =>
+            +new Date(b.h!.downloaded_at) - +new Date(a.h!.downloaded_at),
+        )
+        .slice(0, 5),
+    [games, history],
+  );
+
+  const downloadedCount = Object.keys(history).filter((id) =>
+    games.some((g) => g.id === id),
+  ).length;
+
+  const heroImage = games[0]?.cover_url ?? null;
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
@@ -156,125 +173,201 @@ const Library = () => {
         sourceCounts={{ steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 }}
       />
       <main className="flex-1 overflow-y-auto">
-        <header className="px-8 pt-8 pb-6 border-b border-border">
-          <div className="flex items-center gap-3 mb-2">
-            <LibraryIcon className="h-7 w-7 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Your Library</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Games you own from the RUBIX Store.
-          </p>
-        </header>
+        {/* Cinematic header */}
+        <section className="relative overflow-hidden border-b border-border">
+          {heroImage && (
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-30 blur-3xl scale-110"
+              style={{
+                backgroundImage: `url(${heroImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
+          <div className="absolute inset-0 bg-[image:var(--gradient-primary)] opacity-10 mix-blend-overlay" />
 
-        <section className="p-8 space-y-8">
-          {recentDownloads.length > 0 && (
-            <Card className="p-5 rounded-2xl border-border bg-card/40">
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
-                  Recent downloads
-                </h2>
+          <div className="relative px-8 pt-12 pb-8">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-primary/90 mb-4">
+              <LibraryIcon className="h-3.5 w-3.5" />
+              Your collection
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              Your <span className="bg-clip-text text-transparent bg-[image:var(--gradient-primary)]">Library</span>
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-xl">
+              All your RUBIX Store purchases in one place — ready to download.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <div className="px-4 py-3 rounded-xl border border-border bg-card/50 backdrop-blur min-w-[140px]">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  <Package className="h-3.5 w-3.5" /> Owned
+                </div>
+                <p className="text-2xl font-bold mt-1">{games.length}</p>
               </div>
-              <ul className="divide-y divide-border">
-                {recentDownloads.map(({ g, h }) => (
-                  <li
-                    key={g.id}
-                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-                  >
-                    <div className="h-10 w-10 rounded-md bg-secondary overflow-hidden shrink-0">
-                      {g.cover_url && (
-                        <img
-                          src={g.cover_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{g.title}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Package className="h-3 w-3" />
-                        {h!.platform ?? "—"} · v{h!.version ?? "?"}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatRelative(h!.downloaded_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+              <div className="px-4 py-3 rounded-xl border border-border bg-card/50 backdrop-blur min-w-[140px]">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Installed
+                </div>
+                <p className="text-2xl font-bold mt-1">{downloadedCount}</p>
+              </div>
+              <div className="px-4 py-3 rounded-xl border border-border bg-card/50 backdrop-blur min-w-[140px]">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> Last download
+                </div>
+                <p className="text-sm font-medium mt-1.5 truncate">
+                  {recentDownloads[0]
+                    ? formatRelative(recentDownloads[0].h!.downloaded_at)
+                    : "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="p-8 space-y-10">
+          {recentDownloads.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2 mb-4">
+                <Sparkles className="h-4 w-4 text-primary" /> Recent downloads
+              </h2>
+              <Card className="rounded-2xl border-border bg-card/40 overflow-hidden">
+                <ul className="divide-y divide-border">
+                  {recentDownloads.map(({ g, h }) => (
+                    <li
+                      key={g.id}
+                      className="flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors"
+                    >
+                      <Link
+                        to={`/store/${g.slug}`}
+                        className="h-12 w-12 rounded-lg bg-secondary overflow-hidden shrink-0 ring-1 ring-border"
+                      >
+                        {g.cover_url && (
+                          <img
+                            src={g.cover_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{g.title}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <Package className="h-3 w-3" />
+                          {h!.platform ?? "—"} · v{h!.version ?? "?"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {formatRelative(h!.downloaded_at)}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownload(g.id)}
+                        disabled={busyId === g.id}
+                        className="rounded-lg shrink-0"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                        Re-download
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
           )}
 
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
-              ))}
-            </div>
-          ) : games.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <p className="text-lg">Your library is empty.</p>
-              <Button asChild className="mt-4 rounded-2xl">
-                <Link to="/store">Browse the store</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-              {games.map((g) => {
-                const h = history[g.id];
-                return (
-                  <Card
-                    key={g.id}
-                    className="overflow-hidden rounded-2xl border-border bg-card/40 flex flex-col"
-                  >
-                    <Link
-                      to={`/store/${g.slug}`}
-                      className="block aspect-[3/4] bg-secondary overflow-hidden"
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2 mb-4">
+              <LibraryIcon className="h-4 w-4 text-primary" /> All games
+            </h2>
+
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+                ))}
+              </div>
+            ) : games.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-2xl">
+                <LibraryIcon className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-lg">Your library is empty.</p>
+                <p className="text-sm mt-1">
+                  Discover something to play in the RUBIX Store.
+                </p>
+                <Button asChild className="mt-5 rounded-xl bg-[image:var(--gradient-primary)] shadow-[var(--glow-primary)]">
+                  <Link to="/store">Browse the store</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+                {games.map((g) => {
+                  const h = history[g.id];
+                  return (
+                    <Card
+                      key={g.id}
+                      className="overflow-hidden rounded-2xl border-border bg-card/40 flex flex-col group transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-[var(--glow-primary)]"
                     >
-                      {g.cover_url ? (
-                        <img
-                          src={g.cover_url}
-                          alt={g.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : null}
-                    </Link>
-                    <div className="p-3 space-y-2 flex-1 flex flex-col">
-                      <h3 className="font-semibold text-sm truncate">{g.title}</h3>
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <Link
+                        to={`/store/${g.slug}`}
+                        className="block aspect-[3/4] bg-secondary overflow-hidden relative"
+                      >
+                        {g.cover_url ? (
+                          <img
+                            src={g.cover_url}
+                            alt={g.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
                         {h ? (
                           <Badge
-                            variant="secondary"
-                            className="text-[10px] px-1.5 py-0"
+                            className="absolute top-2 left-2 text-[10px] px-1.5 py-0 bg-primary/90 text-primary-foreground border-0"
                           >
-                            <Clock className="h-2.5 w-2.5 mr-1" />
-                            {formatRelative(h.downloaded_at)}
+                            <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+                            Installed
                           </Badge>
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0"
+                            className="absolute top-2 left-2 text-[10px] px-1.5 py-0 bg-background/70 backdrop-blur"
                           >
-                            Not downloaded
+                            New
                           </Badge>
                         )}
+                      </Link>
+                      <div className="p-3 space-y-2 flex-1 flex flex-col">
+                        <h3 className="font-semibold text-sm truncate">{g.title}</h3>
+                        <p className="text-[11px] text-muted-foreground">
+                          {h ? (
+                            <>
+                              <Clock className="h-2.5 w-2.5 inline mr-1" />
+                              {formatRelative(h.downloaded_at)}
+                              {h.version ? ` · v${h.version}` : ""}
+                            </>
+                          ) : (
+                            "Not downloaded yet"
+                          )}
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => handleDownload(g.id)}
+                          disabled={busyId === g.id}
+                          className="w-full rounded-xl mt-auto bg-[image:var(--gradient-primary)] hover:opacity-90"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                          {h ? "Download again" : "Download"}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleDownload(g.id)}
-                        disabled={busyId === g.id}
-                        className="w-full rounded-xl mt-auto"
-                      >
-                        <Download className="h-3.5 w-3.5 mr-1.5" />
-                        {h ? "Download again" : "Download"}
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
       </main>
     </div>
