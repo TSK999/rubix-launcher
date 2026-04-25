@@ -183,7 +183,7 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
         <Button
           size="lg"
           variant="destructive"
-          onClick={onLeave}
+          onClick={handleLeave}
           className="rounded-full h-12 px-6"
         >
           <PhoneOff className="h-5 w-5 mr-2" /> Leave
