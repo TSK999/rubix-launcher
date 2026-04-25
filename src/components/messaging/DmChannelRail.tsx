@@ -26,6 +26,7 @@ type ConvWithMeta = {
 type Props = {
   meId: string;
   activeId: string | null;
+  preferredId?: string | null;
   onSelect: (id: string, meta: ConvWithMeta) => void;
 };
 
