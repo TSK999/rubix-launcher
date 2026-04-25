@@ -73,7 +73,7 @@ export const Sidebar = ({
   ];
 
   return (
-    <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card/30 backdrop-blur-sm">
+    <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card/30 backdrop-blur-sm h-screen sticky top-0 overflow-y-auto rubix-scroll-dark">
       <div className="p-4 border-b border-border flex items-center gap-3">
         {profile ? (
           <Link
