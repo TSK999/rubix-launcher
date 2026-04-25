@@ -30,13 +30,14 @@ type Props = {
   onSelect: (id: string, meta: ConvWithMeta) => void;
 };
 
-export const DmChannelRail = ({ meId, activeId, onSelect }: Props) => {
+export const DmChannelRail = ({ meId, activeId, preferredId, onSelect }: Props) => {
   const [convs, setConvs] = useState<ConvWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<ProfileLite[]>([]);
   const [groupOpen, setGroupOpen] = useState(false);
   const selectedOnceRef = useRef(false);
+  const preferredHandledRef = useRef<string | null>(null);
 
   const refresh = async () => {
     if (!meId) return;
