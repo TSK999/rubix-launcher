@@ -139,3 +139,67 @@ All colors MUST be HSL.
     z-index: 5;
   }
 }
+
+/* Login screen ambient motion */
+@layer utilities {
+  @keyframes orb-float-a {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(60px, -40px, 0) scale(1.15); }
+  }
+  @keyframes orb-float-b {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(-80px, 50px, 0) scale(1.1); }
+  }
+  @keyframes orb-float-c {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(40px, 60px, 0) scale(0.9); }
+  }
+  @keyframes grid-drift {
+    0% { background-position: 0 0; }
+    100% { background-position: 60px 60px; }
+  }
+  @keyframes aurora-shift {
+    0%, 100% { transform: translateX(-10%) rotate(0deg); opacity: 0.55; }
+    50% { transform: translateX(10%) rotate(8deg); opacity: 0.85; }
+  }
+  @keyframes logo-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45), 0 0 40px hsl(var(--primary) / 0.35); }
+    50% { box-shadow: 0 0 0 18px hsl(var(--primary) / 0), 0 0 70px hsl(var(--primary) / 0.55); }
+  }
+  @keyframes logo-spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes shimmer-sweep {
+    0% { transform: translateX(-120%) skewX(-20deg); }
+    100% { transform: translateX(220%) skewX(-20deg); }
+  }
+  @keyframes star-twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  .login-orb { animation: orb-float-a 14s ease-in-out infinite; will-change: transform; }
+  .login-orb-b { animation: orb-float-b 18s ease-in-out infinite; will-change: transform; }
+  .login-orb-c { animation: orb-float-c 22s ease-in-out infinite; will-change: transform; }
+  .login-grid {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: grid-drift 12s linear infinite;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+  .login-aurora { animation: aurora-shift 16s ease-in-out infinite; will-change: transform, opacity; }
+  .login-logo-ring { animation: logo-pulse 3.2s ease-in-out infinite; }
+  .login-logo-spin { animation: logo-spin 18s linear infinite; }
+  .login-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, hsl(var(--primary-foreground) / 0.25) 50%, transparent 70%);
+    animation: shimmer-sweep 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .login-star { animation: star-twinkle 3s ease-in-out infinite; }
+}
