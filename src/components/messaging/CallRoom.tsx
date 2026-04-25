@@ -3,6 +3,7 @@ import { Mic, MicOff, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CallManager, type RemotePeer } from "@/lib/webrtc";
+import { consumeCallStream } from "@/lib/call-media";
 import {
   endCall,
   joinCall,
@@ -17,12 +18,13 @@ import { toast } from "sonner";
 type Props = {
   callId: string;
   meId: string;
+  initialStream?: MediaStream | null;
   onLeave: () => void;
 };
 
 const pendingLeaveTimers = new Map<string, number>();
 
-export const CallRoom = ({ callId, meId, onLeave }: Props) => {
+export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
   const [peers, setPeers] = useState<RemotePeer[]>([]);
   const [participants, setParticipants] = useState<CallParticipant[]>([]);
   const [profiles, setProfiles] = useState<Map<string, ProfileLite>>(new Map());
@@ -55,6 +57,13 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
         return;
       }
 
+      const localStream = initialStream ?? consumeCallStream(callId);
+      if (!localStream) {
+        toast.error("Tap Call again to allow microphone access");
+        onLeave();
+        return;
+      }
+
       mgr = new CallManager(callId, {
         onPeersChange: (p) => !stopped && setPeers(p),
         onLocalStream: () => !stopped && setConnecting(false),
@@ -63,7 +72,7 @@ export const CallRoom = ({ callId, meId, onLeave }: Props) => {
           toast.error(err.message);
           onLeave();
         },
-      });
+      }, localStream);
       managerRef.current = mgr;
 
       try {
