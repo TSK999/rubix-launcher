@@ -121,3 +121,14 @@ export const leaveCall = async (callId: string) => {
     await supabase.from("call_sessions").update({ ended_at: new Date().toISOString() }).eq("id", callId);
   }
 };
+
+export const endCall = async (callId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("call_participants")
+    .update({ left_at: new Date().toISOString() })
+    .eq("call_id", callId)
+    .eq("user_id", user.id);
+  await supabase.from("call_sessions").update({ ended_at: new Date().toISOString() }).eq("id", callId);
+};
