@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, Sparkles, Box, Settings } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
@@ -8,6 +8,7 @@ import { UserSearchPopover } from "@/components/UserSearchPopover";
 import { StoreIcon } from "@/components/StoreIcon";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import type { GameSource } from "@/lib/game-types";
 import { useState } from "react";
@@ -40,6 +41,7 @@ export const Sidebar = ({
   const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { profile } = useRubixAuth();
+  const { isDeveloper, isAdmin } = useUserRoles();
   const steamId = profile?.steam_id ?? null;
   const userId = profile?.user_id ?? null;
 
