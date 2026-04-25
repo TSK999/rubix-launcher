@@ -168,26 +168,6 @@ export const Sidebar = ({
           );
         })}
       </nav>
-        {items.map(({ id, label, icon: Icon, count }) => {
-          const active = collection === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onCollection(id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors",
-                active
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active && "text-primary")} />
-              <span className="flex-1 text-left">{label}</span>
-              <span className="text-xs text-muted-foreground">{count}</span>
-            </button>
-          );
-        })}
-      </nav>
 
       <div className="p-3 border-t border-border">
         <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
