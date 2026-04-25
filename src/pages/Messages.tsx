@@ -57,17 +57,14 @@ const Messages = () => {
   useEffect(() => {
     const conv = params.get("conv");
     const join = params.get("join");
-    if (conv) {
+    if (conv && join) {
+      pendingJoinRef.current = { convId: conv, callId: join };
       setSelected({ kind: "dms" });
-      if (join) {
-        setDmCallId(join);
-        setInDmCall(true);
-      }
-      const next = new URLSearchParams(params);
-      next.delete("conv");
-      next.delete("join");
-      setParams(next, { replace: true });
     }
+    const next = new URLSearchParams(params);
+    next.delete("conv");
+    next.delete("join");
+    if (next.toString() !== params.toString()) setParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -82,6 +79,15 @@ const Messages = () => {
       setDmCallId(null);
       return;
     }
+
+    const pendingJoin = pendingJoinRef.current;
+    if (pendingJoin?.convId === activeDm.conv.id) {
+      pendingJoinRef.current = null;
+      setDmCallId(pendingJoin.callId);
+      setInDmCall(true);
+      return;
+    }
+
     void findActiveDmCall(activeDm.conv.id).then((s) => setDmCallId(s?.id ?? null));
   }, [activeDm]);
 
