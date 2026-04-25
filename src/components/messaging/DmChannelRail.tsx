@@ -98,7 +98,7 @@ export const DmChannelRail = ({ meId, activeId, preferredId, onSelect }: Props) 
       void supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meId]);
+  }, [meId, preferredId]);
 
   useEffect(() => {
     let cancel = false;
