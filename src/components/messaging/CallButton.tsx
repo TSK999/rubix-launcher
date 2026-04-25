@@ -1,4 +1,4 @@
-import { Mic, PhoneOff, Video } from "lucide-react";
+import { PhoneCall, PhoneOff, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -46,10 +46,10 @@ export const CallButton = ({ inCall, onToggle, onToggleVideo, videoEnabled }: Pr
         "gap-1.5 h-8 rounded-full px-3 border border-border/60",
         "hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-colors",
       )}
-      title="Start voice call"
+      title="Start call"
     >
-      <Mic className="h-3.5 w-3.5" />
-      <span className="text-xs font-medium">Voice</span>
+      <PhoneCall className="h-3.5 w-3.5" />
+      <span className="text-xs font-medium">Call</span>
     </Button>
   );
 };
