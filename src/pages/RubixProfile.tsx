@@ -232,14 +232,16 @@ const RubixProfile = () => {
 
       {/* Header */}
       <div className="max-w-4xl mx-auto px-6 -mt-16 relative">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 rubix-fade-up">
           <div className="flex items-end gap-4">
-            <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
-              <AvatarImage src={profile.avatar_url ?? undefined} />
-              <AvatarFallback className="text-2xl">
-                {(profile.display_name ?? profile.username).slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="rubix-ring-active p-[3px] rounded-full">
+              <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
+                <AvatarImage src={profile.avatar_url ?? undefined} />
+                <AvatarFallback className="text-2xl">
+                  {(profile.display_name ?? profile.username).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
             <div className="pb-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold leading-tight">
