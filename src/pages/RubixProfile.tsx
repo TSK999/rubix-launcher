@@ -6,6 +6,7 @@ import {
   Clock,
   Loader2,
   Lock,
+  MapPin,
   MessageSquare,
   MoreVertical,
   Pencil,
@@ -42,6 +43,8 @@ import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { RoleBadges } from "@/components/RoleBadges";
 import { SOCIALS } from "@/lib/socials";
 import { ExternalLink } from "lucide-react";
+import { accentVarStyle, fontFamilyFor, resolveCustomization } from "@/lib/profile-customization";
+import { cn } from "@/lib/utils";
 
 const RubixProfile = () => {
   const { username } = useParams<{ username: string }>();
@@ -199,10 +202,23 @@ const RubixProfile = () => {
     }
   };
 
+  const cz = resolveCustomization(profile.customization);
+  const overlayClass =
+    cz.bannerOverlay === "none" ? "" : `rubix-overlay-${cz.bannerOverlay}`;
+  const nameClass =
+    cz.nameEffect === "none" ? "" : `rubix-name-${cz.nameEffect}`;
+  const frameClass =
+    cz.avatarFrame === "none" ? "" : `rubix-frame-${cz.avatarFrame}`;
+  const cardClass = `rubix-pcard-${cz.cardStyle}`;
+  const heroH = cz.compactLayout ? "h-44 md:h-56" : "h-64 md:h-80";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      style={{ ...accentVarStyle(cz.accent), fontFamily: fontFamilyFor(cz.fontPair) }}
+    >
       {/* Background hero */}
-      <div className="relative h-64 md:h-80 w-full overflow-hidden bg-gradient-to-br from-primary/30 via-background to-background">
+      <div className={cn("relative w-full overflow-hidden bg-gradient-to-br from-[hsl(var(--profile-accent)/0.4)] via-background to-background", heroH, overlayClass)}>
         {profile.background_url && (
           profile.background_kind === "video" ? (
             <video
@@ -221,35 +237,48 @@ const RubixProfile = () => {
             />
           )
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 h-9 w-9 rounded-full bg-background/70 backdrop-blur grid place-items-center hover:bg-background"
+          className="absolute top-4 left-4 h-9 w-9 rounded-full bg-background/70 backdrop-blur grid place-items-center hover:bg-background z-10"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
       </div>
 
       {/* Header */}
-      <div className="max-w-4xl mx-auto px-6 -mt-16 relative">
+      <div className={cn("max-w-4xl mx-auto px-6 relative", cz.compactLayout ? "-mt-12" : "-mt-16")}>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 rubix-fade-up">
           <div className="flex items-end gap-4">
-            <div className="rubix-ring-active p-[3px] rounded-full">
-              <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
+            <div className={frameClass || "p-[3px] rounded-full"}>
+              <Avatar className={cn("ring-4 ring-background shadow-xl", cz.compactLayout ? "h-20 w-20" : "h-28 w-28")}>
                 <AvatarImage src={profile.avatar_url ?? undefined} />
                 <AvatarFallback className="text-2xl">
                   {(profile.display_name ?? profile.username).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </div>
-            <div className="pb-2">
+            <div className="pb-2 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-bold leading-tight">
+                <h1 className={cn("text-2xl font-bold leading-tight", nameClass)}>
                   {profile.display_name ?? profile.username}
                 </h1>
                 <RoleBadges userId={profile.user_id} />
               </div>
-              <p className="text-sm text-muted-foreground">@{profile.username}</p>
+              <p className="text-sm text-muted-foreground">
+                @{profile.username}
+                {profile.pronouns && <span className="ml-2">· {profile.pronouns}</span>}
+                {profile.location && (
+                  <span className="ml-2 inline-flex items-center gap-1">
+                    · <MapPin className="h-3 w-3" />{profile.location}
+                  </span>
+                )}
+              </p>
+              {(profile.status_emoji || profile.status_text) && (
+                <p className="mt-1.5 text-sm">
+                  {profile.status_emoji && <span className="mr-1.5">{profile.status_emoji}</span>}
+                  <span className="text-muted-foreground">{profile.status_text}</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -314,7 +343,7 @@ const RubixProfile = () => {
         </div>
 
         {/* Bio / private gate */}
-        <div className="mt-6 pb-12">
+        <div className={cn("pb-12", cz.compactLayout ? "mt-4 space-y-4" : "mt-6")}>
           {friendship.kind === "blocked" ? (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-2">
               <Ban className="h-6 w-6 mx-auto text-destructive" />
@@ -324,7 +353,7 @@ const RubixProfile = () => {
               </p>
             </div>
           ) : !canView ? (
-            <div className="rounded-xl border border-border bg-card/50 p-8 text-center space-y-2">
+            <div className={cn("rounded-xl p-8 text-center space-y-2", cardClass)}>
               <Lock className="h-6 w-6 mx-auto text-muted-foreground" />
               <p className="font-medium">This profile is {profile.privacy}</p>
               <p className="text-sm text-muted-foreground">
@@ -336,7 +365,7 @@ const RubixProfile = () => {
           ) : (
             <div className="space-y-6">
               {profile.bio ? (
-                <div className="rounded-xl border border-border bg-card/50 p-5">
+                <div className={cn("rounded-xl p-5", cardClass)}>
                   <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
                     <Users className="h-3 w-3" /> About
                   </p>
@@ -346,9 +375,8 @@ const RubixProfile = () => {
                 <p className="text-sm text-muted-foreground italic">No bio yet.</p>
               )}
 
-              {/* Socials */}
-              {profile.socials && Object.values(profile.socials).some((v) => v && v.trim()) && (
-                <div className="rounded-xl border border-border bg-card/50 p-5">
+              {cz.showcaseSocials && profile.socials && Object.values(profile.socials).some((v) => v && v.trim()) && (
+                <div className={cn("rounded-xl p-5", cardClass)}>
                   <p className="text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
                     <ExternalLink className="h-3 w-3" /> Socials
                   </p>
@@ -366,7 +394,7 @@ const RubixProfile = () => {
                         </>
                       );
                       const className =
-                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-secondary/40 hover:bg-secondary transition-colors";
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[hsl(var(--profile-accent)/0.35)] bg-[hsl(var(--profile-accent)/0.1)] hover:bg-[hsl(var(--profile-accent)/0.18)] transition-colors";
                       return url ? (
                         <a
                           key={s.key}

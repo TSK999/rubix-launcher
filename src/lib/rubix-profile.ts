@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Socials } from "@/lib/socials";
+import type { ProfileCustomization } from "@/lib/profile-customization";
 
 export type RubixPublicProfile = {
   id: string;
@@ -13,7 +14,15 @@ export type RubixPublicProfile = {
   privacy: "public" | "friends" | "private";
   steam_id: string | null;
   socials: Socials;
+  pronouns: string | null;
+  location: string | null;
+  status_emoji: string | null;
+  status_text: string | null;
+  customization: ProfileCustomization;
 };
+
+const PROFILE_COLS =
+  "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials, pronouns, location, status_emoji, status_text, customization";
 
 export type FriendshipRow = {
   id: string;
@@ -38,9 +47,7 @@ export const fetchProfileByUsername = async (
 ): Promise<RubixPublicProfile | null> => {
   const { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
-    )
+    .select(PROFILE_COLS)
     .ilike("username", username)
     .maybeSingle();
   if (error || !data) return null;
@@ -48,17 +55,18 @@ export const fetchProfileByUsername = async (
 };
 
 const normalize = (row: Record<string, unknown>): RubixPublicProfile => ({
-  ...(row as unknown as Omit<RubixPublicProfile, "socials">),
+  ...(row as unknown as Omit<RubixPublicProfile, "socials" | "customization">),
   socials: (row.socials && typeof row.socials === "object" ? row.socials : {}) as Socials,
+  customization: (row.customization && typeof row.customization === "object"
+    ? row.customization
+    : {}) as ProfileCustomization,
 });
 
 export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicProfile[]> => {
   if (!q.trim()) return [];
   const { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
-    )
+    .select(PROFILE_COLS)
     .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
     .limit(limit * 2);
   if (error || !data) return [];
@@ -161,7 +169,18 @@ export const updateMyProfile = async (
   patch: Partial<
     Pick<
       RubixPublicProfile,
-      "display_name" | "bio" | "avatar_url" | "background_url" | "background_kind" | "privacy" | "socials"
+      | "display_name"
+      | "bio"
+      | "avatar_url"
+      | "background_url"
+      | "background_kind"
+      | "privacy"
+      | "socials"
+      | "pronouns"
+      | "location"
+      | "status_emoji"
+      | "status_text"
+      | "customization"
     >
   >,
 ) => {
