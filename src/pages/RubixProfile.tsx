@@ -426,5 +426,3 @@ const RubixProfile = () => {
 };
 
 export default RubixProfile;
-
-export default RubixProfile;
