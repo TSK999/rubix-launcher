@@ -114,8 +114,9 @@ const Store = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
           <div className="absolute inset-0 bg-[image:var(--gradient-primary)] opacity-10 mix-blend-overlay" />
 
-          <div className="relative px-8 pt-12 pb-10">
+          <div className="relative px-8 pt-12 pb-10 rubix-fade-up">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-primary/90 mb-4">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary rubix-pulse-soft" />
               <Sparkles className="h-3.5 w-3.5" />
               RUBIX Store
             </div>
@@ -132,7 +133,7 @@ const Store = () => {
                 <Link to={`/store/${featured.slug}`}>
                   <Button
                     size="lg"
-                    className="rounded-2xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)] h-12 px-6 text-base"
+                    className="rounded-2xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)] h-12 px-6 text-base transition-transform hover:-translate-y-0.5"
                   >
                     <Flame className="h-4 w-4 mr-2" />
                     Featured: {featured.title}
@@ -148,7 +149,7 @@ const Store = () => {
         </section>
 
         {/* Filter bar */}
-        <div className="sticky top-0 z-10 px-8 py-4 bg-background/80 backdrop-blur-xl border-b border-border">
+        <div className="sticky top-0 z-10 px-8 py-4 rubix-glass border-b border-border">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px] max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -251,13 +252,19 @@ const Store = () => {
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+                  <div key={i} className="space-y-2">
+                    <div className="aspect-[3/4] rounded-2xl rubix-shimmer" />
+                    <div className="h-3 w-2/3 rounded rubix-shimmer" />
+                    <div className="h-3 w-1/3 rounded rubix-shimmer" />
+                  </div>
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-2xl">
-                <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="text-lg">
+              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-2xl rubix-fade-up">
+                <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-secondary/60 grid place-items-center">
+                  <ShoppingBag className="h-8 w-8 opacity-50" />
+                </div>
+                <p className="text-lg text-foreground">
                   {games.length === 0
                     ? "No games published yet."
                     : "No games match your filters."}
@@ -267,6 +274,16 @@ const Store = () => {
                     ? "Check back soon — new releases land here regularly."
                     : "Try clearing the search or age filter."}
                 </p>
+                {games.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setQuery(""); setAge("all"); }}
+                    className="mt-5 rounded-xl"
+                  >
+                    Clear filters
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">

@@ -74,7 +74,14 @@ const RubixProfile = () => {
   if (loading || meLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-3 rubix-fade-up">
+          <div className="rubix-ring-active h-14 w-14">
+            <div className="h-full w-full rounded-full bg-card grid place-items-center">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Loading profile…</p>
+        </div>
       </div>
     );
   }
@@ -82,12 +89,15 @@ const RubixProfile = () => {
   if (!profile) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-3 rubix-fade-up">
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-secondary/60 grid place-items-center">
+            <Users className="h-7 w-7 text-muted-foreground" />
+          </div>
           <p className="text-lg font-semibold">User not found</p>
           <p className="text-sm text-muted-foreground">
             No Rubix profile matches @{username}.
           </p>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="rounded-xl">
             <Link to="/">Back to library</Link>
           </Button>
         </div>
@@ -222,14 +232,16 @@ const RubixProfile = () => {
 
       {/* Header */}
       <div className="max-w-4xl mx-auto px-6 -mt-16 relative">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 rubix-fade-up">
           <div className="flex items-end gap-4">
-            <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
-              <AvatarImage src={profile.avatar_url ?? undefined} />
-              <AvatarFallback className="text-2xl">
-                {(profile.display_name ?? profile.username).slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="rubix-ring-active p-[3px] rounded-full">
+              <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
+                <AvatarImage src={profile.avatar_url ?? undefined} />
+                <AvatarFallback className="text-2xl">
+                  {(profile.display_name ?? profile.username).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
             <div className="pb-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold leading-tight">

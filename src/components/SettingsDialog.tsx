@@ -83,19 +83,19 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="account" className="space-y-3 pt-3">
-              <div className="rounded-lg border border-border bg-card/40 p-4">
+            <TabsContent value="account" className="space-y-3 pt-4">
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
                 <p className="text-sm font-medium">Profile</p>
                 <p className="mt-1 text-xs text-muted-foreground truncate">
                   {profile ? `@${profile.username}` : "Rubix account"}
                 </p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => setProfileOpen(true)}>
+                <Button variant="outline" size="sm" className="mt-3 rounded-xl" onClick={() => setProfileOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit profile
                 </Button>
               </div>
 
-              <div className="rounded-lg border border-border bg-card/40 p-4">
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">Controller mode</p>
@@ -110,14 +110,14 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 </div>
               </div>
 
-              <Button variant="destructive" className="w-full" onClick={handleSignOut}>
+              <Button variant="destructive" className="w-full rounded-xl" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </Button>
             </TabsContent>
 
-            <TabsContent value="connections" className="space-y-3 pt-3">
-              <div className="rounded-lg border border-border bg-card/40 p-4">
+            <TabsContent value="connections" className="space-y-3 pt-4">
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
                 <p className="text-sm font-medium">Steam</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {steamId ? `Linked · ${steamId.slice(-6)}` : "Not linked"}
@@ -126,7 +126,7 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3"
+                    className="mt-3 rounded-xl"
                     onClick={() => {
                       localStorage.removeItem("rubix:steam-link-skipped");
                       window.location.reload();
@@ -138,15 +138,15 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 )}
               </div>
 
-              <div className="rounded-lg border border-border bg-card/40 p-4">
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
                 <p className="text-sm font-medium">Spotify</p>
                 <p className="mt-1 text-xs text-muted-foreground">Connect or disconnect your Spotify client.</p>
                 <div className="mt-3 flex gap-2">
-                  <Button variant="outline" size="sm" disabled={spotifyBusy} onClick={connectSpotify}>
+                  <Button variant="outline" size="sm" className="rounded-xl" disabled={spotifyBusy} onClick={connectSpotify}>
                     <Link2 className="mr-2 h-4 w-4" />
                     Connect
                   </Button>
-                  <Button variant="ghost" size="sm" disabled={spotifyBusy || !userId} onClick={disconnectFromSpotify}>
+                  <Button variant="ghost" size="sm" className="rounded-xl" disabled={spotifyBusy || !userId} onClick={disconnectFromSpotify}>
                     <Unlink className="mr-2 h-4 w-4" />
                     Disconnect
                   </Button>
@@ -154,8 +154,8 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
               </div>
             </TabsContent>
 
-            <TabsContent value="appearance" className="pt-3">
-              <div className="rounded-lg border border-border bg-card/40 p-4">
+            <TabsContent value="appearance" className="pt-4">
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium">
                   <Palette className="h-4 w-4 text-primary" />
                   Theme

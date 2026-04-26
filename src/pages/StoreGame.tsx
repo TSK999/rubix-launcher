@@ -156,12 +156,30 @@ const StoreGame = () => {
       />
       <main className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-8 max-w-6xl mx-auto">
-            <Skeleton className="h-96 rounded-2xl" />
+          <div className="p-8 max-w-6xl mx-auto space-y-6">
+            <div className="h-[420px] rounded-2xl rubix-shimmer" />
+            <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+              <div className="space-y-4">
+                <div className="aspect-video rounded-2xl rubix-shimmer" />
+                <div className="h-4 w-1/2 rounded rubix-shimmer" />
+                <div className="h-3 w-full rounded rubix-shimmer" />
+                <div className="h-3 w-3/4 rounded rubix-shimmer" />
+              </div>
+              <div className="h-64 rounded-2xl rubix-shimmer" />
+            </div>
           </div>
         ) : !game ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <p>Game not found.</p>
+          <div className="text-center py-24 max-w-md mx-auto rubix-fade-up space-y-4">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-secondary/60 grid place-items-center">
+              <ShoppingCart className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <p className="text-lg font-semibold">Game not found</p>
+            <p className="text-sm text-muted-foreground">
+              This title may have been unpublished or the link is wrong.
+            </p>
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link to="/store"><ArrowLeft className="h-4 w-4 mr-2" /> Back to store</Link>
+            </Button>
           </div>
         ) : (
           <>
