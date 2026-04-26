@@ -169,7 +169,18 @@ export const updateMyProfile = async (
   patch: Partial<
     Pick<
       RubixPublicProfile,
-      "display_name" | "bio" | "avatar_url" | "background_url" | "background_kind" | "privacy" | "socials"
+      | "display_name"
+      | "bio"
+      | "avatar_url"
+      | "background_url"
+      | "background_kind"
+      | "privacy"
+      | "socials"
+      | "pronouns"
+      | "location"
+      | "status_emoji"
+      | "status_text"
+      | "customization"
     >
   >,
 ) => {
