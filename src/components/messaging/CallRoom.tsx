@@ -150,43 +150,71 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-card/20">
-      <div className="flex-1 grid grid-cols-2 gap-4 p-6 place-items-center">
+    <div className="flex-1 flex flex-col bg-gradient-to-b from-background via-background to-card/40 relative overflow-hidden">
+      {/* Ambient backdrop */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl rubix-pulse-soft" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-[hsl(220_90%_60%/0.15)] blur-3xl rubix-pulse-soft" />
+      </div>
+
+      <div className="relative flex-1 grid grid-cols-1 sm:grid-cols-2 gap-5 p-6 place-items-center auto-rows-fr">
         {connecting && tiles.length === 1 ? (
-          <div className="col-span-2 flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm">Connecting…</p>
+          <div className="col-span-full flex flex-col items-center gap-4 text-muted-foreground rubix-fade-up">
+            <div className="rubix-ring-active h-20 w-20">
+              <div className="h-full w-full rounded-full bg-card grid place-items-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            </div>
+            <p className="text-sm font-medium">Connecting…</p>
+            <p className="text-xs">Setting up secure peer link</p>
           </div>
         ) : (
           tiles.map((t) => {
             const prof = profiles.get(t.userId);
+            const active = !!t.stream || (t.isMe && !muted);
             return (
               <div
                 key={t.key}
-                className="aspect-square w-full max-w-[200px] rounded-2xl bg-secondary/60 border border-border flex flex-col items-center justify-center gap-2 relative"
+                className={cn(
+                  "aspect-square w-full max-w-[220px] rounded-3xl rubix-glass rubix-card-hi flex flex-col items-center justify-center gap-3 relative rubix-fade-up transition-all",
+                  active && "border-primary/50",
+                )}
               >
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={prof?.avatar_url ?? undefined} />
-                  <AvatarFallback>
-                    {(prof?.display_name ?? prof?.username ?? "?").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-sm font-medium">
-                  {t.isMe ? "You" : prof?.display_name ?? prof?.username ?? "…"}
-                  {t.isMe && muted && <MicOff className="inline h-3 w-3 ml-1 text-destructive" />}
-                </p>
+                <div className={cn("p-[2px] rounded-full", active ? "rubix-ring-active" : "bg-border")}>
+                  <Avatar className="h-20 w-20 ring-2 ring-card">
+                    <AvatarImage src={prof?.avatar_url ?? undefined} />
+                    <AvatarFallback>
+                      {(prof?.display_name ?? prof?.username ?? "?").slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm font-semibold flex items-center gap-1.5">
+                    {t.isMe ? "You" : prof?.display_name ?? prof?.username ?? "…"}
+                    {t.isMe && muted && <MicOff className="h-3 w-3 text-destructive" />}
+                  </p>
+                  {active && !muted && (
+                    <div className="flex items-end h-3.5">
+                      <span className="rubix-eq-bar" />
+                      <span className="rubix-eq-bar" />
+                      <span className="rubix-eq-bar" />
+                      <span className="rubix-eq-bar" />
+                    </div>
+                  )}
+                </div>
                 {t.stream && <RemoteAudio stream={t.stream} />}
               </div>
             );
           })
         )}
       </div>
-      <div className="p-4 border-t border-border flex items-center justify-center gap-3">
+      <div className="relative p-5 border-t border-border bg-background/60 backdrop-blur-xl flex items-center justify-center gap-3">
         <Button
           size="lg"
           variant={muted ? "destructive" : "secondary"}
           onClick={toggleMute}
-          className="rounded-full h-12 w-12 p-0"
+          className="rounded-full h-12 w-12 p-0 shadow-md"
+          title={muted ? "Unmute" : "Mute"}
         >
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
         </Button>
@@ -194,7 +222,7 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
           size="lg"
           variant="destructive"
           onClick={handleLeave}
-          className="rounded-full h-12 px-6"
+          className="rounded-full h-12 px-6 shadow-md"
         >
           <PhoneOff className="h-5 w-5 mr-2" /> Leave
         </Button>
