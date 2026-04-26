@@ -47,9 +47,7 @@ export const fetchProfileByUsername = async (
 ): Promise<RubixPublicProfile | null> => {
   const { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
-    )
+    .select(PROFILE_COLS)
     .ilike("username", username)
     .maybeSingle();
   if (error || !data) return null;
@@ -57,17 +55,18 @@ export const fetchProfileByUsername = async (
 };
 
 const normalize = (row: Record<string, unknown>): RubixPublicProfile => ({
-  ...(row as unknown as Omit<RubixPublicProfile, "socials">),
+  ...(row as unknown as Omit<RubixPublicProfile, "socials" | "customization">),
   socials: (row.socials && typeof row.socials === "object" ? row.socials : {}) as Socials,
+  customization: (row.customization && typeof row.customization === "object"
+    ? row.customization
+    : {}) as ProfileCustomization,
 });
 
 export const searchProfiles = async (q: string, limit = 8): Promise<RubixPublicProfile[]> => {
   if (!q.trim()) return [];
   const { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials",
-    )
+    .select(PROFILE_COLS)
     .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
     .limit(limit * 2);
   if (error || !data) return [];
