@@ -288,7 +288,11 @@ const Library = () => {
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+                  <div key={i} className="space-y-2">
+                    <div className="aspect-[3/4] rounded-2xl rubix-shimmer" />
+                    <div className="h-3 w-2/3 rounded rubix-shimmer" />
+                    <div className="h-3 w-1/3 rounded rubix-shimmer" />
+                  </div>
                 ))}
               </div>
             ) : games.length === 0 ? (
