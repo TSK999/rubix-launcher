@@ -114,8 +114,9 @@ const Store = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
           <div className="absolute inset-0 bg-[image:var(--gradient-primary)] opacity-10 mix-blend-overlay" />
 
-          <div className="relative px-8 pt-12 pb-10">
+          <div className="relative px-8 pt-12 pb-10 rubix-fade-up">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-primary/90 mb-4">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary rubix-pulse-soft" />
               <Sparkles className="h-3.5 w-3.5" />
               RUBIX Store
             </div>
@@ -132,7 +133,7 @@ const Store = () => {
                 <Link to={`/store/${featured.slug}`}>
                   <Button
                     size="lg"
-                    className="rounded-2xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)] h-12 px-6 text-base"
+                    className="rounded-2xl bg-[image:var(--gradient-primary)] hover:opacity-90 shadow-[var(--glow-primary)] h-12 px-6 text-base transition-transform hover:-translate-y-0.5"
                   >
                     <Flame className="h-4 w-4 mr-2" />
                     Featured: {featured.title}
@@ -148,7 +149,7 @@ const Store = () => {
         </section>
 
         {/* Filter bar */}
-        <div className="sticky top-0 z-10 px-8 py-4 bg-background/80 backdrop-blur-xl border-b border-border">
+        <div className="sticky top-0 z-10 px-8 py-4 rubix-glass border-b border-border">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px] max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
