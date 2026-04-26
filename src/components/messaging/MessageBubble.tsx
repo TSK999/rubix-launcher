@@ -108,13 +108,18 @@ export const MessageBubble = ({
 
   const isDeleted = !!message.deleted_at;
 
+  const timeLabel = new Date(message.created_at).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
-    <div className={cn("flex gap-2 group px-3 py-0.5", isMine && "flex-row-reverse")}>
+    <div className={cn("flex gap-2 group px-3 py-0.5 rubix-bubble-in", isMine && "flex-row-reverse")}>
       <div className="w-8 shrink-0">
         {showAvatar && (
           sender?.username ? (
             <Link to={`/u/${sender.username}`} title={`View @${sender.username}`}>
-              <Avatar className="h-8 w-8 hover:ring-2 hover:ring-primary transition-all">
+              <Avatar className="h-8 w-8 ring-1 ring-border hover:ring-2 hover:ring-primary transition-all">
                 <AvatarImage src={sender?.avatar_url ?? undefined} />
                 <AvatarFallback className="text-[10px]">
                   {(sender?.display_name ?? sender?.username ?? "?").slice(0, 2).toUpperCase()}
@@ -122,7 +127,7 @@ export const MessageBubble = ({
               </Avatar>
             </Link>
           ) : (
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 ring-1 ring-border">
               <AvatarImage src={sender?.avatar_url ?? undefined} />
               <AvatarFallback className="text-[10px]">
                 {(sender?.display_name ?? sender?.username ?? "?").slice(0, 2).toUpperCase()}
@@ -136,12 +141,12 @@ export const MessageBubble = ({
           sender?.username ? (
             <Link
               to={`/u/${sender.username}`}
-              className="text-[11px] text-muted-foreground px-1 hover:text-foreground transition-colors"
+              className="text-[11px] font-medium text-muted-foreground px-1 hover:text-foreground transition-colors"
             >
               {sender?.display_name ?? sender?.username ?? "Unknown"}
             </Link>
           ) : (
-            <p className="text-[11px] text-muted-foreground px-1">
+            <p className="text-[11px] font-medium text-muted-foreground px-1">
               {sender?.display_name ?? sender?.username ?? "Unknown"}
             </p>
           )
@@ -158,9 +163,13 @@ export const MessageBubble = ({
             </div>
           )}
           <div
+            title={timeLabel}
             className={cn(
-              "rounded-2xl px-3 py-1.5 text-sm break-words whitespace-pre-wrap",
-              isMine ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
+              "px-3 py-1.5 text-sm break-words whitespace-pre-wrap shadow-sm transition-shadow",
+              "rounded-2xl",
+              isMine
+                ? "bg-[image:var(--gradient-primary)] text-primary-foreground rounded-br-md"
+                : "bg-secondary text-foreground rounded-bl-md ring-1 ring-border/60",
               isDeleted && "italic opacity-60",
             )}
           >
@@ -211,7 +220,7 @@ export const MessageBubble = ({
               <button
                 key={emoji}
                 onClick={() => toggleReaction(message.id, emoji)}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-secondary text-xs hover:bg-secondary/70"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-secondary border border-border/60 text-xs hover:border-primary/50 hover:bg-secondary/80 transition-colors"
               >
                 <span>{emoji}</span>
                 <span className="text-[10px] text-muted-foreground">{users.length}</span>
@@ -220,9 +229,9 @@ export const MessageBubble = ({
           </div>
         )}
         {isMine && isLastFromMe && (
-          <div className="text-[10px] text-muted-foreground flex items-center gap-0.5 px-1">
+          <div className="text-[10px] text-muted-foreground flex items-center gap-1 px-1">
             {readByOthers ? <CheckCheck className="h-3 w-3 text-primary" /> : <Check className="h-3 w-3" />}
-            <span>{readByOthers ? "Read" : "Sent"}</span>
+            <span>{readByOthers ? "Read" : "Sent"} · {timeLabel}</span>
           </div>
         )}
       </div>
