@@ -6,6 +6,7 @@ import {
   Clock,
   Loader2,
   Lock,
+  MapPin,
   MessageSquare,
   MoreVertical,
   Pencil,
@@ -42,6 +43,8 @@ import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { RoleBadges } from "@/components/RoleBadges";
 import { SOCIALS } from "@/lib/socials";
 import { ExternalLink } from "lucide-react";
+import { accentVarStyle, fontFamilyFor, resolveCustomization } from "@/lib/profile-customization";
+import { cn } from "@/lib/utils";
 
 const RubixProfile = () => {
   const { username } = useParams<{ username: string }>();
