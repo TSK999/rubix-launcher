@@ -13,6 +13,7 @@ import {
   type CallParticipant,
 } from "@/lib/calls";
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type Props = {
