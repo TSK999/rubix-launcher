@@ -131,7 +131,7 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
       </button>
 
       {/* Play button overlay */}
-      <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+      <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-300 pointer-events-none">
         <Button
           onClick={(e) => {
             e.stopPropagation();
