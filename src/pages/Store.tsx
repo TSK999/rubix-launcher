@@ -252,13 +252,19 @@ const Store = () => {
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+                  <div key={i} className="space-y-2">
+                    <div className="aspect-[3/4] rounded-2xl rubix-shimmer" />
+                    <div className="h-3 w-2/3 rounded rubix-shimmer" />
+                    <div className="h-3 w-1/3 rounded rubix-shimmer" />
+                  </div>
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-2xl">
-                <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="text-lg">
+              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-2xl rubix-fade-up">
+                <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-secondary/60 grid place-items-center">
+                  <ShoppingBag className="h-8 w-8 opacity-50" />
+                </div>
+                <p className="text-lg text-foreground">
                   {games.length === 0
                     ? "No games published yet."
                     : "No games match your filters."}
@@ -268,6 +274,16 @@ const Store = () => {
                     ? "Check back soon — new releases land here regularly."
                     : "Try clearing the search or age filter."}
                 </p>
+                {games.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setQuery(""); setAge("all"); }}
+                    className="mt-5 rounded-xl"
+                  >
+                    Clear filters
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
