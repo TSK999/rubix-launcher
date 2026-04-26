@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Socials } from "@/lib/socials";
+import type { ProfileCustomization } from "@/lib/profile-customization";
 
 export type RubixPublicProfile = {
   id: string;
@@ -13,7 +14,15 @@ export type RubixPublicProfile = {
   privacy: "public" | "friends" | "private";
   steam_id: string | null;
   socials: Socials;
+  pronouns: string | null;
+  location: string | null;
+  status_emoji: string | null;
+  status_text: string | null;
+  customization: ProfileCustomization;
 };
+
+const PROFILE_COLS =
+  "id, user_id, username, display_name, avatar_url, bio, background_url, background_kind, privacy, steam_id, socials, pronouns, location, status_emoji, status_text, customization";
 
 export type FriendshipRow = {
   id: string;
