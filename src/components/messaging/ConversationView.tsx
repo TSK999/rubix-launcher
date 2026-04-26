@@ -165,15 +165,22 @@ export const ConversationView = ({ conversationId, meId }: Props) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 rubix-scroll-dark">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-16 gap-3 rubix-fade-up">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <p className="text-xs text-muted-foreground">Loading conversation…</p>
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-xs text-muted-foreground py-12">
-            No messages yet. Say hi 👋
-          </p>
+          <div className="flex flex-col items-center justify-center py-20 gap-3 px-6 text-center rubix-fade-up">
+            <div className="h-14 w-14 rounded-2xl grid place-items-center bg-[image:var(--gradient-primary)] opacity-90 shadow-[var(--glow-primary)]">
+              <span className="text-2xl">👋</span>
+            </div>
+            <p className="text-sm font-medium">Say hi to start the conversation</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Messages, voice notes, files and emoji reactions all live here. Press Enter to send.
+            </p>
+          </div>
         ) : (
           messages.map((m, i) => {
             const prev = messages[i - 1];
@@ -196,9 +203,16 @@ export const ConversationView = ({ conversationId, meId }: Props) => {
           })
         )}
         {typingNames.length > 0 && (
-          <p className="text-xs text-muted-foreground italic px-4 py-1">
-            {typingNames.join(", ")} {typingNames.length === 1 ? "is" : "are"} typing…
-          </p>
+          <div className="flex items-center gap-2 px-4 py-2 rubix-fade-up">
+            <div className="flex items-center gap-1 px-3 py-2 rounded-full bg-secondary/70 border border-border/60">
+              <span className="rubix-typing-dot" />
+              <span className="rubix-typing-dot" />
+              <span className="rubix-typing-dot" />
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              {typingNames.join(", ")} {typingNames.length === 1 ? "is" : "are"} typing
+            </p>
+          </div>
         )}
       </div>
       <MessageComposer
