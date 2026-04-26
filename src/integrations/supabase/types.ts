@@ -780,10 +780,15 @@ export type Database = {
           background_url: string | null
           bio: string | null
           created_at: string
+          customization: Json
           display_name: string | null
           id: string
+          location: string | null
           privacy: string
+          pronouns: string | null
           socials: Json
+          status_emoji: string | null
+          status_text: string | null
           steam_id: string | null
           updated_at: string
           user_id: string
@@ -795,10 +800,15 @@ export type Database = {
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          customization?: Json
           display_name?: string | null
           id?: string
+          location?: string | null
           privacy?: string
+          pronouns?: string | null
           socials?: Json
+          status_emoji?: string | null
+          status_text?: string | null
           steam_id?: string | null
           updated_at?: string
           user_id: string
@@ -810,10 +820,15 @@ export type Database = {
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          customization?: Json
           display_name?: string | null
           id?: string
+          location?: string | null
           privacy?: string
+          pronouns?: string | null
           socials?: Json
+          status_emoji?: string | null
+          status_text?: string | null
           steam_id?: string | null
           updated_at?: string
           user_id?: string
