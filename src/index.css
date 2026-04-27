@@ -466,4 +466,267 @@ All colors MUST be HSL.
     );
     border: 1px solid hsl(var(--profile-accent, var(--primary)) / 0.35);
   }
+  .rubix-pcard-neon {
+    background: hsl(var(--background) / 0.6);
+    border: 1.5px solid hsl(var(--profile-accent, var(--primary)));
+    box-shadow:
+      0 0 16px hsl(var(--profile-accent, var(--primary)) / 0.55),
+      inset 0 0 16px hsl(var(--profile-accent, var(--primary)) / 0.18);
+  }
+  .rubix-pcard-paper {
+    background: hsl(0 0% 98%);
+    color: hsl(0 0% 10%);
+    border: 1px solid hsl(0 0% 85%);
+    box-shadow: 0 12px 30px -18px hsl(0 0% 0% / 0.5);
+  }
+  .rubix-pcard-paper * { color: inherit; }
+
+  /* ---- Extra banner overlays ---- */
+  .rubix-overlay-prism::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      conic-gradient(from 220deg at 30% 20%,
+        hsl(var(--profile-accent, var(--primary)) / 0.55),
+        transparent 35%),
+      conic-gradient(from 40deg at 75% 80%,
+        hsl(var(--profile-accent-2, var(--primary)) / 0.45),
+        transparent 40%);
+    mix-blend-mode: screen;
+  }
+  .rubix-overlay-mesh::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(40% 60% at 15% 20%, hsl(var(--profile-accent, var(--primary)) / 0.5), transparent 60%),
+      radial-gradient(40% 60% at 85% 30%, hsl(var(--profile-accent-2, var(--primary)) / 0.45), transparent 60%),
+      radial-gradient(50% 70% at 50% 100%, hsl(var(--background) / 0.85), transparent 70%);
+  }
+  .rubix-overlay-dots::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.18) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+  }
+  .rubix-overlay-grid::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(60% 60% at 50% 60%, #000, transparent 80%);
+  }
+  .rubix-overlay-holo::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      hsl(300 100% 60% / 0.35),
+      hsl(190 100% 60% / 0.35) 30%,
+      hsl(60 100% 60% / 0.35) 60%,
+      hsl(330 100% 60% / 0.35) 90%
+    );
+    mix-blend-mode: overlay;
+    background-size: 200% 200%;
+    animation: rubix-holo 8s linear infinite;
+  }
+  @keyframes rubix-holo {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+  .rubix-overlay-sparkle::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(2px 2px at 20% 30%, hsl(0 0% 100% / 0.9), transparent 60%),
+      radial-gradient(1.5px 1.5px at 70% 60%, hsl(var(--profile-accent, var(--primary)) / 0.9), transparent 60%),
+      radial-gradient(2px 2px at 50% 80%, hsl(0 0% 100% / 0.7), transparent 60%),
+      radial-gradient(1px 1px at 85% 20%, hsl(var(--profile-accent-2, var(--primary)) / 0.9), transparent 60%);
+    background-size: 220px 220px;
+    animation: rubix-sparkle 6s linear infinite;
+  }
+  @keyframes rubix-sparkle {
+    0% { background-position: 0 0, 0 0, 0 0, 0 0; opacity: .85; }
+    50% { opacity: 1; }
+    100% { background-position: 220px 220px, -220px 110px, 110px -220px, -220px -110px; opacity: .85; }
+  }
+
+  /* ---- Banner effects (apply to wrapper) ---- */
+  .rubix-banner-kenburns > img,
+  .rubix-banner-kenburns > video {
+    animation: rubix-kenburns 18s ease-in-out infinite alternate;
+  }
+  @keyframes rubix-kenburns {
+    0% { transform: scale(1) translate(0,0); }
+    100% { transform: scale(1.12) translate(-1.5%, -1%); }
+  }
+  .rubix-banner-blur > img,
+  .rubix-banner-blur > video {
+    filter: blur(8px) saturate(120%);
+    transform: scale(1.05);
+  }
+  .rubix-banner-parallax > img,
+  .rubix-banner-parallax > video {
+    transform: translateY(var(--rubix-parallax, 0px)) scale(1.05);
+    transition: transform .15s linear;
+  }
+  .rubix-banner-tilt {
+    perspective: 1000px;
+  }
+  .rubix-banner-tilt > img,
+  .rubix-banner-tilt > video {
+    transform: rotateX(var(--rubix-tilt-x, 0deg)) rotateY(var(--rubix-tilt-y, 0deg)) scale(1.04);
+    transition: transform .25s ease-out;
+    transform-origin: center;
+  }
+
+  /* ---- Extra name effects ---- */
+  .rubix-name-rainbow {
+    background: linear-gradient(90deg,
+      hsl(0 90% 60%), hsl(45 90% 55%), hsl(120 70% 50%),
+      hsl(190 90% 55%), hsl(260 85% 65%), hsl(320 90% 60%));
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: rubix-name-shimmer 5s linear infinite;
+  }
+  .rubix-name-chrome {
+    background: linear-gradient(180deg, hsl(0 0% 95%) 0%, hsl(0 0% 70%) 45%, hsl(0 0% 30%) 55%, hsl(0 0% 85%) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 1px 0 hsl(0 0% 0% / 0.4);
+  }
+  .rubix-name-neon {
+    color: hsl(var(--profile-accent, var(--primary)));
+    text-shadow:
+      0 0 4px hsl(var(--profile-accent, var(--primary))),
+      0 0 12px hsl(var(--profile-accent, var(--primary)) / 0.8),
+      0 0 28px hsl(var(--profile-accent, var(--primary)) / 0.6);
+    animation: rubix-neon 2.4s ease-in-out infinite;
+  }
+  @keyframes rubix-neon {
+    0%, 100% { opacity: 1; }
+    47% { opacity: 1; }
+    50% { opacity: .55; }
+    53% { opacity: 1; }
+  }
+  .rubix-name-fire {
+    background: linear-gradient(180deg, hsl(48 100% 70%), hsl(20 100% 55%), hsl(0 90% 45%));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 18px hsl(20 100% 55% / 0.55);
+  }
+  .rubix-name-typewriter {
+    border-right: 2px solid hsl(var(--profile-accent, var(--primary)));
+    animation: rubix-caret 1s steps(2) infinite;
+    padding-right: 4px;
+  }
+  @keyframes rubix-caret {
+    50% { border-color: transparent; }
+  }
+  .rubix-name-bounce {
+    animation: rubix-bounce 1.2s ease;
+    display: inline-block;
+  }
+  @keyframes rubix-bounce {
+    0% { transform: translateY(-30%); opacity: 0; }
+    60% { transform: translateY(6%); opacity: 1; }
+    80% { transform: translateY(-2%); }
+    100% { transform: translateY(0); }
+  }
+
+  /* ---- Extra avatar frames ---- */
+  .rubix-frame-pixel {
+    padding: 4px;
+    border-radius: 0.25rem;
+    background: hsl(var(--profile-accent, var(--primary)));
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--profile-accent, var(--primary))),
+      0 0 0 6px hsl(var(--background));
+  }
+  .rubix-frame-rotate {
+    padding: 3px;
+    border-radius: 9999px;
+    background: conic-gradient(from 0deg,
+      hsl(var(--profile-accent, var(--primary))),
+      hsl(var(--profile-accent-2, var(--primary))),
+      hsl(var(--profile-accent, var(--primary))));
+    animation: rubix-rotate 6s linear infinite;
+  }
+  @keyframes rubix-rotate {
+    to { transform: rotate(360deg); }
+  }
+  .rubix-frame-pulse {
+    padding: 3px;
+    border-radius: 9999px;
+    background: hsl(var(--profile-accent, var(--primary)));
+    animation: rubix-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes rubix-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--profile-accent, var(--primary)) / 0.6); }
+    50% { box-shadow: 0 0 0 12px hsl(var(--profile-accent, var(--primary)) / 0); }
+  }
+  .rubix-frame-gem {
+    padding: 4px;
+    background: linear-gradient(135deg,
+      hsl(var(--profile-accent, var(--primary))),
+      hsl(var(--profile-accent-2, var(--primary))));
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+
+  /* ---- Avatar shapes ---- */
+  .rubix-avatar-shape-circle { border-radius: 9999px; overflow: hidden; }
+  .rubix-avatar-shape-squircle { border-radius: 28%; overflow: hidden; }
+  .rubix-avatar-shape-square { border-radius: 0.5rem; overflow: hidden; }
+  .rubix-avatar-shape-hex {
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  /* ---- Cursor styles ---- */
+  .rubix-cursor-accent { cursor: crosshair; }
+  .rubix-cursor-trail, .rubix-cursor-sparkle { cursor: default; }
+
+  /* Click effect ripples (JS-applied) */
+  .rubix-click-ripple-el {
+    position: fixed;
+    pointer-events: none;
+    width: 14px; height: 14px;
+    border-radius: 9999px;
+    background: hsl(var(--profile-accent, var(--primary)) / 0.55);
+    transform: translate(-50%, -50%);
+    animation: rubix-ripple .65s ease-out forwards;
+    z-index: 9999;
+  }
+  @keyframes rubix-ripple {
+    0% { opacity: .8; transform: translate(-50%, -50%) scale(0.4); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
+  }
+  .rubix-click-particle {
+    position: fixed;
+    pointer-events: none;
+    font-size: 18px;
+    transform: translate(-50%, -50%);
+    animation: rubix-particle 1s ease-out forwards;
+    z-index: 9999;
+  }
+  @keyframes rubix-particle {
+    0% { opacity: 1; transform: translate(-50%, -50%) translate(0,0) scale(.5); }
+    100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx, 0), var(--dy, -40px)) scale(1.2); }
+  }
+
+  /* ---- Motion overrides ---- */
+  .rubix-motion-none *,
+  .rubix-motion-none *::before,
+  .rubix-motion-none *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .rubix-motion-reduced *,
+  .rubix-motion-reduced *::before,
+  .rubix-motion-reduced *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .05s !important;
+  }
 }
