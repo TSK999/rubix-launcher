@@ -18,3 +18,7 @@ verify_jwt = false
 [functions.steam-profile]
 verify_jwt = false
 
+[functions.rubix-accounts]
+verify_jwt = false
+
+
