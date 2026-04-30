@@ -8,6 +8,7 @@
   "files": [
     "dist/**/*",
     "electron/**/*",
+    "build/**/*",
     "package.json"
   ],
   "publish": [
@@ -19,10 +20,17 @@
     }
   ],
   "win": {
+    "icon": "build/icon.ico",
     "target": [
       { "target": "nsis", "arch": ["x64"] }
     ],
     "artifactName": "RUBIX-Launcher-Setup-${version}.${ext}"
+  },
+  "mac": {
+    "icon": "build/icon.png"
+  },
+  "linux": {
+    "icon": "build/icon.png"
   },
   "nsis": {
     "oneClick": false,
