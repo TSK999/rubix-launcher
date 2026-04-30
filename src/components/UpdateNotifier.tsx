@@ -40,6 +40,7 @@ export const UpdateNotifier = () => {
           break;
 
         case "downloading": {
+          if (!autoCheck) break;
           const { percent, bytesPerSecond, transferred, total } = data.payload;
           const speed = `${formatBytes(bytesPerSecond)}/s`;
           const sizes = `${formatBytes(transferred)} / ${formatBytes(total)}`;
