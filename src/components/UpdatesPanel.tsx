@@ -54,6 +54,7 @@ export const UpdatesPanel = () => {
   const [autoCheck, setAutoCheckState] = useState<boolean>(getAutoCheckUpdates());
   const [state, setState] = useState<LocalState>({ kind: "idle" });
   const [busy, setBusy] = useState(false);
+  const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
   const lastCheckedRef = useRef<Date | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
