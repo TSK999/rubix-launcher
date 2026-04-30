@@ -98,6 +98,7 @@ function createWindow() {
     backgroundColor: "#0a0a0a",
     autoHideMenuBar: true,
     title: "RUBIX Launcher",
+    icon: path.join(__dirname, "..", "build", process.platform === "win32" ? "icon.ico" : "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
