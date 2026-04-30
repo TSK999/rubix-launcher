@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeManager } from "@/components/ThemeManager";
+import { UpdatesPanel } from "@/components/UpdatesPanel";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
