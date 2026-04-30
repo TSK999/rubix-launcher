@@ -168,6 +168,10 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 <ThemeManager embedded />
               </div>
             </TabsContent>
+
+            <TabsContent value="updates" className="pt-4">
+              <UpdatesPanel />
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
