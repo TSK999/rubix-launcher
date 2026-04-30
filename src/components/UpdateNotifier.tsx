@@ -30,8 +30,10 @@ export const UpdateNotifier = () => {
     if (!updater) return;
 
     const off = updater.onStatus((data) => {
+      const autoCheck = getAutoCheckUpdates();
       switch (data.status) {
         case "available":
+          if (!autoCheck) break;
           toast(`Update available — v${data.payload.version}`, {
             description: "Starting download…",
           });
