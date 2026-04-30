@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { getAutoCheckUpdates } from "@/components/UpdatesPanel";
 
 const formatBytes = (bytes: number) => {
   if (!bytes || bytes < 1024) return `${bytes || 0} B`;
@@ -29,14 +30,17 @@ export const UpdateNotifier = () => {
     if (!updater) return;
 
     const off = updater.onStatus((data) => {
+      const autoCheck = getAutoCheckUpdates();
       switch (data.status) {
         case "available":
+          if (!autoCheck) break;
           toast(`Update available — v${data.payload.version}`, {
             description: "Starting download…",
           });
           break;
 
         case "downloading": {
+          if (!autoCheck) break;
           const { percent, bytesPerSecond, transferred, total } = data.payload;
           const speed = `${formatBytes(bytesPerSecond)}/s`;
           const sizes = `${formatBytes(transferred)} / ${formatBytes(total)}`;

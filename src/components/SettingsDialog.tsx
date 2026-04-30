@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Gamepad2, Link2, LogOut, Palette, Pencil, Settings, Unlink } from "lucide-react";
+import { Gamepad2, Link2, LogOut, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeManager } from "@/components/ThemeManager";
+import { UpdatesPanel } from "@/components/UpdatesPanel";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
@@ -77,10 +78,14 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
           </DialogHeader>
 
           <Tabs defaultValue="account" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="connections">Connections</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
+              <TabsTrigger value="updates">
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                Updates
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="account" className="space-y-3 pt-4">
@@ -162,6 +167,10 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 </div>
                 <ThemeManager embedded />
               </div>
+            </TabsContent>
+
+            <TabsContent value="updates" className="pt-4">
+              <UpdatesPanel />
             </TabsContent>
           </Tabs>
         </DialogContent>
