@@ -92,7 +92,10 @@ export const UpdateNotifier = () => {
                 <Button
                   size="sm"
                   onClick={() => {
-                    void window.rubix?.updater.install();
+                    const ok = window.confirm(
+                      "Restart RUBIX now to install the update?\n\nThe app will close and relaunch."
+                    );
+                    if (ok) void window.rubix?.updater.install();
                   }}
                 >
                   Restart now
