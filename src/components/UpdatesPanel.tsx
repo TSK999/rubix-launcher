@@ -172,7 +172,7 @@ export const UpdatesPanel = () => {
         </div>
 
         <div className="mt-4">
-          <StatusBlock state={state} onRestart={restart} />
+          <StatusBlock state={state} onRestart={() => setConfirmRestartOpen(true)} />
         </div>
       </div>
 
@@ -187,6 +187,29 @@ export const UpdatesPanel = () => {
           <Switch checked={autoCheck} onCheckedChange={setAutoCheck} aria-label="Toggle auto-update" />
         </div>
       </div>
+
+      <AlertDialog open={confirmRestartOpen} onOpenChange={setConfirmRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart RUBIX to install update?</AlertDialogTitle>
+            <AlertDialogDescription>
+              RUBIX will close and relaunch to apply the update. Make sure any unsaved work
+              (messages, forms, in-progress actions) is finished before continuing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmRestartOpen(false);
+                void restart();
+              }}
+            >
+              Restart & install
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
