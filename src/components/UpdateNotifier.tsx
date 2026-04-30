@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { getAutoCheckUpdates } from "@/components/UpdatesPanel";
 
 const formatBytes = (bytes: number) => {
   if (!bytes || bytes < 1024) return `${bytes || 0} B`;
