@@ -31,12 +31,19 @@ export type CallEvents = {
   onError: (err: Error) => void;
 };
 
+type PeerEntry = {
+  pc: RTCPeerConnection;
+  stream: MediaStream | null;
+  audioSender: RTCRtpSender | null;
+  makingOffer: boolean;
+};
+
 export class CallManager {
   readonly callId: string;
   readonly peerId: string;
   private channel: RealtimeChannel | null = null;
   private localStream: MediaStream | null = null;
-  private peers = new Map<string, { pc: RTCPeerConnection; stream: MediaStream | null }>();
+  private peers = new Map<string, PeerEntry>();
   private muted = false;
 
   constructor(callId: string, private events: CallEvents, localStream?: MediaStream) {
@@ -81,6 +88,27 @@ export class CallManager {
     return this.muted;
   }
 
+  /** Hot-swap the microphone source on every active peer connection. */
+  async replaceLocalStream(newStream: MediaStream) {
+    const oldStream = this.localStream;
+    this.localStream = newStream;
+    // Mirror current mute state on the new tracks.
+    newStream.getAudioTracks().forEach((t) => (t.enabled = !this.muted));
+
+    const newAudio = newStream.getAudioTracks()[0] ?? null;
+    for (const entry of this.peers.values()) {
+      if (entry.audioSender && newAudio) {
+        try {
+          await entry.audioSender.replaceTrack(newAudio);
+        } catch (err) {
+          console.warn("[call] replaceTrack failed", err);
+        }
+      }
+    }
+    this.events.onLocalStream(newStream);
+    oldStream?.getTracks().forEach((t) => t.stop());
+  }
+
   async stop() {
     if (this.channel) {
       this.broadcast({ type: "bye", from: this.peerId });
@@ -109,18 +137,19 @@ export class CallManager {
     this.events.onPeersChange(list);
   }
 
-  private getOrCreatePeer(remoteId: string): RTCPeerConnection {
+  private getOrCreatePeer(remoteId: string): PeerEntry {
     let entry = this.peers.get(remoteId);
-    if (entry) return entry.pc;
+    if (entry) return entry;
 
     const pc = new RTCPeerConnection(ICE_CONFIG);
-    entry = { pc, stream: null };
+    entry = { pc, stream: null, audioSender: null, makingOffer: false };
     this.peers.set(remoteId, entry);
 
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
         const sender = pc.addTrack(track, this.localStream!);
         if (track.kind === "audio") {
+          entry!.audioSender = sender;
           const params = sender.getParameters();
           params.encodings = [
             { maxBitrate: 510_000, priority: "high", networkPriority: "high" } as RTCRtpEncodingParameters,
@@ -156,11 +185,10 @@ export class CallManager {
       }
     };
 
-    return pc;
+    return entry;
   }
 
   private upgradeAudioSdp(sdp: string): string {
-    // Force stereo + high-quality Opus on both directions.
     return sdp.replace(
       /a=fmtp:111 ([^\r\n]*)/g,
       (_match, params: string) => {
@@ -199,25 +227,55 @@ export class CallManager {
     this.emitPeers();
   }
 
+  /**
+   * Polite-peer pattern: when both peers try to offer at the same time (glare),
+   * the "polite" one (lexicographically smaller peerId) yields and accepts the
+   * remote offer; the "impolite" one ignores the incoming offer.
+   */
+  private isPolite(remoteId: string): boolean {
+    return this.peerId < remoteId;
+  }
+
   private async handleSignal(payload: SignalPayload) {
     if (!payload || payload.from === this.peerId) return;
 
     if (payload.type === "hello" || payload.type === "ready") {
-      // The peer receiving the hello is already in the room, so it must offer.
-      // If only the lower peer id offered, half of joins never negotiated.
-      const pc = this.getOrCreatePeer(payload.from);
-      if (pc.signalingState !== "stable") return;
-      const offer = await pc.createOffer();
-      const tunedOffer = { ...offer, sdp: this.upgradeAudioSdp(offer.sdp ?? "") };
-      await pc.setLocalDescription(tunedOffer);
-      this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: tunedOffer });
+      // The existing peer offers to the new arrival. To avoid both sides offering
+      // simultaneously when joins overlap, only the lexicographically larger peerId
+      // initiates the offer.
+      if (this.peerId < payload.from) return;
+      const entry = this.getOrCreatePeer(payload.from);
+      if (entry.pc.signalingState !== "stable" || entry.makingOffer) return;
+      try {
+        entry.makingOffer = true;
+        const offer = await entry.pc.createOffer();
+        const tunedOffer = { ...offer, sdp: this.upgradeAudioSdp(offer.sdp ?? "") };
+        await entry.pc.setLocalDescription(tunedOffer);
+        this.broadcast({ type: "offer", from: this.peerId, to: payload.from, sdp: tunedOffer });
+      } finally {
+        entry.makingOffer = false;
+      }
       return;
     }
 
     if ("to" in payload && payload.to !== this.peerId) return;
 
     if (payload.type === "offer") {
-      const pc = this.getOrCreatePeer(payload.from);
+      const entry = this.getOrCreatePeer(payload.from);
+      const pc = entry.pc;
+      const offerCollision = entry.makingOffer || pc.signalingState !== "stable";
+      const polite = this.isPolite(payload.from);
+      if (offerCollision && !polite) {
+        // Impolite peer: drop the incoming offer; ours wins.
+        return;
+      }
+      if (offerCollision && polite) {
+        try {
+          await pc.setLocalDescription({ type: "rollback" });
+        } catch {
+          /* not all browsers support explicit rollback; ignore */
+        }
+      }
       const remote = { ...payload.sdp, sdp: this.upgradeAudioSdp(payload.sdp.sdp ?? "") };
       await pc.setRemoteDescription(remote);
       const answer = await pc.createAnswer();
@@ -227,8 +285,13 @@ export class CallManager {
     } else if (payload.type === "answer") {
       const entry = this.peers.get(payload.from);
       if (entry) {
+        if (entry.pc.signalingState !== "have-local-offer") return;
         const remote = { ...payload.sdp, sdp: this.upgradeAudioSdp(payload.sdp.sdp ?? "") };
-        await entry.pc.setRemoteDescription(remote);
+        try {
+          await entry.pc.setRemoteDescription(remote);
+        } catch (err) {
+          console.warn("[call] setRemoteDescription(answer) failed", err);
+        }
       }
     } else if (payload.type === "ice") {
       const entry = this.peers.get(payload.from);
