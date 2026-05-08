@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Gamepad2, Link2, LogOut, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Gamepad2, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -19,6 +19,20 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { clearStoredSteamId } from "@/lib/steam-auth";
 import { disconnectSpotify, startSpotifyOAuth } from "@/lib/spotify";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getPreferredMicId,
+  listMicDevicesWithPermission,
+  setPreferredMicId,
+  type MicDevice,
+} from "@/lib/audio-devices";
+import { callController } from "@/lib/call-controller";
 
 type Props = {
   open: boolean;
