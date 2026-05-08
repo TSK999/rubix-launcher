@@ -15,9 +15,18 @@ export type CallParticipant = {
   peer_id: string;
   joined_at: string;
   left_at: string | null;
+  last_seen_at?: string | null;
 };
 
 export const MESH_LIMIT = 4;
+/** Participants whose heartbeat is older than this are considered stale (ghosts). */
+export const PARTICIPANT_STALE_MS = 20_000;
+
+const isFresh = (p: CallParticipant) => {
+  if (p.left_at) return false;
+  const seen = p.last_seen_at ?? p.joined_at;
+  return Date.now() - new Date(seen).getTime() < PARTICIPANT_STALE_MS;
+};
 
 /** Find an active (not-ended) call for a DM conversation. */
 export const findActiveDmCall = async (conversationId: string): Promise<CallSession | null> => {
@@ -79,27 +88,46 @@ export const listActiveParticipants = async (callId: string): Promise<CallPartic
     .select("*")
     .eq("call_id", callId)
     .is("left_at", null);
-  return (data ?? []) as CallParticipant[];
+  const all = (data ?? []) as CallParticipant[];
+  return all.filter(isFresh);
 };
 
 export const joinCall = async (callId: string, peerId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-  // Upsert so re-joining works
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("call_participants")
     .upsert(
-      { call_id: callId, user_id: user.id, peer_id: peerId, joined_at: new Date().toISOString(), left_at: null },
+      {
+        call_id: callId,
+        user_id: user.id,
+        peer_id: peerId,
+        joined_at: now,
+        last_seen_at: now,
+        left_at: null,
+      },
       { onConflict: "call_id,user_id" },
     );
   if (error) throw error;
 };
 
+/** Heartbeat — call regularly while the user is in the call. */
+export const heartbeatCall = async (callId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("call_participants")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("call_id", callId)
+    .eq("user_id", user.id)
+    .is("left_at", null);
+};
+
 export const leaveCall = async (callId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  // Only mark ourselves as left if we were actually a participant — prevents
-  // StrictMode double-mount cleanup from ending a session before we join.
+  // Only mark ourselves as left if we were actually a participant.
   const { data: existing } = await supabase
     .from("call_participants")
     .select("user_id")
@@ -115,7 +143,7 @@ export const leaveCall = async (callId: string) => {
     .eq("call_id", callId)
     .eq("user_id", user.id);
 
-  // If no one else remains active, end the session
+  // If no fresh peer remains, end the session
   const remaining = await listActiveParticipants(callId);
   if (remaining.length === 0) {
     await supabase.from("call_sessions").update({ ended_at: new Date().toISOString() }).eq("id", callId);

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           call_id: string
           joined_at: string
+          last_seen_at: string
           left_at: string | null
           peer_id: string
           user_id: string
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           call_id: string
           joined_at?: string
+          last_seen_at?: string
           left_at?: string | null
           peer_id: string
           user_id: string
@@ -32,6 +34,7 @@ export type Database = {
         Update: {
           call_id?: string
           joined_at?: string
+          last_seen_at?: string
           left_at?: string | null
           peer_id?: string
           user_id?: string

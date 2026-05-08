@@ -28,6 +28,7 @@ import { UpdateNotifier } from "./components/UpdateNotifier";
 import { UpdateSplash } from "./components/UpdateSplash";
 import { ControllerModeProvider } from "./hooks/useControllerMode";
 import { IncomingCallToast } from "./components/messaging/IncomingCallToast";
+import { MiniCallWidget } from "./components/messaging/MiniCallWidget";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
       <UpdateSplash />
       <Router>
         <IncomingCallToast />
+        <MiniCallWidget />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />

@@ -1,21 +1,24 @@
+import { getPreferredMicId } from "./audio-devices";
+
 const pendingCallStreams = new Map<string, MediaStream>();
 
-export const requestCallMicrophone = async (): Promise<MediaStream> => {
+export const requestCallMicrophone = async (deviceId?: string | null): Promise<MediaStream> => {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("Microphone access is not available in this browser");
   }
 
-  return navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-      channelCount: 2,
-      sampleRate: 48000,
-      sampleSize: 16,
-    } as MediaTrackConstraints,
-    video: false,
-  });
+  const preferred = deviceId ?? getPreferredMicId();
+  const audio: MediaTrackConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    channelCount: 2,
+    sampleRate: 48000,
+    sampleSize: 16,
+  };
+  if (preferred) audio.deviceId = { exact: preferred };
+
+  return navigator.mediaDevices.getUserMedia({ audio, video: false });
 };
 
 export const stashCallStream = (callId: string, stream: MediaStream) => {

@@ -1,13 +1,13 @@
 /**
  * Listens for new DM call_sessions where the current user is a member of the conversation,
- * and shows an incoming-call toast with a "Join" action.
+ * and shows an incoming-call toast with a "Join" action that drives the global call controller.
  */
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
-import { requestCallMicrophone, stashCallStream } from "@/lib/call-media";
+import { callController } from "@/lib/call-controller";
 import { playSound, stopSound } from "@/lib/sounds";
 
 export const IncomingCallToast = () => {
@@ -35,7 +35,6 @@ export const IncomingCallToast = () => {
           if (session.started_by === meId) return;
           if (!session.conversation_id) return; // only DM calls toast
 
-          // Verify membership (RLS already filters, but be defensive)
           const { data: mem } = await supabase
             .from("conversation_members")
             .select("user_id")
@@ -46,7 +45,6 @@ export const IncomingCallToast = () => {
 
           seen.current.add(session.id);
 
-          // Resolve caller name
           const { data: caller } = await supabase
             .from("profiles")
             .select("username, display_name")
@@ -65,13 +63,18 @@ export const IncomingCallToast = () => {
               onClick: async () => {
                 stopSound("call-receive");
                 try {
-                  const stream = await requestCallMicrophone();
-                  stashCallStream(session.id, stream);
+                  await callController.start(
+                    {
+                      kind: "dm",
+                      conversationId: session.conversation_id!,
+                      title: name,
+                    },
+                    session.id,
+                  );
+                  navigate(`/messages?conv=${session.conversation_id}`);
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Microphone permission denied");
-                  return;
                 }
-                navigate(`/messages?conv=${session.conversation_id}&join=${session.id}`);
               },
             },
           });

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Gamepad2, Link2, LogOut, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Gamepad2, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -19,6 +19,20 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { clearStoredSteamId } from "@/lib/steam-auth";
 import { disconnectSpotify, startSpotifyOAuth } from "@/lib/spotify";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getPreferredMicId,
+  listMicDevicesWithPermission,
+  setPreferredMicId,
+  type MicDevice,
+} from "@/lib/audio-devices";
+import { callController } from "@/lib/call-controller";
 
 type Props = {
   open: boolean;
@@ -33,6 +47,26 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
   const [spotifyBusy, setSpotifyBusy] = useState(false);
   const { enabled, setEnabled, controllerConnected } = useControllerMode();
   const { profile } = useRubixAuth();
+  const [micDevices, setMicDevices] = useState<MicDevice[]>([]);
+  const [micId, setMicId] = useState<string>(getPreferredMicId() ?? "default");
+
+  useEffect(() => {
+    if (!open) return;
+    void listMicDevicesWithPermission().then(setMicDevices);
+  }, [open]);
+
+  const onMicChange = async (id: string) => {
+    setMicId(id);
+    setPreferredMicId(id === "default" ? null : id);
+    if (id !== "default" && callController.getState().status !== "idle") {
+      try {
+        await callController.setMicDevice(id);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to switch mic");
+      }
+    }
+  };
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -112,6 +146,35 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                     <Gamepad2 className="h-4 w-4 text-muted-foreground" />
                     <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Toggle controller mode" />
                   </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Mic className="h-4 w-4 text-primary" />
+                      Microphone input
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Used for voice calls. Switching mid-call swaps live.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Select value={micId} onValueChange={onMicChange}>
+                    <SelectTrigger className="w-full rounded-xl">
+                      <SelectValue placeholder="System default" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">System default</SelectItem>
+                      {micDevices.map((d) => (
+                        <SelectItem key={d.deviceId || d.label} value={d.deviceId}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Users } from "lucide-react";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
@@ -17,8 +17,7 @@ import {
   type CommunityChannel,
   type CommunityMember,
 } from "@/lib/communities";
-import { findActiveDmCall, startDmCall } from "@/lib/calls";
-import { requestCallMicrophone, stashCallStream, stopCallStream } from "@/lib/call-media";
+import { callController, useActiveCall } from "@/lib/call-controller";
 import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
@@ -36,17 +35,10 @@ const Messages = () => {
   const { user, profile, loading } = useRubixAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const activeCall = useActiveCall();
 
   const [selected, setSelected] = useState<Selection>({ kind: "dms" });
-
-  // DM state
   const [activeDm, setActiveDm] = useState<DmMeta | null>(null);
-  const [dmCallId, setDmCallId] = useState<string | null>(null);
-  const [inDmCall, setInDmCall] = useState(false);
-  const [dmCallStream, setDmCallStream] = useState<MediaStream | null>(null);
-  const pendingJoinRef = useRef<{ convId: string; callId: string } | null>(null);
-
-  // Community state
   const [activeChannel, setActiveChannel] = useState<CommunityChannel | null>(null);
   const [communityMembers, setCommunityMembers] = useState<
     Array<CommunityMember & { profile: { username: string; display_name: string | null; avatar_url: string | null } | null }>
@@ -57,48 +49,35 @@ const Messages = () => {
 
   const meId = user?.id ?? "";
 
+  const inDmCall = useMemo(
+    () =>
+      activeCall.context?.kind === "dm" &&
+      activeDm != null &&
+      activeCall.context.conversationId === activeDm.conv.id,
+    [activeCall.context, activeDm],
+  );
+
+  // Handle deep link from incoming-call toast: /messages?conv=...&join=...
   useEffect(() => {
     const conv = params.get("conv");
     const join = params.get("join");
-    if (!conv || !join) return;
+    if (!conv) return;
 
-    pendingJoinRef.current = { convId: conv, callId: join };
     setSelected({ kind: "dms" });
 
-    if (activeDm?.conv.id === conv) {
-      pendingJoinRef.current = null;
-      setDmCallId(join);
-      setInDmCall(true);
+    if (join && activeDm?.conv.id === conv && activeCall.status === "idle") {
+      void callController
+        .start({ kind: "dm", conversationId: conv, title: activeDm.title }, join)
+        .catch((err) => toast.error(err instanceof Error ? err.message : "Couldn't join call"));
     }
 
-    const next = new URLSearchParams(params);
-    next.delete("conv");
-    next.delete("join");
-    setParams(next, { replace: true });
-  }, [params, setParams, activeDm?.conv.id]);
-
-  useEffect(() => {
-    setInDmCall(false);
-    setDmCallId(null);
-    setActiveChannel(null);
-  }, [selected.kind === "dms" ? "dms" : (selected as { id: string }).id]);
-
-  useEffect(() => {
-    if (!activeDm) {
-      setDmCallId(null);
-      return;
+    if (params.get("conv") || params.get("join")) {
+      const next = new URLSearchParams(params);
+      next.delete("conv");
+      next.delete("join");
+      setParams(next, { replace: true });
     }
-
-    const pendingJoin = pendingJoinRef.current;
-    if (pendingJoin?.convId === activeDm.conv.id) {
-      pendingJoinRef.current = null;
-      setDmCallId(pendingJoin.callId);
-      setInDmCall(true);
-      return;
-    }
-
-    void findActiveDmCall(activeDm.conv.id).then((s) => setDmCallId(s?.id ?? null));
-  }, [activeDm]);
+  }, [params, setParams, activeDm, activeCall.status]);
 
   useEffect(() => {
     if (selected.kind !== "community") {
@@ -127,36 +106,27 @@ const Messages = () => {
   const startOrJoinDmCall = async () => {
     if (!activeDm) return;
     if (inDmCall) {
-      setInDmCall(false);
-      setDmCallStream((stream) => {
-        stopCallStream(stream);
-        return null;
+      await callController.leave();
+      return;
+    }
+    if (activeCall.status !== "idle") {
+      toast.error("You're already in another call. Leave it first.");
+      return;
+    }
+    try {
+      await callController.start({
+        kind: "dm",
+        conversationId: activeDm.conv.id,
+        title: activeDm.title,
       });
-      return;
-    }
-    let stream: MediaStream;
-    try {
-      stream = await requestCallMicrophone();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Microphone permission denied");
-      return;
-    }
-    try {
-      const session = await startDmCall(activeDm.conv.id);
-      stashCallStream(session.id, stream);
       playSound("call-start", { volume: 0.5 });
-      setDmCallStream(stream);
-      setDmCallId(session.id);
-      setInDmCall(true);
     } catch (err) {
-      stopCallStream(stream);
       toast.error(err instanceof Error ? err.message : "Failed to start call");
     }
   };
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* Top bar */}
       <header className="h-12 border-b border-border bg-card/40 backdrop-blur-sm flex items-center px-3 gap-3 shrink-0">
         <Link
           to="/"
@@ -184,7 +154,6 @@ const Messages = () => {
         </div>
       </header>
 
-      {/* Horizontal community switcher */}
       <ServerRail
         selected={selected}
         onSelect={setSelected}
@@ -193,14 +162,13 @@ const Messages = () => {
         meId={meId}
       />
 
-      {/* Workspace: single sidebar + main pane (+ optional members) */}
       <div className="flex-1 flex min-h-0 p-3 gap-3">
         <aside className="w-64 shrink-0 rounded-2xl border border-border bg-card/40 overflow-hidden flex flex-col">
           {selected.kind === "dms" ? (
             <DmChannelRail
               meId={meId}
               activeId={activeDm?.conv.id ?? null}
-              preferredId={pendingJoinRef.current?.convId ?? null}
+              preferredId={params.get("conv")}
               onSelect={(id, meta) => setActiveDm(meta)}
             />
           ) : (
@@ -253,8 +221,11 @@ const Messages = () => {
                   </div>
                   <CallButton inCall={inDmCall} onToggle={startOrJoinDmCall} />
                 </div>
-                {inDmCall && dmCallId ? (
-                  <CallRoom callId={dmCallId} meId={meId} initialStream={dmCallStream} onLeave={() => setInDmCall(false)} />
+                {inDmCall ? (
+                  <CallRoom
+                    context={{ kind: "dm", conversationId: activeDm.conv.id, title: activeDm.title }}
+                    meId={meId}
+                  />
                 ) : (
                   <ConversationView conversationId={activeDm.conv.id} meId={meId} />
                 )}

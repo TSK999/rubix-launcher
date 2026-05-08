@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Hash, Loader2, Send, Volume2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listChannelMessages,
@@ -11,8 +12,8 @@ import {
   type CommunityMessage,
 } from "@/lib/communities";
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
-import { startChannelCall, findActiveChannelCall } from "@/lib/calls";
-import { requestCallMicrophone, stashCallStream, stopCallStream } from "@/lib/call-media";
+import { findActiveChannelCall } from "@/lib/calls";
+import { callController, useActiveCall } from "@/lib/call-controller";
 import { CallRoom } from "./CallRoom";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -184,42 +185,48 @@ const TextChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: s
 };
 
 const VoiceChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: string }) => {
-  const [callId, setCallId] = useState<string | null>(null);
+  const activeCall = useActiveCall();
   const [busy, setBusy] = useState(false);
-  const [inCall, setInCall] = useState(false);
-  const [callStream, setCallStream] = useState<MediaStream | null>(null);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+
+  const inThisChannel = useMemo(
+    () =>
+      activeCall.context?.kind === "channel" &&
+      activeCall.context.channelId === channel.id,
+    [activeCall.context, channel.id],
+  );
 
   useEffect(() => {
-    void findActiveChannelCall(channel.id).then((s) => setCallId(s?.id ?? null));
-    setInCall(false);
+    void findActiveChannelCall(channel.id).then((s) => setHasActiveSession(!!s));
+    const id = window.setInterval(() => {
+      void findActiveChannelCall(channel.id).then((s) => setHasActiveSession(!!s));
+    }, 8000);
+    return () => window.clearInterval(id);
   }, [channel.id]);
 
   const join = async () => {
     setBusy(true);
-    let stream: MediaStream | null = null;
     try {
-      stream = await requestCallMicrophone();
-      const session = await startChannelCall(channel.id);
-      stashCallStream(session.id, stream);
-      setCallStream(stream);
-      setCallId(session.id);
-      setInCall(true);
+      await callController.start({
+        kind: "channel",
+        channelId: channel.id,
+        title: `# ${channel.name}`,
+      });
     } catch (err) {
-      stopCallStream(stream);
       toast.error(err instanceof Error ? err.message : "Failed to join voice");
     } finally {
       setBusy(false);
     }
   };
 
-  if (inCall && callId) {
+  if (inThisChannel) {
     return (
       <div className="flex-1 flex flex-col">
         <div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <p className="text-sm font-semibold">{channel.name}</p>
         </div>
-        <CallRoom callId={callId} meId={meId} initialStream={callStream} onLeave={() => setInCall(false)} />
+        <CallRoom context={{ kind: "channel", channelId: channel.id }} meId={meId} />
       </div>
     );
   }
@@ -230,11 +237,17 @@ const VoiceChannelView = ({ channel, meId }: { channel: CommunityChannel; meId: 
       <h3 className="text-lg font-bold">{channel.name}</h3>
       <p className="text-sm text-muted-foreground text-center max-w-sm">
         Join this voice channel to talk with up to 4 members at a time.
+        {hasActiveSession && " Someone is already talking in here."}
       </p>
-      <Button size="lg" onClick={join} disabled={busy}>
-        {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-        Join voice
+      <Button size="lg" onClick={join} disabled={busy || activeCall.status === "starting"}>
+        {(busy || activeCall.status === "starting") && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        {hasActiveSession ? "Join voice" : "Start voice"}
       </Button>
+      {activeCall.status !== "idle" && !inThisChannel && (
+        <p className="text-xs text-muted-foreground">
+          You're already in another call — leave it first to join here.
+        </p>
+      )}
     </div>
   );
 };
