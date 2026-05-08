@@ -149,6 +149,35 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 </div>
               </div>
 
+              <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Mic className="h-4 w-4 text-primary" />
+                      Microphone input
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Used for voice calls. Switching mid-call swaps live.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Select value={micId} onValueChange={onMicChange}>
+                    <SelectTrigger className="w-full rounded-xl">
+                      <SelectValue placeholder="System default" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">System default</SelectItem>
+                      {micDevices.map((d) => (
+                        <SelectItem key={d.deviceId || d.label} value={d.deviceId}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <Button variant="destructive" className="w-full rounded-xl" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
