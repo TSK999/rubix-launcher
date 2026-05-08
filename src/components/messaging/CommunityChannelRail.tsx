@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Hash, Loader2, Plus, Settings, Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,8 @@ import {
   type Community,
   type CommunityChannel,
 } from "@/lib/communities";
+import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
+import { PARTICIPANT_STALE_MS } from "@/lib/calls";
 import { CommunitySettingsDialog } from "./CommunitySettingsDialog";
 import { toast } from "sonner";
 
@@ -29,6 +31,8 @@ type Props = {
   onSelect: (channel: CommunityChannel) => void;
   onLeftOrDeleted: () => void;
 };
+
+type Occupant = { userId: string; profile: ProfileLite | null };
 
 export const CommunityChannelRail = ({
   communityId,
@@ -45,6 +49,7 @@ export const CommunityChannelRail = ({
   const [creating, setCreating] = useState<"text" | "voice" | null>(null);
   const [newName, setNewName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [occupantsByChannel, setOccupantsByChannel] = useState<Map<string, Occupant[]>>(new Map());
 
   const refresh = async () => {
     setLoading(true);
@@ -73,6 +78,88 @@ export const CommunityChannelRail = ({
       void supabase.removeChannel(sub);
     };
   }, [communityId]);
+
+  const voiceChannelIds = useMemo(
+    () => channels.filter((c) => c.kind === "voice").map((c) => c.id),
+    [channels],
+  );
+
+  // Poll occupants for every voice channel in this community.
+  useEffect(() => {
+    if (voiceChannelIds.length === 0) {
+      setOccupantsByChannel(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      const { data: sessions } = await supabase
+        .from("call_sessions")
+        .select("id, channel_id")
+        .in("channel_id", voiceChannelIds)
+        .is("ended_at", null);
+
+      const sessionList = (sessions ?? []) as Array<{ id: string; channel_id: string }>;
+      if (sessionList.length === 0) {
+        if (!cancelled) setOccupantsByChannel(new Map());
+        return;
+      }
+
+      const sessionIds = sessionList.map((s) => s.id);
+      const { data: parts } = await supabase
+        .from("call_participants")
+        .select("call_id, user_id, joined_at, last_seen_at, left_at")
+        .in("call_id", sessionIds)
+        .is("left_at", null);
+
+      const cutoff = Date.now() - PARTICIPANT_STALE_MS;
+      const fresh = (parts ?? []).filter((p) => {
+        const seen = (p as { last_seen_at?: string | null }).last_seen_at ?? p.joined_at;
+        return new Date(seen).getTime() >= cutoff;
+      });
+
+      const userIds = Array.from(new Set(fresh.map((p) => p.user_id)));
+      const profileMap = await fetchProfiles(userIds);
+      if (cancelled) return;
+
+      const callIdToChannel = new Map(sessionList.map((s) => [s.id, s.channel_id]));
+      const next = new Map<string, Occupant[]>();
+      fresh.forEach((p) => {
+        const channelId = callIdToChannel.get(p.call_id);
+        if (!channelId) return;
+        const arr = next.get(channelId) ?? [];
+        // Dedupe by user (a user could theoretically appear twice in races)
+        if (!arr.some((o) => o.userId === p.user_id)) {
+          arr.push({ userId: p.user_id, profile: profileMap.get(p.user_id) ?? null });
+        }
+        next.set(channelId, arr);
+      });
+      setOccupantsByChannel(next);
+    };
+
+    void load();
+    const intervalId = window.setInterval(load, 5000);
+    const sub = supabase
+      .channel(`crail-vc-${communityId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_sessions" },
+        () => void load(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_participants" },
+        () => void load(),
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      void supabase.removeChannel(sub);
+    };
+  }, [voiceChannelIds, communityId]);
 
   const submitNew = async () => {
     if (!creating || !newName.trim()) return;
@@ -141,15 +228,48 @@ export const CommunityChannelRail = ({
                 setNewName("");
               }}
             >
-              {voice.map((c) => (
-                <ChannelRow
-                  key={c.id}
-                  icon={<Volume2 className="h-3.5 w-3.5" />}
-                  label={c.name}
-                  active={activeChannelId === c.id}
-                  onClick={() => onSelect(c)}
-                />
-              ))}
+              {voice.map((c) => {
+                const occupants = occupantsByChannel.get(c.id) ?? [];
+                return (
+                  <div key={c.id}>
+                    <ChannelRow
+                      icon={<Volume2 className="h-3.5 w-3.5" />}
+                      label={c.name}
+                      active={activeChannelId === c.id}
+                      onClick={() => onSelect(c)}
+                      badge={occupants.length > 0 ? occupants.length : undefined}
+                    />
+                    {occupants.length > 0 && (
+                      <ul className="mt-0.5 ml-7 mb-1 space-y-0.5 border-l border-border/60 pl-2">
+                        {occupants.map((o) => {
+                          const name =
+                            o.profile?.display_name ?? o.profile?.username ?? "Unknown";
+                          return (
+                            <li
+                              key={o.userId}
+                              className="flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[11px] text-muted-foreground"
+                              title={name}
+                            >
+                              <Avatar className="h-4 w-4">
+                                <AvatarImage src={o.profile?.avatar_url ?? undefined} />
+                                <AvatarFallback className="text-[8px]">
+                                  {name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="truncate">
+                                {name}
+                                {o.userId === meId && (
+                                  <span className="ml-1 text-primary">(you)</span>
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </Section>
           </div>
         )}
@@ -225,11 +345,13 @@ const ChannelRow = ({
   label,
   active,
   onClick,
+  badge,
 }: {
   icon: React.ReactNode;
   label: string;
   active: boolean;
   onClick: () => void;
+  badge?: number;
 }) => (
   <button
     onClick={onClick}
@@ -241,6 +363,11 @@ const ChannelRow = ({
     )}
   >
     <span className="opacity-70">{icon}</span>
-    <span className="truncate">{label}</span>
+    <span className="truncate flex-1">{label}</span>
+    {typeof badge === "number" && (
+      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">
+        {badge}
+      </span>
+    )}
   </button>
 );
