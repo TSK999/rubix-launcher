@@ -1,158 +1,105 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff, Loader2 } from "lucide-react";
+import { ChevronDown, Headphones, HeadphoneOff, Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CallManager, type RemotePeer } from "@/lib/webrtc";
-import { consumeCallStream } from "@/lib/call-media";
 import {
-  endCall,
-  joinCall,
-  leaveCall,
-  listActiveParticipants,
-  MESH_LIMIT,
-  type CallParticipant,
-} from "@/lib/calls";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { callController, useActiveCall, type CallContext } from "@/lib/call-controller";
+import { listMicDevicesWithPermission, type MicDevice } from "@/lib/audio-devices";
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
+import type { RemotePeer } from "@/lib/webrtc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type Props = {
-  callId: string;
+  /** The call this surface is for. If different from the active call, shows a "Switch" prompt. */
+  context: CallContext;
   meId: string;
-  initialStream?: MediaStream | null;
-  onLeave: () => void;
+  /** Called when the user explicitly leaves via the in-room controls. */
+  onLeft?: () => void;
 };
 
-const pendingLeaveTimers = new Map<string, number>();
-
-export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
-  const [peers, setPeers] = useState<RemotePeer[]>([]);
-  const [participants, setParticipants] = useState<CallParticipant[]>([]);
+export const CallRoom = ({ context, meId, onLeft }: Props) => {
+  const state = useActiveCall();
   const [profiles, setProfiles] = useState<Map<string, ProfileLite>>(new Map());
-  const [muted, setMuted] = useState(false);
-  const [connecting, setConnecting] = useState(true);
-  const managerRef = useRef<CallManager | null>(null);
-  const leaveKeyRef = useRef(`${callId}:${meId}`);
+  const [micDevices, setMicDevices] = useState<MicDevice[]>([]);
+
+  const showingThisCall = state.context && callController.isInCallContext(context);
 
   useEffect(() => {
-    const leaveKey = `${callId}:${meId}`;
-    leaveKeyRef.current = leaveKey;
-
-    const pendingTimer = pendingLeaveTimers.get(leaveKey);
-    if (pendingTimer) {
-      window.clearTimeout(pendingTimer);
-      pendingLeaveTimers.delete(leaveKey);
-    }
-
-    let stopped = false;
-    let intervalId: number | null = null;
-    let mgr: CallManager | null = null;
-
-    const init = async () => {
-      // Capacity check
-      const current = await listActiveParticipants(callId);
-      if (stopped) return;
-      if (current.length >= MESH_LIMIT && !current.some((p) => p.user_id === meId)) {
-        toast.error(`Call is full (max ${MESH_LIMIT})`);
-        onLeave();
-        return;
-      }
-
-      const localStream = initialStream ?? consumeCallStream(callId);
-      if (!localStream) {
-        toast.error("Tap Call again to allow microphone access");
-        onLeave();
-        return;
-      }
-
-      mgr = new CallManager(callId, {
-        onPeersChange: (p) => !stopped && setPeers(p),
-        onLocalStream: () => !stopped && setConnecting(false),
-        onError: (err) => {
-          if (stopped) return;
-          toast.error(err.message);
-          onLeave();
-        },
-      }, localStream);
-      managerRef.current = mgr;
-
-      try {
-        await mgr.start();
-        if (stopped) {
-          await mgr.stop();
-          return;
-        }
-        await joinCall(callId, mgr.peerId);
-      } catch (e) {
-        if (!stopped) {
-          toast.error(e instanceof Error ? e.message : "Failed to join call");
-          onLeave();
-        }
-        return;
-      }
-
-      const refreshRoster = async () => {
-        const list = await listActiveParticipants(callId);
-        if (stopped) return;
-        setParticipants(list);
-        const profMap = await fetchProfiles(list.map((p) => p.user_id));
-        if (!stopped) setProfiles(profMap);
-      };
-      void refreshRoster();
-      intervalId = window.setInterval(refreshRoster, 4000);
+    let cancelled = false;
+    void listMicDevicesWithPermission().then((d) => {
+      if (!cancelled) setMicDevices(d);
+    });
+    const handler = () => {
+      void listMicDevicesWithPermission().then((d) => !cancelled && setMicDevices(d));
     };
-
-    void init();
-
+    navigator.mediaDevices?.addEventListener?.("devicechange", handler);
     return () => {
-      stopped = true;
-      if (intervalId !== null) window.clearInterval(intervalId);
-      const m = managerRef.current;
-      managerRef.current = null;
-      void m?.stop();
-
-      const timer = window.setTimeout(() => {
-        pendingLeaveTimers.delete(leaveKey);
-        void leaveCall(callId);
-      }, 750);
-      pendingLeaveTimers.set(leaveKey, timer);
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener?.("devicechange", handler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callId, meId]);
+  }, []);
 
-  const handleLeave = () => {
-    const leaveKey = leaveKeyRef.current;
-    const pendingTimer = pendingLeaveTimers.get(leaveKey);
-    if (pendingTimer) {
-      window.clearTimeout(pendingTimer);
-      pendingLeaveTimers.delete(leaveKey);
+  useEffect(() => {
+    const ids = state.participants.map((p) => p.user_id);
+    if (ids.length === 0) {
+      setProfiles(new Map());
+      return;
     }
-    void endCall(callId);
-    onLeave();
+    let cancel = false;
+    void fetchProfiles(ids).then((m) => !cancel && setProfiles(m));
+    return () => {
+      cancel = true;
+    };
+  }, [state.participants]);
+
+  if (!showingThisCall) {
+    return null;
+  }
+
+  const handleLeave = async () => {
+    await callController.leave();
+    onLeft?.();
   };
 
-  const toggleMute = () => {
-    const next = !muted;
-    setMuted(next);
-    managerRef.current?.setMuted(next);
+  const toggleMute = () => callController.setMuted(!state.muted);
+  const toggleDeafen = () => callController.setDeafened(!state.deafened);
+
+  const setMic = async (id: string) => {
+    try {
+      await callController.setMicDevice(id);
+      toast.success("Microphone updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to switch microphone");
+    }
   };
 
-  const tiles: Array<{ key: string; userId: string; isMe: boolean; stream: MediaStream | null }> = [
+  // Build tiles: me + each remote peer
+  const tiles: Array<{ key: string; userId: string; isMe: boolean; stream: MediaStream | null; peerId?: string }> = [
     { key: "me", userId: meId, isMe: true, stream: null },
-    ...peers.map((p) => {
-      const part = participants.find((pp) => pp.peer_id === p.peerId);
+    ...state.peers.map((p: RemotePeer) => {
+      const part = state.participants.find((pp) => pp.peer_id === p.peerId);
       return {
         key: p.peerId,
         userId: part?.user_id ?? p.peerId,
         isMe: false,
         stream: p.stream,
+        peerId: p.peerId,
       };
     }),
   ];
 
+  const connecting = state.status === "connecting" || state.status === "starting";
+
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-b from-background via-background to-card/40 relative overflow-hidden">
-      {/* Ambient backdrop */}
       <div aria-hidden className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl rubix-pulse-soft" />
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-[hsl(220_90%_60%/0.15)] blur-3xl rubix-pulse-soft" />
@@ -172,7 +119,7 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
         ) : (
           tiles.map((t) => {
             const prof = profiles.get(t.userId);
-            const active = !!t.stream || (t.isMe && !muted);
+            const active = !!t.stream || (t.isMe && !state.muted);
             return (
               <div
                 key={t.key}
@@ -192,9 +139,9 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
                 <div className="flex flex-col items-center gap-1">
                   <p className="text-sm font-semibold flex items-center gap-1.5">
                     {t.isMe ? "You" : prof?.display_name ?? prof?.username ?? "…"}
-                    {t.isMe && muted && <MicOff className="h-3 w-3 text-destructive" />}
+                    {t.isMe && state.muted && <MicOff className="h-3 w-3 text-destructive" />}
                   </p>
-                  {active && !muted && (
+                  {active && !state.muted && (
                     <div className="flex items-end h-3.5">
                       <span className="rubix-eq-bar" />
                       <span className="rubix-eq-bar" />
@@ -203,22 +150,64 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
                     </div>
                   )}
                 </div>
-                {t.stream && <RemoteAudio stream={t.stream} />}
+                {t.stream && t.peerId && <RemoteAudio peerId={t.peerId} stream={t.stream} />}
               </div>
             );
           })
         )}
       </div>
-      <div className="relative p-5 border-t border-border bg-background/60 backdrop-blur-xl flex items-center justify-center gap-3">
+
+      <div className="relative p-5 border-t border-border bg-background/60 backdrop-blur-xl flex items-center justify-center gap-3 flex-wrap">
+        <div className="flex items-center">
+          <Button
+            size="lg"
+            variant={state.muted ? "destructive" : "secondary"}
+            onClick={toggleMute}
+            className="rounded-l-full rounded-r-none h-12 w-12 p-0 shadow-md"
+            title={state.muted ? "Unmute" : "Mute"}
+          >
+            {state.muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="lg"
+                variant={state.muted ? "destructive" : "secondary"}
+                className="rounded-r-full rounded-l-none h-12 w-7 p-0 shadow-md border-l border-background/30"
+                title="Choose microphone"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-72">
+              <DropdownMenuLabel>Microphone input</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {micDevices.length === 0 && (
+                <DropdownMenuItem disabled>No microphones detected</DropdownMenuItem>
+              )}
+              {micDevices.map((d) => (
+                <DropdownMenuItem
+                  key={d.deviceId || d.label}
+                  onClick={() => void setMic(d.deviceId)}
+                  className={cn(state.micDeviceId === d.deviceId && "text-primary font-medium")}
+                >
+                  {d.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <Button
           size="lg"
-          variant={muted ? "destructive" : "secondary"}
-          onClick={toggleMute}
+          variant={state.deafened ? "destructive" : "secondary"}
+          onClick={toggleDeafen}
           className="rounded-full h-12 w-12 p-0 shadow-md"
-          title={muted ? "Unmute" : "Mute"}
+          title={state.deafened ? "Undeafen" : "Deafen"}
         >
-          {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          {state.deafened ? <HeadphoneOff className="h-5 w-5" /> : <Headphones className="h-5 w-5" />}
         </Button>
+
         <Button
           size="lg"
           variant="destructive"
@@ -232,10 +221,16 @@ export const CallRoom = ({ callId, meId, initialStream, onLeave }: Props) => {
   );
 };
 
-const RemoteAudio = ({ stream }: { stream: MediaStream }) => {
+const RemoteAudio = ({ peerId, stream }: { peerId: string; stream: MediaStream }) => {
   const ref = useRef<HTMLAudioElement>(null);
   useEffect(() => {
-    if (ref.current) ref.current.srcObject = stream;
-  }, [stream]);
+    const el = ref.current;
+    if (!el) return;
+    el.srcObject = stream;
+    callController.registerRemoteAudio(peerId, el);
+    return () => {
+      callController.registerRemoteAudio(peerId, null);
+    };
+  }, [peerId, stream]);
   return <audio ref={ref} autoPlay playsInline />;
 };
