@@ -168,7 +168,7 @@ const Messages = () => {
             <DmChannelRail
               meId={meId}
               activeId={activeDm?.conv.id ?? null}
-              preferredId={null}
+              preferredId={params.get("conv")}
               onSelect={(id, meta) => setActiveDm(meta)}
             />
           ) : (
