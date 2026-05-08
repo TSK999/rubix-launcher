@@ -47,6 +47,26 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
   const [spotifyBusy, setSpotifyBusy] = useState(false);
   const { enabled, setEnabled, controllerConnected } = useControllerMode();
   const { profile } = useRubixAuth();
+  const [micDevices, setMicDevices] = useState<MicDevice[]>([]);
+  const [micId, setMicId] = useState<string>(getPreferredMicId() ?? "default");
+
+  useEffect(() => {
+    if (!open) return;
+    void listMicDevicesWithPermission().then(setMicDevices);
+  }, [open]);
+
+  const onMicChange = async (id: string) => {
+    setMicId(id);
+    setPreferredMicId(id === "default" ? null : id);
+    if (id !== "default" && callController.getState().status !== "idle") {
+      try {
+        await callController.setMicDevice(id);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to switch mic");
+      }
+    }
+  };
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
