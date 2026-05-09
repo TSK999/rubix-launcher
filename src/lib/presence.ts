@@ -222,12 +222,6 @@ export const getPresenceInfo = (userId: string): PresenceInfo => {
 
 export const usePresenceStatus = (userId: string | null | undefined): PresenceStatus => {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  useEffect(() => {
-    const tick = window.setInterval(emit, 1_000);
-    return () => {
-      window.clearInterval(tick);
-    };
-  }, []);
   return userId ? getPresenceStatus(userId) : "offline";
 };
 
@@ -236,12 +230,6 @@ export const usePresenceMap = (
 ): Map<string, PresenceInfo> => {
   const key = userIds.join(",");
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  useEffect(() => {
-    const tick = window.setInterval(emit, 1_000);
-    return () => {
-      window.clearInterval(tick);
-    };
-  }, []);
 
   const m = new Map<string, PresenceInfo>();
   for (const id of userIds) m.set(id, getPresenceInfo(id));
@@ -251,12 +239,6 @@ export const usePresenceMap = (
 
 export const usePresenceInfo = (userId: string | null | undefined): PresenceInfo => {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  useEffect(() => {
-    const tick = window.setInterval(emit, 1_000);
-    return () => {
-      window.clearInterval(tick);
-    };
-  }, []);
   return userId ? getPresenceInfo(userId) : { status: "offline", game: null };
 };
 
