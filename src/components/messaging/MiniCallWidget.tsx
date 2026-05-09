@@ -15,13 +15,17 @@ export const MiniCallWidget = () => {
   if (state.status === "idle" || !state.context) return null;
 
   const ctx = state.context;
-  const peerCount = state.peers.length;
-  const subtitle =
-    state.status === "connecting" || state.status === "starting"
+  const peerCount = state.peers.filter((p) => p.state !== "disconnected").length;
+  const anyReconnecting = state.peers.some((p) => p.state === "reconnecting");
+  const subtitle = state.micBlocked
+    ? "Mic blocked"
+    : state.status === "connecting" || state.status === "starting"
       ? "Connecting…"
-      : peerCount === 0
-        ? "Waiting for others"
-        : `${peerCount + 1} in call`;
+      : anyReconnecting
+        ? "Reconnecting…"
+        : peerCount === 0
+          ? "Connected · waiting for others"
+          : `Connected · ${peerCount + 1} in call`;
 
   const goToCall = () => {
     if (ctx.kind === "dm") {
