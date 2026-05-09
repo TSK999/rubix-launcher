@@ -23,7 +23,7 @@ import { callController, useActiveCall } from "@/lib/call-controller";
 import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
-import { usePresenceStatus, usePresenceMap } from "@/lib/presence";
+import { usePresenceStatus, usePresenceMap, resyncPresence } from "@/lib/presence";
 
 const STATUS_META: Record<
   "online" | "away" | "offline",

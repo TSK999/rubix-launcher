@@ -59,6 +59,17 @@ const updateTrack = async () => {
   });
 };
 
+/**
+ * Force a presence re-sync: re-broadcast our own state and re-read the
+ * channel's current state. Use on route mounts or visibility changes
+ * to make sure freshly-mounted views see up-to-date statuses immediately.
+ */
+export const resyncPresence = () => {
+  lastActive = Date.now();
+  void updateTrack();
+  refreshState();
+};
+
 export const setPresenceGame = (game: string | null) => {
   if (currentGame === game) return;
   currentGame = game;
