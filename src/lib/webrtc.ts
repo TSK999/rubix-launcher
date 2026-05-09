@@ -20,9 +20,16 @@ type SignalPayload =
   | { type: "ice"; from: string; to: string; candidate: RTCIceCandidateInit }
   | { type: "bye"; from: string };
 
+export type PeerConnectionState =
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected";
+
 export type RemotePeer = {
   peerId: string;
-  stream: MediaStream;
+  stream: MediaStream | null;
+  state: PeerConnectionState;
 };
 
 export type CallEvents = {
@@ -36,6 +43,8 @@ type PeerEntry = {
   stream: MediaStream | null;
   audioSender: RTCRtpSender | null;
   makingOffer: boolean;
+  state: PeerConnectionState;
+  reconnectTimer: number | null;
 };
 
 export class CallManager {
@@ -132,7 +141,7 @@ export class CallManager {
   private emitPeers() {
     const list: RemotePeer[] = [];
     this.peers.forEach((v, k) => {
-      if (v.stream) list.push({ peerId: k, stream: v.stream });
+      list.push({ peerId: k, stream: v.stream, state: v.state });
     });
     this.events.onPeersChange(list);
   }
@@ -142,8 +151,16 @@ export class CallManager {
     if (entry) return entry;
 
     const pc = new RTCPeerConnection(ICE_CONFIG);
-    entry = { pc, stream: null, audioSender: null, makingOffer: false };
+    entry = {
+      pc,
+      stream: null,
+      audioSender: null,
+      makingOffer: false,
+      state: "connecting",
+      reconnectTimer: null,
+    };
     this.peers.set(remoteId, entry);
+    this.emitPeers();
 
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
@@ -180,7 +197,28 @@ export class CallManager {
     };
 
     pc.onconnectionstatechange = () => {
-      if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+      const cur = this.peers.get(remoteId);
+      if (!cur) return;
+      const cs = pc.connectionState;
+      if (cs === "connected") {
+        if (cur.reconnectTimer !== null) {
+          window.clearTimeout(cur.reconnectTimer);
+          cur.reconnectTimer = null;
+        }
+        cur.state = "connected";
+        this.emitPeers();
+      } else if (cs === "disconnected") {
+        cur.state = "reconnecting";
+        this.emitPeers();
+        if (cur.reconnectTimer === null) {
+          cur.reconnectTimer = window.setTimeout(() => {
+            const still = this.peers.get(remoteId);
+            if (still && still.pc.connectionState !== "connected") {
+              this.removePeer(remoteId);
+            }
+          }, 8000);
+        }
+      } else if (cs === "failed" || cs === "closed") {
         this.removePeer(remoteId);
       }
     };
@@ -222,6 +260,8 @@ export class CallManager {
   private removePeer(remoteId: string) {
     const entry = this.peers.get(remoteId);
     if (!entry) return;
+    if (entry.reconnectTimer !== null) window.clearTimeout(entry.reconnectTimer);
+    entry.state = "disconnected";
     entry.pc.close();
     this.peers.delete(remoteId);
     this.emitPeers();

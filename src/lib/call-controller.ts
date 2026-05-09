@@ -34,6 +34,7 @@ export type ActiveCallState = {
   muted: boolean;
   deafened: boolean;
   micDeviceId: string | null;
+  micBlocked: boolean;
   error: string | null;
 };
 
@@ -46,8 +47,10 @@ const initialState: ActiveCallState = {
   muted: false,
   deafened: false,
   micDeviceId: null,
+  micBlocked: false,
   error: null,
 };
+
 
 class CallController {
   private state: ActiveCallState = initialState;
@@ -119,8 +122,17 @@ class CallController {
     const micDeviceId = getPreferredMicId();
     try {
       stream = await requestCallMicrophone(micDeviceId);
+      this.set({ micBlocked: false });
     } catch (err) {
-      this.set({ status: "idle", context: null, error: errMsg(err) });
+      const blocked =
+        err instanceof DOMException &&
+        (err.name === "NotAllowedError" || err.name === "SecurityError" || err.name === "NotFoundError");
+      this.set({
+        status: "idle",
+        context: null,
+        micBlocked: blocked,
+        error: blocked ? "Microphone access blocked" : errMsg(err),
+      });
       throw err;
     }
 
@@ -242,6 +254,7 @@ class CallController {
       participants: [],
       muted: false,
       deafened: false,
+      micBlocked: false,
       error: null,
     });
   }
