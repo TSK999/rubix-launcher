@@ -23,6 +23,36 @@ import { callController, useActiveCall } from "@/lib/call-controller";
 import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
+import { usePresenceStatus } from "@/lib/presence";
+
+const STATUS_META: Record<
+  "online" | "away" | "offline",
+  { label: string; dot: string }
+> = {
+  online: { label: "Active now", dot: "bg-emerald-500" },
+  away: { label: "Away", dot: "bg-amber-500" },
+  offline: { label: "Offline", dot: "bg-muted-foreground/60" },
+};
+
+const DmPeerStatus = ({ peerId }: { peerId: string | null }) => {
+  const status = usePresenceStatus(peerId);
+  const meta = STATUS_META[status];
+  return (
+    <>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </>
+  );
+};
+
+const DmPeerDot = ({ peerId }: { peerId: string | null }) => {
+  const status = usePresenceStatus(peerId);
+  return (
+    <span
+      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${STATUS_META[status].dot}`}
+    />
+  );
+};
 
 type DmMeta = {
   conv: Conversation;
@@ -204,7 +234,9 @@ const Messages = () => {
                       </AvatarFallback>
                     </Avatar>
                     {!activeDm.conv.is_group && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                      <DmPeerDot
+                        peerId={activeDm.members.find((m) => m !== meId) ?? null}
+                      />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -216,10 +248,9 @@ const Messages = () => {
                           {activeDm.members.length} members
                         </>
                       ) : (
-                        <>
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          Active now
-                        </>
+                        <DmPeerStatus
+                          peerId={activeDm.members.find((m) => m !== meId) ?? null}
+                        />
                       )}
                     </p>
                   </div>
