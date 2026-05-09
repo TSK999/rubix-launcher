@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Settings as SettingsIcon, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { GroupSettingsDialog } from "@/components/messaging/GroupSettingsDialog";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ServerRail } from "@/components/messaging/ServerRail";
@@ -46,6 +48,8 @@ const Messages = () => {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const meId = user?.id ?? "";
 
@@ -219,6 +223,17 @@ const Messages = () => {
                       )}
                     </p>
                   </div>
+                  {activeDm.conv.is_group && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Group settings"
+                      onClick={() => setGroupSettingsOpen(true)}
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                    </Button>
+                  )}
                   <CallButton inCall={inDmCall} onToggle={startOrJoinDmCall} />
                 </div>
                 {inDmCall ? (
@@ -284,6 +299,22 @@ const Messages = () => {
         onOpenChange={setJoinOpen}
         onJoined={(id) => setSelected({ kind: "community", id })}
       />
+      {activeDm?.conv.is_group && (
+        <GroupSettingsDialog
+          key={activeDm.conv.id + ":" + refreshTick}
+          open={groupSettingsOpen}
+          onOpenChange={setGroupSettingsOpen}
+          conversationId={activeDm.conv.id}
+          meId={meId}
+          initialName={activeDm.conv.name}
+          initialAvatar={activeDm.avatar}
+          onUpdated={() => setRefreshTick((t) => t + 1)}
+          onLeft={() => {
+            setActiveDm(null);
+            setRefreshTick((t) => t + 1);
+          }}
+        />
+      )}
     </div>
   );
 };

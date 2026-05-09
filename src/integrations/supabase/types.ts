@@ -321,6 +321,8 @@ export type Database = {
           is_admin: boolean
           joined_at: string
           last_read_at: string
+          muted: boolean
+          nickname: string | null
           user_id: string
         }
         Insert: {
@@ -328,6 +330,8 @@ export type Database = {
           is_admin?: boolean
           joined_at?: string
           last_read_at?: string
+          muted?: boolean
+          nickname?: string | null
           user_id: string
         }
         Update: {
@@ -335,6 +339,8 @@ export type Database = {
           is_admin?: boolean
           joined_at?: string
           last_read_at?: string
+          muted?: boolean
+          nickname?: string | null
           user_id?: string
         }
         Relationships: [

@@ -75,7 +75,10 @@ export const ConversationView = ({ conversationId, meId }: Props) => {
             if (data) {
               setMessages((m) => {
                 if (m.some((x) => x.id === data.id)) return m;
-                if ((data as Message).sender_id !== meId) playSound("msg", { volume: 0.4 });
+                if ((data as Message).sender_id !== meId) {
+                  const myMem = members.find((mm) => mm.user_id === meId);
+                  if (!myMem?.muted) playSound("msg", { volume: 0.4 });
+                }
                 return [...m, data as Message];
               });
               void markRead(conversationId);

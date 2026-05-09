@@ -16,6 +16,8 @@ export type ConversationMember = {
   is_admin: boolean;
   joined_at: string;
   last_read_at: string;
+  nickname: string | null;
+  muted: boolean;
 };
 
 export type Attachment = {
@@ -393,4 +395,110 @@ export const trendingTenor = async (): Promise<TenorGif[]> => {
   } catch {
     return [];
   }
+};
+
+/* ---------------- Group customization ---------------- */
+
+export const updateConversation = async (
+  conversationId: string,
+  patch: { name?: string | null; avatar_url?: string | null },
+) => {
+  const { error } = await supabase
+    .from("conversations")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", conversationId);
+  if (error) throw error;
+};
+
+export const uploadConversationAvatar = async (
+  conversationId: string,
+  file: File,
+): Promise<string> => {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${conversationId}/icon_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("conversation-avatars")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("conversation-avatars").getPublicUrl(path);
+  return data.publicUrl;
+};
+
+export const addConversationMembers = async (
+  conversationId: string,
+  userIds: string[],
+) => {
+  if (userIds.length === 0) return;
+  const rows = userIds.map((id) => ({
+    conversation_id: conversationId,
+    user_id: id,
+    is_admin: false,
+  }));
+  const { error } = await supabase.from("conversation_members").insert(rows);
+  if (error) throw error;
+};
+
+export const removeConversationMember = async (
+  conversationId: string,
+  userId: string,
+) => {
+  const { error } = await supabase
+    .from("conversation_members")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId);
+  if (error) throw error;
+};
+
+export const setMemberAdmin = async (
+  conversationId: string,
+  userId: string,
+  isAdmin: boolean,
+) => {
+  const { error } = await supabase
+    .from("conversation_members")
+    .update({ is_admin: isAdmin })
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId);
+  if (error) throw error;
+};
+
+export const setMyNickname = async (
+  conversationId: string,
+  nickname: string | null,
+) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const trimmed = nickname?.trim();
+  const { error } = await supabase
+    .from("conversation_members")
+    .update({ nickname: trimmed || null })
+    .eq("conversation_id", conversationId)
+    .eq("user_id", user.id);
+  if (error) throw error;
+};
+
+export const setConversationMuted = async (
+  conversationId: string,
+  muted: boolean,
+) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("conversation_members")
+    .update({ muted })
+    .eq("conversation_id", conversationId)
+    .eq("user_id", user.id);
+  if (error) throw error;
+};
+
+export const leaveConversation = async (conversationId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("conversation_members")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", user.id);
+  if (error) throw error;
 };
