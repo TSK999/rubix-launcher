@@ -47,10 +47,9 @@ Deno.serve(async (req) => {
     const res = await fetch(searchUrl.toString());
     if (!res.ok) {
       const text = await res.text();
+      console.error(`RAWG search failed [${res.status}]: ${text.slice(0, 500)}`);
       return new Response(
-        JSON.stringify({
-          error: `RAWG error [${res.status}]: ${text.slice(0, 200)}`,
-        }),
+        JSON.stringify({ error: "Search service is temporarily unavailable. Please try again." }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

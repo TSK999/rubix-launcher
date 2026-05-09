@@ -65,8 +65,9 @@ Deno.serve(async (req) => {
     const psRes = await fetch(psUrl);
     if (!psRes.ok) {
       const text = await psRes.text();
+      console.error(`Steam GetPlayerSummaries failed [${psRes.status}]: ${text.slice(0, 500)}`);
       return new Response(
-        JSON.stringify({ error: `Steam GetPlayerSummaries failed [${psRes.status}]: ${text.slice(0, 200)}` }),
+        JSON.stringify({ error: "Unable to load Steam profile. Please try again." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
