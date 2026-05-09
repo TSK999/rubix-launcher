@@ -265,6 +265,7 @@ const ProfileAvatar = ({ entry }: { entry: RubixFriendEntry }) => (
 
 const FriendRow = ({
   entry,
+  presence,
   onMessage,
   onRemove,
 }: {
