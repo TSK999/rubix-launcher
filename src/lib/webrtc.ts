@@ -43,6 +43,8 @@ type PeerEntry = {
   stream: MediaStream | null;
   audioSender: RTCRtpSender | null;
   makingOffer: boolean;
+  state: PeerConnectionState;
+  reconnectTimer: number | null;
 };
 
 export class CallManager {
@@ -139,7 +141,7 @@ export class CallManager {
   private emitPeers() {
     const list: RemotePeer[] = [];
     this.peers.forEach((v, k) => {
-      if (v.stream) list.push({ peerId: k, stream: v.stream });
+      list.push({ peerId: k, stream: v.stream, state: v.state });
     });
     this.events.onPeersChange(list);
   }
@@ -149,8 +151,16 @@ export class CallManager {
     if (entry) return entry;
 
     const pc = new RTCPeerConnection(ICE_CONFIG);
-    entry = { pc, stream: null, audioSender: null, makingOffer: false };
+    entry = {
+      pc,
+      stream: null,
+      audioSender: null,
+      makingOffer: false,
+      state: "connecting",
+      reconnectTimer: null,
+    };
     this.peers.set(remoteId, entry);
+    this.emitPeers();
 
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
