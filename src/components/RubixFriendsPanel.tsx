@@ -102,8 +102,6 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
     }
   };
 
-  if (!userId) return null;
-
   const friends = entries.filter((e) => e.kind === "friends");
   const incoming = entries.filter((e) => e.kind === "incoming");
   const outgoing = entries.filter((e) => e.kind === "outgoing");
@@ -112,6 +110,8 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
     status: status as PresenceInfo["status"],
     list: friends.filter((e) => (presence.get(e.profile.user_id)?.status ?? "offline") === status),
   }));
+
+  if (!userId) return null;
 
   return (
     <div className="border-t border-border">
