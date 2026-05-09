@@ -39,7 +39,7 @@ export const PresenceManager = () => {
         }
       };
       void poll();
-      gameTimer = window.setInterval(poll, 30_000);
+      gameTimer = window.setInterval(poll, 10_000);
     };
 
     const apply = (uid: string | null) => {
