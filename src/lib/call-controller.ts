@@ -122,8 +122,17 @@ class CallController {
     const micDeviceId = getPreferredMicId();
     try {
       stream = await requestCallMicrophone(micDeviceId);
+      this.set({ micBlocked: false });
     } catch (err) {
-      this.set({ status: "idle", context: null, error: errMsg(err) });
+      const blocked =
+        err instanceof DOMException &&
+        (err.name === "NotAllowedError" || err.name === "SecurityError" || err.name === "NotFoundError");
+      this.set({
+        status: "idle",
+        context: null,
+        micBlocked: blocked,
+        error: blocked ? "Microphone access blocked" : errMsg(err),
+      });
       throw err;
     }
 
