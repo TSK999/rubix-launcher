@@ -51,17 +51,6 @@ const initialState: ActiveCallState = {
   error: null,
 };
 
-const initialState: ActiveCallState = {
-  status: "idle",
-  callId: null,
-  context: null,
-  peers: [],
-  participants: [],
-  muted: false,
-  deafened: false,
-  micDeviceId: null,
-  error: null,
-};
 
 class CallController {
   private state: ActiveCallState = initialState;
