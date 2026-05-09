@@ -12,6 +12,7 @@ import { fetchSteamFriends, type FriendStatus, type SteamFriend } from "@/lib/st
 import { fetchRubixSteamMap, type RubixSteamMatch } from "@/lib/rubix-friends";
 import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/lib/spotify";
 import { getOrCreateDm } from "@/lib/messaging";
+import { usePresenceMap } from "@/lib/presence";
 import { SteamProfileDialog } from "@/components/SteamProfileDialog";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import spotifyIcon from "@/assets/spotify-icon.png";
@@ -39,6 +40,16 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const [tracks, setTracks] = useState<Map<string, SpotifyTrack | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [selectedSteamId, setSelectedSteamId] = useState<string | null>(null);
+  const presence = usePresenceMap(Array.from(rubixMap.values()).map((m) => m.user_id));
+
+  const getLiveFriend = (friend: SteamFriend) => {
+    const match = rubixMap.get(friend.steamId);
+    const live = match ? presence.get(match.user_id) : null;
+    if (!live) return friend;
+    const gameName = live.game ?? friend.gameName;
+    const status: FriendStatus = live.game ? "in-game" : live.status;
+    return { ...friend, status, gameName };
+  };
 
   const launchFriendGame = async (e: React.MouseEvent, gameId: string, gameName: string) => {
     e.preventDefault();
@@ -122,14 +133,15 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
 
   if (!steamId) return null;
 
+  const liveFriends = friends.map(getLiveFriend);
   const grouped = (["in-game", "online", "away", "offline"] as FriendStatus[]).map(
     (status) => ({
       status,
-      list: friends.filter((f) => f.status === status),
+      list: liveFriends.filter((f) => f.status === status),
     }),
   );
 
-  const onlineCount = friends.filter((f) => f.status !== "offline").length;
+  const onlineCount = liveFriends.filter((f) => f.status !== "offline").length;
 
   return (
     <div className="p-3 border-t border-border">

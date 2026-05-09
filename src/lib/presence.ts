@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PresenceStatus = "online" | "away" | "offline";
@@ -24,8 +24,38 @@ let sessionVersion = 0;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 let transition: Promise<void> = Promise.resolve();
+let snapshotVersion = 0;
+let snapshot = { version: snapshotVersion, state: stateCache };
+let listenerTick: number | null = null;
 
-const emit = () => listeners.forEach((l) => l());
+const emit = () => {
+  snapshotVersion += 1;
+  snapshot = { version: snapshotVersion, state: stateCache };
+  listeners.forEach((l) => l());
+};
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  if (listenerTick == null && typeof window !== "undefined") {
+    listenerTick = window.setInterval(emit, 1_000);
+  }
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && listenerTick != null) {
+      window.clearInterval(listenerTick);
+      listenerTick = null;
+    }
+  };
+};
+
+const getSnapshot = () => snapshot;
+
+const removePresenceChannels = async () => {
+  const staleChannels = supabase
+    .getChannels()
+    .filter((c) => (c as { topic?: string }).topic === `realtime:${CHANNEL_NAME}`);
+  await Promise.all(staleChannels.map((c) => supabase.removeChannel(c)));
+};
 
 const refreshState = () => {
   if (!channel) return;
@@ -38,12 +68,11 @@ const refreshState = () => {
         next.set(m.user_id, m);
         continue;
       }
-      next.set(m.user_id, {
-        user_id: m.user_id,
-        last_active: Math.max(prev.last_active, m.last_active),
-        updated_at: Math.max(prev.updated_at ?? prev.last_active, m.updated_at ?? m.last_active),
-        game: m.game ?? prev.game ?? null,
-      });
+      const prevUpdated = prev.updated_at ?? prev.last_active;
+      const nextUpdated = m.updated_at ?? m.last_active;
+      next.set(m.user_id, nextUpdated >= prevUpdated
+        ? { ...m, last_active: Math.max(prev.last_active, m.last_active), updated_at: nextUpdated }
+        : { ...prev, last_active: Math.max(prev.last_active, m.last_active), updated_at: prevUpdated });
     }
   }
   stateCache = next;
@@ -84,6 +113,7 @@ const teardownActiveChannel = async () => {
     }
     await supabase.removeChannel(oldChannel);
   }
+  await removePresenceChannels();
   stateCache = new Map();
   emit();
 };
@@ -104,6 +134,8 @@ export const setPresenceGame = (game: string | null) => {
   currentGame = game;
   void updateTrack();
 };
+
+export const getPresenceGame = () => currentGame;
 
 export const startPresence = (userId: string) => {
   const version = ++sessionVersion;
@@ -196,46 +228,21 @@ export const getPresenceInfo = (userId: string): PresenceInfo => {
 };
 
 export const usePresenceStatus = (userId: string | null | undefined): PresenceStatus => {
-  const [status, setStatus] = useState<PresenceStatus>(() =>
-    userId ? getPresenceStatus(userId) : "offline",
-  );
-  useEffect(() => {
-    if (!userId) {
-      setStatus("offline");
-      return;
-    }
-    const update = () => setStatus(getPresenceStatus(userId));
-    update();
-    listeners.add(update);
-    const tick = window.setInterval(update, 5_000);
-    return () => {
-      listeners.delete(update);
-      window.clearInterval(tick);
-    };
-  }, [userId]);
-  return status;
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return userId ? getPresenceStatus(userId) : "offline";
 };
 
 export const usePresenceMap = (
   userIds: string[],
 ): Map<string, PresenceInfo> => {
-  const key = userIds.join(",");
-  const compute = () => {
-    const m = new Map<string, PresenceInfo>();
-    for (const id of userIds) m.set(id, getPresenceInfo(id));
-    return m;
-  };
-  const [map, setMap] = useState<Map<string, PresenceInfo>>(compute);
-  useEffect(() => {
-    const update = () => setMap(compute());
-    update();
-    listeners.add(update);
-    const tick = window.setInterval(update, 5_000);
-    return () => {
-      listeners.delete(update);
-      window.clearInterval(tick);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return map;
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const m = new Map<string, PresenceInfo>();
+  for (const id of userIds) m.set(id, getPresenceInfo(id));
+  return m;
+};
+
+export const usePresenceInfo = (userId: string | null | undefined): PresenceInfo => {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return userId ? getPresenceInfo(userId) : { status: "offline", game: null };
 };
