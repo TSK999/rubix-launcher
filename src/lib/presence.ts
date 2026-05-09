@@ -5,10 +5,12 @@ export type PresenceStatus = "online" | "away" | "offline";
 
 const CHANNEL_NAME = "call-rubix-presence";
 const AWAY_AFTER_MS = 5 * 60 * 1000; // 5 min idle => away
+const OFFLINE_AFTER_MS = 90 * 1000; // missed heartbeats => offline
 
 type PresenceMeta = {
   user_id: string;
   last_active: number;
+  updated_at: number;
   game?: string | null;
 };
 
@@ -18,6 +20,7 @@ let channel: ReturnType<typeof supabase.channel> | null = null;
 let trackedUserId: string | null = null;
 let lastActive = Date.now();
 let currentGame: string | null = null;
+let sessionVersion = 0;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 
@@ -42,6 +45,7 @@ const updateTrack = async () => {
   await channel.track({
     user_id: trackedUserId,
     last_active: lastActive,
+    updated_at: Date.now(),
     game: currentGame,
   });
 };
@@ -54,6 +58,7 @@ export const setPresenceGame = (game: string | null) => {
 
 export const startPresence = (userId: string) => {
   if (trackedUserId === userId && channel) return;
+  sessionVersion += 1;
   void stopPresence();
   trackedUserId = userId;
   lastActive = Date.now();
@@ -80,10 +85,10 @@ export const startPresence = (userId: string) => {
   window.addEventListener("focus", onActivity);
   document.addEventListener("visibilitychange", onVisibility);
   const heartbeat = window.setInterval(() => {
-    // re-broadcast so others recompute away/online thresholds
+    // Re-broadcast a fresh heartbeat while preserving true idle time.
     void updateTrack();
     emit();
-  }, 30_000);
+  }, 20_000);
 
   cleanup = () => {
     window.removeEventListener("mousemove", onActivity);
@@ -97,6 +102,7 @@ export const startPresence = (userId: string) => {
 let cleanup: (() => void) | null = null;
 
 export const stopPresence = async () => {
+  const version = sessionVersion;
   if (cleanup) {
     cleanup();
     cleanup = null;
@@ -110,6 +116,7 @@ export const stopPresence = async () => {
     await supabase.removeChannel(channel);
     channel = null;
   }
+  if (version !== sessionVersion) return;
   trackedUserId = null;
   stateCache = new Map();
   emit();
@@ -118,6 +125,8 @@ export const stopPresence = async () => {
 export const getPresenceStatus = (userId: string): PresenceStatus => {
   const meta = stateCache.get(userId);
   if (!meta) return "offline";
+  const staleMs = Date.now() - (meta.updated_at ?? meta.last_active);
+  if (staleMs > OFFLINE_AFTER_MS) return "offline";
   const idleMs = Date.now() - meta.last_active;
   if (idleMs > AWAY_AFTER_MS) return "away";
   return "online";
@@ -126,6 +135,8 @@ export const getPresenceStatus = (userId: string): PresenceStatus => {
 export const getPresenceInfo = (userId: string): PresenceInfo => {
   const meta = stateCache.get(userId);
   if (!meta) return { status: "offline", game: null };
+  const staleMs = Date.now() - (meta.updated_at ?? meta.last_active);
+  if (staleMs > OFFLINE_AFTER_MS) return { status: "offline", game: null };
   const idleMs = Date.now() - meta.last_active;
   const status: PresenceStatus = idleMs > AWAY_AFTER_MS ? "away" : "online";
   return { status, game: meta.game ?? null };
