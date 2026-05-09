@@ -29,6 +29,7 @@ import { UpdateSplash } from "./components/UpdateSplash";
 import { ControllerModeProvider } from "./hooks/useControllerMode";
 import { IncomingCallToast } from "./components/messaging/IncomingCallToast";
 import { MiniCallWidget } from "./components/messaging/MiniCallWidget";
+import { PresenceManager } from "./components/PresenceManager";
 
 const queryClient = new QueryClient();
 
