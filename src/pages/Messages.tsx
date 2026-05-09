@@ -23,7 +23,7 @@ import { callController, useActiveCall } from "@/lib/call-controller";
 import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
-import { usePresenceStatus } from "@/lib/presence";
+import { usePresenceStatus, usePresenceMap } from "@/lib/presence";
 
 const STATUS_META: Record<
   "online" | "away" | "offline",
@@ -288,34 +288,7 @@ const Messages = () => {
 
         {selected.kind === "community" && (
           <aside className="hidden lg:flex w-56 shrink-0 rounded-2xl border border-border bg-card/40 flex-col overflow-hidden">
-            <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Members — {communityMembers.length}
-              </p>
-            </div>
-            <div className="flex-1 overflow-y-auto py-2 px-1 space-y-0.5">
-              {communityMembers.map((m) => (
-                <div
-                  key={m.user_id}
-                  className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-secondary/40"
-                >
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={m.profile?.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-[9px]">
-                      {(m.profile?.display_name ?? m.profile?.username ?? "?").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs truncate">
-                      {m.profile?.display_name ?? m.profile?.username ?? "Unknown"}
-                    </p>
-                    {m.role !== "member" && (
-                      <p className="text-[9px] uppercase tracking-wider text-primary">{m.role}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CommunityMemberList members={communityMembers} />
           </aside>
         )}
       </div>
@@ -355,5 +328,103 @@ const EmptyState = ({ text }: { text: string }) => (
     {text}
   </div>
 );
+
+type MemberRow = (typeof communityMembersTypeProbe)[number];
+// Trick to derive the row type without re-declaring it; see helper below.
+declare const communityMembersTypeProbe: Array<
+  CommunityMember & {
+    profile: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  }
+>;
+
+const STATUS_GROUPS: Array<{
+  key: "online" | "away" | "offline";
+  label: string;
+  dot: string;
+}> = [
+  { key: "online", label: "Online", dot: "bg-emerald-500" },
+  { key: "away", label: "Away", dot: "bg-amber-500" },
+  { key: "offline", label: "Offline", dot: "bg-muted-foreground/60" },
+];
+
+const CommunityMemberList = ({ members }: { members: MemberRow[] }) => {
+  const ids = useMemo(() => members.map((m) => m.user_id), [members]);
+  const presence = usePresenceMap(ids);
+
+  const groups = useMemo(() => {
+    const g: Record<"online" | "away" | "offline", MemberRow[]> = {
+      online: [],
+      away: [],
+      offline: [],
+    };
+    for (const m of members) {
+      const status = presence.get(m.user_id)?.status ?? "offline";
+      g[status].push(m);
+    }
+    return g;
+  }, [members, presence]);
+
+  return (
+    <>
+      <div className="px-3 py-2 border-b border-border">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+          Members — {members.length}
+        </p>
+      </div>
+      <div className="flex-1 overflow-y-auto py-2 px-1 space-y-3">
+        {STATUS_GROUPS.map(({ key, label, dot }) => {
+          const list = groups[key];
+          if (list.length === 0) return null;
+          return (
+            <div key={key} className="space-y-0.5">
+              <p className="px-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                {label} — {list.length}
+              </p>
+              {list.map((m) => {
+                const info = presence.get(m.user_id);
+                const dim = key === "offline" ? "opacity-60" : "";
+                return (
+                  <div
+                    key={m.user_id}
+                    className={`flex items-center gap-2 px-2 py-1 rounded-md hover:bg-secondary/40 ${dim}`}
+                  >
+                    <div className="relative">
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={m.profile?.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[9px]">
+                          {(m.profile?.display_name ?? m.profile?.username ?? "?")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-card ${dot}`}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs truncate">
+                        {m.profile?.display_name ?? m.profile?.username ?? "Unknown"}
+                      </p>
+                      {info?.game ? (
+                        <p className="text-[9px] text-emerald-400 truncate">
+                          Playing {info.game}
+                        </p>
+                      ) : m.role !== "member" ? (
+                        <p className="text-[9px] uppercase tracking-wider text-primary">
+                          {m.role}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};
 
 export default Messages;

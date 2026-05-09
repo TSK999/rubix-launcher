@@ -6,11 +6,18 @@ export type PresenceStatus = "online" | "away" | "offline";
 const CHANNEL_NAME = "rubix-presence";
 const AWAY_AFTER_MS = 5 * 60 * 1000; // 5 min idle => away
 
-type PresenceMeta = { user_id: string; last_active: number };
+type PresenceMeta = {
+  user_id: string;
+  last_active: number;
+  game?: string | null;
+};
+
+export type PresenceInfo = { status: PresenceStatus; game: string | null };
 
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let trackedUserId: string | null = null;
 let lastActive = Date.now();
+let currentGame: string | null = null;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 
@@ -32,7 +39,17 @@ const refreshState = () => {
 
 const updateTrack = async () => {
   if (!channel || !trackedUserId) return;
-  await channel.track({ user_id: trackedUserId, last_active: lastActive });
+  await channel.track({
+    user_id: trackedUserId,
+    last_active: lastActive,
+    game: currentGame,
+  });
+};
+
+export const setPresenceGame = (game: string | null) => {
+  if (currentGame === game) return;
+  currentGame = game;
+  void updateTrack();
 };
 
 export const startPresence = (userId: string) => {
@@ -106,6 +123,14 @@ export const getPresenceStatus = (userId: string): PresenceStatus => {
   return "online";
 };
 
+export const getPresenceInfo = (userId: string): PresenceInfo => {
+  const meta = stateCache.get(userId);
+  if (!meta) return { status: "offline", game: null };
+  const idleMs = Date.now() - meta.last_active;
+  const status: PresenceStatus = idleMs > AWAY_AFTER_MS ? "away" : "online";
+  return { status, game: meta.game ?? null };
+};
+
 export const usePresenceStatus = (userId: string | null | undefined): PresenceStatus => {
   const [status, setStatus] = useState<PresenceStatus>(() =>
     userId ? getPresenceStatus(userId) : "offline",
@@ -125,4 +150,28 @@ export const usePresenceStatus = (userId: string | null | undefined): PresenceSt
     };
   }, [userId]);
   return status;
+};
+
+export const usePresenceMap = (
+  userIds: string[],
+): Map<string, PresenceInfo> => {
+  const key = userIds.join(",");
+  const compute = () => {
+    const m = new Map<string, PresenceInfo>();
+    for (const id of userIds) m.set(id, getPresenceInfo(id));
+    return m;
+  };
+  const [map, setMap] = useState<Map<string, PresenceInfo>>(compute);
+  useEffect(() => {
+    const update = () => setMap(compute());
+    update();
+    listeners.add(update);
+    const tick = window.setInterval(update, 30_000);
+    return () => {
+      listeners.delete(update);
+      window.clearInterval(tick);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return map;
 };
