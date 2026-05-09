@@ -58,10 +58,11 @@ export const setPresenceGame = (game: string | null) => {
 
 export const startPresence = (userId: string) => {
   if (trackedUserId === userId && channel) return;
-  sessionVersion += 1;
   void stopPresence();
+  sessionVersion += 1;
   trackedUserId = userId;
   lastActive = Date.now();
+  currentGame = null;
   channel = supabase.channel(CHANNEL_NAME, {
     config: { presence: { key: userId } },
   });
@@ -103,18 +104,19 @@ let cleanup: (() => void) | null = null;
 
 export const stopPresence = async () => {
   const version = sessionVersion;
+  const oldChannel = channel;
+  channel = null;
   if (cleanup) {
     cleanup();
     cleanup = null;
   }
-  if (channel) {
+  if (oldChannel) {
     try {
-      await channel.untrack();
+      await oldChannel.untrack();
     } catch {
       /* ignore */
     }
-    await supabase.removeChannel(channel);
-    channel = null;
+    await supabase.removeChannel(oldChannel);
   }
   if (version !== sessionVersion) return;
   trackedUserId = null;
