@@ -23,6 +23,7 @@ let currentGame: string | null = null;
 let sessionVersion = 0;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
+let transition: Promise<void> = Promise.resolve();
 
 const emit = () => listeners.forEach((l) => l());
 
@@ -57,6 +58,34 @@ const updateTrack = async () => {
     updated_at: Date.now(),
     game: currentGame,
   });
+  refreshState();
+};
+
+const enqueueTransition = (work: () => Promise<void>) => {
+  const next = transition.then(work, work);
+  transition = next.catch((error) => {
+    console.error("Presence transition failed", error);
+  });
+  return transition;
+};
+
+const teardownActiveChannel = async () => {
+  const oldChannel = channel;
+  channel = null;
+  if (cleanup) {
+    cleanup();
+    cleanup = null;
+  }
+  if (oldChannel) {
+    try {
+      await oldChannel.untrack();
+    } catch {
+      /* ignore */
+    }
+    await supabase.removeChannel(oldChannel);
+  }
+  stateCache = new Map();
+  emit();
 };
 
 /**
@@ -77,71 +106,73 @@ export const setPresenceGame = (game: string | null) => {
 };
 
 export const startPresence = (userId: string) => {
-  if (trackedUserId === userId && channel) return;
-  void stopPresence();
-  sessionVersion += 1;
-  trackedUserId = userId;
-  lastActive = Date.now();
-  currentGame = null;
-  channel = supabase.channel(CHANNEL_NAME, {
-    config: { presence: { key: userId } },
-  });
-  channel
-    .on("presence", { event: "sync" }, refreshState)
-    .on("presence", { event: "join" }, refreshState)
-    .on("presence", { event: "leave" }, refreshState)
-    .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") await updateTrack();
-    });
+  const version = ++sessionVersion;
+  return enqueueTransition(async () => {
+    if (version !== sessionVersion) return;
+    if (trackedUserId === userId && channel) {
+      lastActive = Date.now();
+      await updateTrack();
+      return;
+    }
 
-  const onActivity = () => {
+    await teardownActiveChannel();
+    if (version !== sessionVersion) return;
+
+    trackedUserId = userId;
     lastActive = Date.now();
-    void updateTrack();
-  };
-  const onVisibility = () => {
-    if (document.visibilityState === "visible") onActivity();
-  };
-  window.addEventListener("mousemove", onActivity, { passive: true });
-  window.addEventListener("keydown", onActivity);
-  window.addEventListener("focus", onActivity);
-  document.addEventListener("visibilitychange", onVisibility);
-  const heartbeat = window.setInterval(() => {
-    // Re-broadcast a fresh heartbeat while preserving true idle time.
-    void updateTrack();
-    emit();
-  }, 10_000);
+    currentGame = null;
+    const nextChannel = supabase.channel(CHANNEL_NAME, {
+      config: { presence: { key: userId } },
+    });
+    channel = nextChannel;
+    nextChannel
+      .on("presence", { event: "sync" }, refreshState)
+      .on("presence", { event: "join" }, refreshState)
+      .on("presence", { event: "leave" }, refreshState)
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED" && channel === nextChannel && trackedUserId === userId) {
+          await updateTrack();
+        }
+      });
 
-  cleanup = () => {
-    window.removeEventListener("mousemove", onActivity);
-    window.removeEventListener("keydown", onActivity);
-    window.removeEventListener("focus", onActivity);
-    document.removeEventListener("visibilitychange", onVisibility);
-    window.clearInterval(heartbeat);
-  };
+    const onActivity = () => {
+      lastActive = Date.now();
+      void updateTrack();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") onActivity();
+    };
+    window.addEventListener("mousemove", onActivity, { passive: true });
+    window.addEventListener("keydown", onActivity);
+    window.addEventListener("focus", onActivity);
+    document.addEventListener("visibilitychange", onVisibility);
+    const heartbeat = window.setInterval(() => {
+      // Re-broadcast a fresh heartbeat while preserving true idle time.
+      void updateTrack();
+      emit();
+    }, 10_000);
+
+    cleanup = () => {
+      window.removeEventListener("mousemove", onActivity);
+      window.removeEventListener("keydown", onActivity);
+      window.removeEventListener("focus", onActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(heartbeat);
+    };
+  });
 };
 
 let cleanup: (() => void) | null = null;
 
 export const stopPresence = async () => {
-  const version = sessionVersion;
-  const oldChannel = channel;
-  channel = null;
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-  if (oldChannel) {
-    try {
-      await oldChannel.untrack();
-    } catch {
-      /* ignore */
-    }
-    await supabase.removeChannel(oldChannel);
-  }
-  if (version !== sessionVersion) return;
-  trackedUserId = null;
-  stateCache = new Map();
-  emit();
+  const version = ++sessionVersion;
+  await enqueueTransition(async () => {
+    if (version !== sessionVersion) return;
+    await teardownActiveChannel();
+    if (version !== sessionVersion) return;
+    trackedUserId = null;
+    currentGame = null;
+  });
 };
 
 export const getPresenceStatus = (userId: string): PresenceStatus => {
