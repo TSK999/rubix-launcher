@@ -16,6 +16,7 @@ import {
   type RubixFriendEntry,
 } from "@/lib/rubix-profile";
 import { getOrCreateDm } from "@/lib/messaging";
+import { usePresenceMap, type PresenceInfo } from "@/lib/presence";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 
 type Props = {
@@ -94,6 +95,11 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
   const friends = entries.filter((e) => e.kind === "friends");
   const incoming = entries.filter((e) => e.kind === "incoming");
   const outgoing = entries.filter((e) => e.kind === "outgoing");
+  const presence = usePresenceMap(friends.map((e) => e.profile.user_id));
+  const friendGroups = ["online", "away", "offline"].map((status) => ({
+    status: status as PresenceInfo["status"],
+    list: friends.filter((e) => (presence.get(e.profile.user_id)?.status ?? "offline") === status),
+  }));
 
   return (
     <div className="border-t border-border">
@@ -169,18 +175,19 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
               </Section>
             )}
 
-            {friends.length > 0 && (
-              <Section title="Friends">
-                {friends.map((e) => (
+            {friendGroups.map(({ status, list }) => list.length > 0 && (
+              <Section key={status} title={STATUS_LABELS[status]} dot={STATUS_DOTS[status]} count={list.length}>
+                {list.map((e) => (
                   <FriendRow
                     key={e.row.id}
                     entry={e}
+                    presence={presence.get(e.profile.user_id) ?? { status: "offline", game: null }}
                     onMessage={() => handleMessage(e.profile.user_id)}
                     onRemove={() => handleRemove(e.row.id, "Friend removed")}
                   />
                 ))}
               </Section>
-            )}
+            ))}
 
             {outgoing.length > 0 && (
               <Section title="Sent">
