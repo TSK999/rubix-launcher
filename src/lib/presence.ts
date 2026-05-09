@@ -33,7 +33,16 @@ const refreshState = () => {
   for (const arr of Object.values(raw)) {
     for (const m of arr) {
       const prev = next.get(m.user_id);
-      if (!prev || m.last_active > prev.last_active) next.set(m.user_id, m);
+      if (!prev) {
+        next.set(m.user_id, m);
+        continue;
+      }
+      next.set(m.user_id, {
+        user_id: m.user_id,
+        last_active: Math.max(prev.last_active, m.last_active),
+        updated_at: Math.max(prev.updated_at ?? prev.last_active, m.updated_at ?? m.last_active),
+        game: m.game ?? prev.game ?? null,
+      });
     }
   }
   stateCache = next;
