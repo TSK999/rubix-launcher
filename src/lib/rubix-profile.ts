@@ -226,3 +226,46 @@ export const uploadProfileAvatar = async (
   const { data } = supabase.storage.from("profile-backgrounds").getPublicUrl(path);
   return data.publicUrl;
 };
+
+export type RubixFriendEntry = {
+  row: FriendshipRow;
+  kind: "friends" | "incoming" | "outgoing";
+  profile: {
+    user_id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+};
+
+export const fetchMyRubixFriends = async (meId: string): Promise<RubixFriendEntry[]> => {
+  const { data, error } = await supabase
+    .from("rubix_friendships")
+    .select("*")
+    .or(`user_a.eq.${meId},user_b.eq.${meId}`)
+    .in("status", ["pending", "accepted"]);
+  if (error || !data) return [];
+  const rows = data as FriendshipRow[];
+  const otherIds = Array.from(
+    new Set(rows.map((r) => (r.user_a === meId ? r.user_b : r.user_a))),
+  );
+  if (otherIds.length === 0) return [];
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("user_id, username, display_name, avatar_url")
+    .in("user_id", otherIds);
+  const pmap = new Map<string, RubixFriendEntry["profile"]>();
+  (profs ?? []).forEach((p) => pmap.set(p.user_id, p as RubixFriendEntry["profile"]));
+  const out: RubixFriendEntry[] = [];
+  for (const row of rows) {
+    const otherId = row.user_a === meId ? row.user_b : row.user_a;
+    const profile = pmap.get(otherId);
+    if (!profile) continue;
+    let kind: RubixFriendEntry["kind"];
+    if (row.status === "accepted") kind = "friends";
+    else if (row.requested_by === meId) kind = "outgoing";
+    else kind = "incoming";
+    out.push({ row, kind, profile });
+  }
+  return out;
+};
