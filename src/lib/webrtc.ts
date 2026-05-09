@@ -197,7 +197,28 @@ export class CallManager {
     };
 
     pc.onconnectionstatechange = () => {
-      if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+      const cur = this.peers.get(remoteId);
+      if (!cur) return;
+      const cs = pc.connectionState;
+      if (cs === "connected") {
+        if (cur.reconnectTimer !== null) {
+          window.clearTimeout(cur.reconnectTimer);
+          cur.reconnectTimer = null;
+        }
+        cur.state = "connected";
+        this.emitPeers();
+      } else if (cs === "disconnected") {
+        cur.state = "reconnecting";
+        this.emitPeers();
+        if (cur.reconnectTimer === null) {
+          cur.reconnectTimer = window.setTimeout(() => {
+            const still = this.peers.get(remoteId);
+            if (still && still.pc.connectionState !== "connected") {
+              this.removePeer(remoteId);
+            }
+          }, 8000);
+        }
+      } else if (cs === "failed" || cs === "closed") {
         this.removePeer(remoteId);
       }
     };
@@ -239,6 +260,8 @@ export class CallManager {
   private removePeer(remoteId: string) {
     const entry = this.peers.get(remoteId);
     if (!entry) return;
+    if (entry.reconnectTimer !== null) window.clearTimeout(entry.reconnectTimer);
+    entry.state = "disconnected";
     entry.pc.close();
     this.peers.delete(remoteId);
     this.emitPeers();
