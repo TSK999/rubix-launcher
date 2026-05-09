@@ -211,30 +211,46 @@ export const getPresenceInfo = (userId: string): PresenceInfo => {
 };
 
 export const usePresenceStatus = (userId: string | null | undefined): PresenceStatus => {
-  const [status, setStatus] = useState<PresenceStatus>(() =>
-    userId ? getPresenceStatus(userId) : "offline",
-  );
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   useEffect(() => {
-    if (!userId) {
-      setStatus("offline");
-      return;
-    }
-    const update = () => setStatus(getPresenceStatus(userId));
-    update();
-    listeners.add(update);
-    const tick = window.setInterval(update, 5_000);
+    const tick = window.setInterval(emit, 1_000);
     return () => {
-      listeners.delete(update);
       window.clearInterval(tick);
     };
-  }, [userId]);
-  return status;
+  }, []);
+  return userId ? getPresenceStatus(userId) : "offline";
 };
 
 export const usePresenceMap = (
   userIds: string[],
 ): Map<string, PresenceInfo> => {
   const key = userIds.join(",");
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useEffect(() => {
+    const tick = window.setInterval(emit, 1_000);
+    return () => {
+      window.clearInterval(tick);
+    };
+  }, []);
+
+  const m = new Map<string, PresenceInfo>();
+  for (const id of userIds) m.set(id, getPresenceInfo(id));
+  void key;
+  return m;
+};
+
+export const usePresenceInfo = (userId: string | null | undefined): PresenceInfo => {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useEffect(() => {
+    const tick = window.setInterval(emit, 1_000);
+    return () => {
+      window.clearInterval(tick);
+    };
+  }, []);
+  return userId ? getPresenceInfo(userId) : { status: "offline", game: null };
+};
+
+/*
   const compute = () => {
     const m = new Map<string, PresenceInfo>();
     for (const id of userIds) m.set(id, getPresenceInfo(id));
@@ -253,4 +269,4 @@ export const usePresenceMap = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return map;
-};
+};*/
