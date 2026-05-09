@@ -42,6 +42,7 @@ const App = () => (
       <UpdateNotifier />
       <UpdateSplash />
       <Router>
+        <PresenceManager />
         <IncomingCallToast />
         <MiniCallWidget />
         <Routes>
