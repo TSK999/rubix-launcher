@@ -109,7 +109,7 @@ export const startPresence = (userId: string) => {
     // Re-broadcast a fresh heartbeat while preserving true idle time.
     void updateTrack();
     emit();
-  }, 20_000);
+  }, 10_000);
 
   cleanup = () => {
     window.removeEventListener("mousemove", onActivity);
@@ -176,7 +176,7 @@ export const usePresenceStatus = (userId: string | null | undefined): PresenceSt
     const update = () => setStatus(getPresenceStatus(userId));
     update();
     listeners.add(update);
-    const tick = window.setInterval(update, 30_000);
+    const tick = window.setInterval(update, 5_000);
     return () => {
       listeners.delete(update);
       window.clearInterval(tick);
@@ -199,7 +199,7 @@ export const usePresenceMap = (
     const update = () => setMap(compute());
     update();
     listeners.add(update);
-    const tick = window.setInterval(update, 30_000);
+    const tick = window.setInterval(update, 5_000);
     return () => {
       listeners.delete(update);
       window.clearInterval(tick);

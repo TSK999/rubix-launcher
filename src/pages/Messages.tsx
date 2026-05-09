@@ -91,6 +91,24 @@ const Messages = () => {
     [activeCall.context, activeDm],
   );
 
+  // Force a presence resync on mount, on tab focus, and periodically so
+  // statuses + "Playing" update immediately when navigating back to Messages.
+  useEffect(() => {
+    resyncPresence();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") resyncPresence();
+    };
+    const onFocus = () => resyncPresence();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    const tick = window.setInterval(resyncPresence, 10_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(tick);
+    };
+  }, []);
+
   // Handle deep link from incoming-call toast: /messages?conv=...&join=...
   useEffect(() => {
     const conv = params.get("conv");
