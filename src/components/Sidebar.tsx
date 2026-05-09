@@ -2,6 +2,7 @@ import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
+import { RubixFriendsPanel } from "@/components/RubixFriendsPanel";
 import { SpotifyNowPlaying } from "@/components/SpotifyNowPlaying";
 import { MessagesPanel } from "@/components/MessagesPanel";
 import { UserSearchPopover } from "@/components/UserSearchPopover";
@@ -114,6 +115,8 @@ export const Sidebar = ({
       <SpotifyNowPlaying userId={userId} />
 
       <MessagesPanel />
+
+      <RubixFriendsPanel userId={userId} />
 
       <SteamFriendsPanel steamId={steamId} />
 
