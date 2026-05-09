@@ -50,6 +50,13 @@ const subscribe = (listener: () => void) => {
 
 const getSnapshot = () => snapshot;
 
+const removePresenceChannels = async () => {
+  const staleChannels = supabase
+    .getChannels()
+    .filter((c) => (c as { topic?: string }).topic === `realtime:${CHANNEL_NAME}`);
+  await Promise.all(staleChannels.map((c) => supabase.removeChannel(c)));
+};
+
 const refreshState = () => {
   if (!channel) return;
   const raw = channel.presenceState() as Record<string, PresenceMeta[]>;
@@ -61,12 +68,11 @@ const refreshState = () => {
         next.set(m.user_id, m);
         continue;
       }
-      next.set(m.user_id, {
-        user_id: m.user_id,
-        last_active: Math.max(prev.last_active, m.last_active),
-        updated_at: Math.max(prev.updated_at ?? prev.last_active, m.updated_at ?? m.last_active),
-        game: m.game ?? prev.game ?? null,
-      });
+      const prevUpdated = prev.updated_at ?? prev.last_active;
+      const nextUpdated = m.updated_at ?? m.last_active;
+      next.set(m.user_id, nextUpdated >= prevUpdated
+        ? { ...m, last_active: Math.max(prev.last_active, m.last_active), updated_at: nextUpdated }
+        : { ...prev, last_active: Math.max(prev.last_active, m.last_active), updated_at: prevUpdated });
     }
   }
   stateCache = next;
@@ -107,6 +113,7 @@ const teardownActiveChannel = async () => {
     }
     await supabase.removeChannel(oldChannel);
   }
+  await removePresenceChannels();
   stateCache = new Map();
   emit();
 };
