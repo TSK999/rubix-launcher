@@ -109,7 +109,7 @@ export const startPresence = (userId: string) => {
     // Re-broadcast a fresh heartbeat while preserving true idle time.
     void updateTrack();
     emit();
-  }, 20_000);
+  }, 10_000);
 
   cleanup = () => {
     window.removeEventListener("mousemove", onActivity);
