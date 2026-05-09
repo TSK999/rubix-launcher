@@ -16,6 +16,8 @@ export type ConversationMember = {
   is_admin: boolean;
   joined_at: string;
   last_read_at: string;
+  nickname: string | null;
+  muted: boolean;
 };
 
 export type Attachment = {
