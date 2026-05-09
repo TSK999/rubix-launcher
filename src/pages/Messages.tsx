@@ -234,7 +234,9 @@ const Messages = () => {
                       </AvatarFallback>
                     </Avatar>
                     {!activeDm.conv.is_group && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                      <DmPeerDot
+                        peerId={activeDm.members.find((m) => m !== meId) ?? null}
+                      />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -246,10 +248,9 @@ const Messages = () => {
                           {activeDm.members.length} members
                         </>
                       ) : (
-                        <>
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          Active now
-                        </>
+                        <DmPeerStatus
+                          peerId={activeDm.members.find((m) => m !== meId) ?? null}
+                        />
                       )}
                     </p>
                   </div>
