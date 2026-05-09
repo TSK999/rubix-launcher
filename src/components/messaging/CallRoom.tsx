@@ -130,6 +130,33 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-[hsl(220_90%_60%/0.15)] blur-3xl rubix-pulse-soft" />
       </div>
 
+      {banner && (
+        <div className="relative px-4 pt-3 flex justify-center">
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium border backdrop-blur",
+              banner.tone === "info" && "bg-primary/10 border-primary/30 text-primary",
+              banner.tone === "ok" && "bg-emerald-500/10 border-emerald-500/30 text-emerald-500",
+              banner.tone === "warn" && "bg-amber-500/10 border-amber-500/30 text-amber-500",
+              banner.tone === "danger" && "bg-destructive/10 border-destructive/40 text-destructive",
+            )}
+          >
+            {banner.tone === "info" || banner.tone === "warn" ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  banner.tone === "ok" && "bg-emerald-500 animate-pulse",
+                  banner.tone === "danger" && "bg-destructive",
+                )}
+              />
+            )}
+            {banner.label}
+          </div>
+        </div>
+      )}
+
       <div className="relative flex-1 grid grid-cols-1 sm:grid-cols-2 gap-5 p-6 place-items-center auto-rows-fr">
         {connecting && tiles.length === 1 ? (
           <div className="col-span-full flex flex-col items-center gap-4 text-muted-foreground rubix-fade-up">
@@ -144,6 +171,9 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
         ) : (
           tiles.map((t) => {
             const prof = profiles.get(t.userId);
+            const peerConnecting = !t.isMe && (t.peerState === "connecting" || !t.stream);
+            const peerReconnecting = !t.isMe && t.peerState === "reconnecting";
+            const peerDisconnected = !t.isMe && t.peerState === "disconnected";
             const active = !!t.stream || (t.isMe && !state.muted);
             return (
               <div
@@ -151,6 +181,8 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
                 className={cn(
                   "aspect-square w-full max-w-[220px] rounded-3xl rubix-glass rubix-card-hi flex flex-col items-center justify-center gap-3 relative rubix-fade-up transition-all",
                   active && "border-primary/50",
+                  peerReconnecting && "border-amber-500/50",
+                  peerDisconnected && "opacity-60",
                 )}
               >
                 <div className={cn("p-[2px] rounded-full", active ? "rubix-ring-active" : "bg-border")}>
@@ -166,7 +198,20 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
                     {t.isMe ? "You" : prof?.display_name ?? prof?.username ?? "…"}
                     {t.isMe && state.muted && <MicOff className="h-3 w-3 text-destructive" />}
                   </p>
-                  {active && !state.muted && (
+                  {peerConnecting && (
+                    <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" /> Connecting…
+                    </span>
+                  )}
+                  {peerReconnecting && (
+                    <span className="text-[10px] text-amber-500 inline-flex items-center gap-1">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" /> Reconnecting…
+                    </span>
+                  )}
+                  {peerDisconnected && (
+                    <span className="text-[10px] text-destructive">Disconnected</span>
+                  )}
+                  {active && !state.muted && !peerConnecting && !peerReconnecting && (
                     <div className="flex items-end h-3.5">
                       <span className="rubix-eq-bar" />
                       <span className="rubix-eq-bar" />
