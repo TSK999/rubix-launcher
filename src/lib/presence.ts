@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PresenceStatus = "online" | "away" | "offline";
@@ -24,8 +24,21 @@ let sessionVersion = 0;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 let transition: Promise<void> = Promise.resolve();
+let snapshotVersion = 0;
+let snapshot = { version: snapshotVersion, state: stateCache };
 
-const emit = () => listeners.forEach((l) => l());
+const emit = () => {
+  snapshotVersion += 1;
+  snapshot = { version: snapshotVersion, state: stateCache };
+  listeners.forEach((l) => l());
+};
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const getSnapshot = () => snapshot;
 
 const refreshState = () => {
   if (!channel) return;
@@ -104,6 +117,8 @@ export const setPresenceGame = (game: string | null) => {
   currentGame = game;
   void updateTrack();
 };
+
+export const getPresenceGame = () => currentGame;
 
 export const startPresence = (userId: string) => {
   const version = ++sessionVersion;
