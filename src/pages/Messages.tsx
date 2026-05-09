@@ -288,34 +288,7 @@ const Messages = () => {
 
         {selected.kind === "community" && (
           <aside className="hidden lg:flex w-56 shrink-0 rounded-2xl border border-border bg-card/40 flex-col overflow-hidden">
-            <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Members — {communityMembers.length}
-              </p>
-            </div>
-            <div className="flex-1 overflow-y-auto py-2 px-1 space-y-0.5">
-              {communityMembers.map((m) => (
-                <div
-                  key={m.user_id}
-                  className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-secondary/40"
-                >
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={m.profile?.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-[9px]">
-                      {(m.profile?.display_name ?? m.profile?.username ?? "?").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs truncate">
-                      {m.profile?.display_name ?? m.profile?.username ?? "Unknown"}
-                    </p>
-                    {m.role !== "member" && (
-                      <p className="text-[9px] uppercase tracking-wider text-primary">{m.role}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CommunityMemberList members={communityMembers} />
           </aside>
         )}
       </div>
