@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PresenceStatus = "online" | "away" | "offline";
 
-const CHANNEL_NAME = "rubix-presence";
+const CHANNEL_NAME = "call-rubix-presence";
 const AWAY_AFTER_MS = 5 * 60 * 1000; // 5 min idle => away
 
 type PresenceMeta = {
