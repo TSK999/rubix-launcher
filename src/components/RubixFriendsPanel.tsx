@@ -19,6 +19,18 @@ import { getOrCreateDm } from "@/lib/messaging";
 import { usePresenceMap, type PresenceInfo } from "@/lib/presence";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 
+const STATUS_LABELS: Record<PresenceInfo["status"], string> = {
+  online: "Online",
+  away: "Away",
+  offline: "Offline",
+};
+
+const STATUS_DOTS: Record<PresenceInfo["status"], string> = {
+  online: "bg-emerald-500",
+  away: "bg-amber-500",
+  offline: "bg-muted-foreground/60",
+};
+
 type Props = {
   userId: string | null;
 };
@@ -220,10 +232,12 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
   );
 };
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({ title, children, dot, count }: { title: string; children: React.ReactNode; dot?: string; count?: number }) => (
   <div>
-    <p className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">
+    <p className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium flex items-center gap-1.5">
+      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />}
       {title}
+      {typeof count === "number" && <span>{count}</span>}
     </p>
     <div className="space-y-0.5">{children}</div>
   </div>
@@ -255,11 +269,15 @@ const FriendRow = ({
   onRemove,
 }: {
   entry: RubixFriendEntry;
+  presence: PresenceInfo;
   onMessage: () => void;
   onRemove: () => void;
 }) => (
   <div className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-secondary/40">
-    <ProfileAvatar entry={entry} />
+    <div className="relative shrink-0">
+      <ProfileAvatar entry={entry} />
+      <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", STATUS_DOTS[presence.status])} />
+    </div>
     <Link
       to={`/u/${entry.profile.username}`}
       className="min-w-0 flex-1 hover:text-primary transition-colors"
@@ -267,8 +285,8 @@ const FriendRow = ({
       <p className="text-xs font-medium truncate">
         {entry.profile.display_name ?? entry.profile.username}
       </p>
-      <p className="text-[10px] text-muted-foreground truncate">
-        @{entry.profile.username}
+      <p className={cn("text-[10px] truncate", presence.game ? "text-emerald-400" : "text-muted-foreground")}>
+        {presence.game ? `Playing ${presence.game}` : `@${entry.profile.username}`}
       </p>
     </Link>
     <button
