@@ -69,10 +69,9 @@ Deno.serve(async (req) => {
     const ownedRes = await fetch(ownedUrl.toString());
     if (!ownedRes.ok) {
       const text = await ownedRes.text();
+      console.error(`Steam GetOwnedGames failed [${ownedRes.status}]: ${text.slice(0, 500)}`);
       return new Response(
-        JSON.stringify({
-          error: `Steam API error [${ownedRes.status}]: ${text.slice(0, 200)}`,
-        }),
+        JSON.stringify({ error: "Unable to fetch your Steam library. Please try again." }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

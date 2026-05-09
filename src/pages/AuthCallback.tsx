@@ -104,10 +104,9 @@ const AuthCallback = () => {
 
         navigate("/", { replace: true });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Unknown error";
-        console.error("Steam auth callback failed:", msg);
+        console.error("Steam auth callback failed:", e);
         setStatus("error");
-        setMessage(msg);
+        setMessage("We couldn't complete your Steam sign-in. Please try again.");
       }
     };
 

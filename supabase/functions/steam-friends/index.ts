@@ -96,10 +96,9 @@ Deno.serve(async (req) => {
 
     if (!flRes.ok) {
       const text = await flRes.text();
+      console.error(`Steam GetFriendList failed [${flRes.status}]: ${text.slice(0, 500)}`);
       return new Response(
-        JSON.stringify({
-          error: `Steam GetFriendList failed [${flRes.status}]: ${text.slice(0, 200)}`,
-        }),
+        JSON.stringify({ error: "Unable to load Steam friends. Please try again." }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
