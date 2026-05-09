@@ -34,7 +34,21 @@ export type ActiveCallState = {
   muted: boolean;
   deafened: boolean;
   micDeviceId: string | null;
+  micBlocked: boolean;
   error: string | null;
+};
+
+const initialState: ActiveCallState = {
+  status: "idle",
+  callId: null,
+  context: null,
+  peers: [],
+  participants: [],
+  muted: false,
+  deafened: false,
+  micDeviceId: null,
+  micBlocked: false,
+  error: null,
 };
 
 const initialState: ActiveCallState = {
