@@ -8,6 +8,7 @@ export const PresenceManager = () => {
   useEffect(() => {
     let activeId: string | null = null;
     let gameTimer: number | null = null;
+    let gameLoopId = 0;
     let cancelled = false;
 
     const stopGameLoop = () => {
@@ -19,6 +20,7 @@ export const PresenceManager = () => {
     };
 
     const startGameLoop = async (uid: string) => {
+      const loopId = ++gameLoopId;
       stopGameLoop();
       const { data } = await supabase
         .from("profiles")
@@ -30,13 +32,14 @@ export const PresenceManager = () => {
       const poll = async () => {
         try {
           const r = await fetchSteamProfile(steamId);
+          if (cancelled || loopId !== gameLoopId || activeId !== uid) return;
           setPresenceGame(r.profile.gameName ?? null);
         } catch {
-          /* ignore */
+          if (!cancelled && loopId === gameLoopId && activeId === uid) setPresenceGame(null);
         }
       };
       void poll();
-      gameTimer = window.setInterval(poll, 90_000);
+      gameTimer = window.setInterval(poll, 30_000);
     };
 
     const apply = (uid: string | null) => {

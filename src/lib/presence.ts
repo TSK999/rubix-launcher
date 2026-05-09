@@ -5,10 +5,12 @@ export type PresenceStatus = "online" | "away" | "offline";
 
 const CHANNEL_NAME = "call-rubix-presence";
 const AWAY_AFTER_MS = 5 * 60 * 1000; // 5 min idle => away
+const OFFLINE_AFTER_MS = 90 * 1000; // missed heartbeats => offline
 
 type PresenceMeta = {
   user_id: string;
   last_active: number;
+  updated_at: number;
   game?: string | null;
 };
 
@@ -18,6 +20,7 @@ let channel: ReturnType<typeof supabase.channel> | null = null;
 let trackedUserId: string | null = null;
 let lastActive = Date.now();
 let currentGame: string | null = null;
+let sessionVersion = 0;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 
@@ -30,7 +33,16 @@ const refreshState = () => {
   for (const arr of Object.values(raw)) {
     for (const m of arr) {
       const prev = next.get(m.user_id);
-      if (!prev || m.last_active > prev.last_active) next.set(m.user_id, m);
+      if (!prev) {
+        next.set(m.user_id, m);
+        continue;
+      }
+      next.set(m.user_id, {
+        user_id: m.user_id,
+        last_active: Math.max(prev.last_active, m.last_active),
+        updated_at: Math.max(prev.updated_at ?? prev.last_active, m.updated_at ?? m.last_active),
+        game: m.game ?? prev.game ?? null,
+      });
     }
   }
   stateCache = next;
@@ -42,6 +54,7 @@ const updateTrack = async () => {
   await channel.track({
     user_id: trackedUserId,
     last_active: lastActive,
+    updated_at: Date.now(),
     game: currentGame,
   });
 };
@@ -55,8 +68,10 @@ export const setPresenceGame = (game: string | null) => {
 export const startPresence = (userId: string) => {
   if (trackedUserId === userId && channel) return;
   void stopPresence();
+  sessionVersion += 1;
   trackedUserId = userId;
   lastActive = Date.now();
+  currentGame = null;
   channel = supabase.channel(CHANNEL_NAME, {
     config: { presence: { key: userId } },
   });
@@ -80,10 +95,10 @@ export const startPresence = (userId: string) => {
   window.addEventListener("focus", onActivity);
   document.addEventListener("visibilitychange", onVisibility);
   const heartbeat = window.setInterval(() => {
-    // re-broadcast so others recompute away/online thresholds
+    // Re-broadcast a fresh heartbeat while preserving true idle time.
     void updateTrack();
     emit();
-  }, 30_000);
+  }, 20_000);
 
   cleanup = () => {
     window.removeEventListener("mousemove", onActivity);
@@ -97,19 +112,22 @@ export const startPresence = (userId: string) => {
 let cleanup: (() => void) | null = null;
 
 export const stopPresence = async () => {
+  const version = sessionVersion;
+  const oldChannel = channel;
+  channel = null;
   if (cleanup) {
     cleanup();
     cleanup = null;
   }
-  if (channel) {
+  if (oldChannel) {
     try {
-      await channel.untrack();
+      await oldChannel.untrack();
     } catch {
       /* ignore */
     }
-    await supabase.removeChannel(channel);
-    channel = null;
+    await supabase.removeChannel(oldChannel);
   }
+  if (version !== sessionVersion) return;
   trackedUserId = null;
   stateCache = new Map();
   emit();
@@ -118,6 +136,8 @@ export const stopPresence = async () => {
 export const getPresenceStatus = (userId: string): PresenceStatus => {
   const meta = stateCache.get(userId);
   if (!meta) return "offline";
+  const staleMs = Date.now() - (meta.updated_at ?? meta.last_active);
+  if (staleMs > OFFLINE_AFTER_MS) return "offline";
   const idleMs = Date.now() - meta.last_active;
   if (idleMs > AWAY_AFTER_MS) return "away";
   return "online";
@@ -126,6 +146,8 @@ export const getPresenceStatus = (userId: string): PresenceStatus => {
 export const getPresenceInfo = (userId: string): PresenceInfo => {
   const meta = stateCache.get(userId);
   if (!meta) return { status: "offline", game: null };
+  const staleMs = Date.now() - (meta.updated_at ?? meta.last_active);
+  if (staleMs > OFFLINE_AFTER_MS) return { status: "offline", game: null };
   const idleMs = Date.now() - meta.last_active;
   const status: PresenceStatus = idleMs > AWAY_AFTER_MS ? "away" : "online";
   return { status, game: meta.game ?? null };
