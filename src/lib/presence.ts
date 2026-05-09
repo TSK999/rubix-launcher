@@ -228,12 +228,10 @@ export const usePresenceStatus = (userId: string | null | undefined): PresenceSt
 export const usePresenceMap = (
   userIds: string[],
 ): Map<string, PresenceInfo> => {
-  const key = userIds.join(",");
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const m = new Map<string, PresenceInfo>();
   for (const id of userIds) m.set(id, getPresenceInfo(id));
-  void key;
   return m;
 };
 
@@ -241,24 +239,3 @@ export const usePresenceInfo = (userId: string | null | undefined): PresenceInfo
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   return userId ? getPresenceInfo(userId) : { status: "offline", game: null };
 };
-
-/*
-  const compute = () => {
-    const m = new Map<string, PresenceInfo>();
-    for (const id of userIds) m.set(id, getPresenceInfo(id));
-    return m;
-  };
-  const [map, setMap] = useState<Map<string, PresenceInfo>>(compute);
-  useEffect(() => {
-    const update = () => setMap(compute());
-    update();
-    listeners.add(update);
-    const tick = window.setInterval(update, 5_000);
-    return () => {
-      listeners.delete(update);
-      window.clearInterval(tick);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return map;
-};*/
