@@ -963,7 +963,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       are_rubix_friends: { Args: { _a: string; _b: string }; Returns: boolean }
@@ -1016,6 +1042,7 @@ export type Database = {
         Args: { _conv: string; _user: string }
         Returns: boolean
       }
+      is_friend_of: { Args: { _other: string }; Returns: boolean }
       join_community_by_code: { Args: { _code: string }; Returns: string }
       message_community: { Args: { _mid: string }; Returns: string }
       regenerate_invite_code: { Args: { _cid: string }; Returns: string }
