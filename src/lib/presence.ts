@@ -6,11 +6,18 @@ export type PresenceStatus = "online" | "away" | "offline";
 const CHANNEL_NAME = "rubix-presence";
 const AWAY_AFTER_MS = 5 * 60 * 1000; // 5 min idle => away
 
-type PresenceMeta = { user_id: string; last_active: number };
+type PresenceMeta = {
+  user_id: string;
+  last_active: number;
+  game?: string | null;
+};
+
+export type PresenceInfo = { status: PresenceStatus; game: string | null };
 
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let trackedUserId: string | null = null;
 let lastActive = Date.now();
+let currentGame: string | null = null;
 const listeners = new Set<() => void>();
 let stateCache: Map<string, PresenceMeta> = new Map();
 
@@ -32,7 +39,17 @@ const refreshState = () => {
 
 const updateTrack = async () => {
   if (!channel || !trackedUserId) return;
-  await channel.track({ user_id: trackedUserId, last_active: lastActive });
+  await channel.track({
+    user_id: trackedUserId,
+    last_active: lastActive,
+    game: currentGame,
+  });
+};
+
+export const setPresenceGame = (game: string | null) => {
+  if (currentGame === game) return;
+  currentGame = game;
+  void updateTrack();
 };
 
 export const startPresence = (userId: string) => {
