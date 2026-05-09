@@ -254,6 +254,7 @@ class CallController {
       participants: [],
       muted: false,
       deafened: false,
+      micBlocked: false,
       error: null,
     });
   }
