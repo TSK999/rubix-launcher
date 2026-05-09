@@ -20,9 +20,16 @@ type SignalPayload =
   | { type: "ice"; from: string; to: string; candidate: RTCIceCandidateInit }
   | { type: "bye"; from: string };
 
+export type PeerConnectionState =
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected";
+
 export type RemotePeer = {
   peerId: string;
-  stream: MediaStream;
+  stream: MediaStream | null;
+  state: PeerConnectionState;
 };
 
 export type CallEvents = {
