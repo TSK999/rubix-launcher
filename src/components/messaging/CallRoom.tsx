@@ -82,7 +82,14 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
   };
 
   // Build tiles: me + each remote peer
-  const tiles: Array<{ key: string; userId: string; isMe: boolean; stream: MediaStream | null; peerId?: string }> = [
+  const tiles: Array<{
+    key: string;
+    userId: string;
+    isMe: boolean;
+    stream: MediaStream | null;
+    peerId?: string;
+    peerState?: RemotePeer["state"];
+  }> = [
     { key: "me", userId: meId, isMe: true, stream: null },
     ...state.peers.map((p: RemotePeer) => {
       const part = state.participants.find((pp) => pp.peer_id === p.peerId);
@@ -92,11 +99,29 @@ export const CallRoom = ({ context, meId, onLeft }: Props) => {
         isMe: false,
         stream: p.stream,
         peerId: p.peerId,
+        peerState: p.state,
       };
     }),
   ];
 
   const connecting = state.status === "connecting" || state.status === "starting";
+  const anyReconnecting = state.peers.some((p) => p.state === "reconnecting");
+  const anyDisconnected = state.peers.some((p) => p.state === "disconnected");
+
+  let banner:
+    | { label: string; tone: "info" | "warn" | "danger" | "ok" }
+    | null = null;
+  if (state.micBlocked) {
+    banner = { label: "Mic blocked — allow microphone access in your browser", tone: "danger" };
+  } else if (connecting) {
+    banner = { label: "Connecting…", tone: "info" };
+  } else if (anyReconnecting) {
+    banner = { label: "Reconnecting…", tone: "warn" };
+  } else if (anyDisconnected) {
+    banner = { label: "Peer disconnected", tone: "warn" };
+  } else if (state.status === "live") {
+    banner = { label: "Connected", tone: "ok" };
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-b from-background via-background to-card/40 relative overflow-hidden">
