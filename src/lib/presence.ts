@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PresenceStatus = "online" | "away" | "offline";
@@ -26,6 +26,7 @@ let stateCache: Map<string, PresenceMeta> = new Map();
 let transition: Promise<void> = Promise.resolve();
 let snapshotVersion = 0;
 let snapshot = { version: snapshotVersion, state: stateCache };
+let listenerTick: number | null = null;
 
 const emit = () => {
   snapshotVersion += 1;
@@ -35,7 +36,16 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  if (listenerTick == null && typeof window !== "undefined") {
+    listenerTick = window.setInterval(emit, 1_000);
+  }
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && listenerTick != null) {
+      window.clearInterval(listenerTick);
+      listenerTick = null;
+    }
+  };
 };
 
 const getSnapshot = () => snapshot;
