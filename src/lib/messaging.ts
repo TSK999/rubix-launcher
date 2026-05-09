@@ -138,14 +138,21 @@ export const createGroup = async (
     })
   if (error) throw error;
 
-  const rows = [
-    { conversation_id: conversationId, user_id: user.id, is_admin: true },
-    ...memberIds
-      .filter((id) => id !== user.id)
-      .map((id) => ({ conversation_id: conversationId, user_id: id, is_admin: false })),
-  ];
-  const { error: memErr } = await supabase.from("conversation_members").insert(rows);
-  if (memErr) throw memErr;
+  // Insert self first so we become a member; subsequent inserts pass the
+  // "creator can add" RLS check (which reads conversations and itself goes
+  // through RLS that requires membership).
+  const { error: selfErr } = await supabase
+    .from("conversation_members")
+    .insert({ conversation_id: conversationId, user_id: user.id, is_admin: true });
+  if (selfErr) throw selfErr;
+
+  const others = memberIds
+    .filter((id) => id !== user.id)
+    .map((id) => ({ conversation_id: conversationId, user_id: id, is_admin: false }));
+  if (others.length > 0) {
+    const { error: memErr } = await supabase.from("conversation_members").insert(others);
+    if (memErr) throw memErr;
+  }
 
   return conversationId;
 };
