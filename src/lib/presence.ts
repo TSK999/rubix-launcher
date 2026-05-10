@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PresenceStatus = "online" | "away" | "offline";
@@ -206,27 +206,19 @@ export const stopPresence = async () => {
 // ---------- React hooks ----------
 export const usePresenceStatus = (userId: string | null | undefined): PresenceStatus => {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  useEffect(() => {
-    if (userId) void fetchMissing([userId]);
-  }, [userId]);
+  if (userId) void fetchMissing([userId]);
   return userId ? getPresenceStatus(userId) : "offline";
 };
 
 export const usePresenceInfo = (userId: string | null | undefined): PresenceInfo => {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  useEffect(() => {
-    if (userId) void fetchMissing([userId]);
-  }, [userId]);
+  if (userId) void fetchMissing([userId]);
   return userId ? getPresenceInfo(userId) : { status: "offline", game: null };
 };
 
 export const usePresenceMap = (userIds: string[]): Map<string, PresenceInfo> => {
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  const key = userIds.join(",");
-  useEffect(() => {
-    if (userIds.length) void fetchMissing(userIds);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  if (userIds.length) void fetchMissing(userIds);
   const m = new Map<string, PresenceInfo>();
   for (const id of userIds) m.set(id, getPresenceInfo(id));
   return m;
