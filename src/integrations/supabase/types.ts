@@ -946,6 +946,30 @@ export type Database = {
           },
         ]
       }
+      user_presence: {
+        Row: {
+          game: string | null
+          last_active_at: string
+          last_seen_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game?: string | null
+          last_active_at?: string
+          last_seen_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game?: string | null
+          last_active_at?: string
+          last_seen_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
