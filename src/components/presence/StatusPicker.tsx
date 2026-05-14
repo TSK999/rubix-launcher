@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   userId: string | null;
-  align?: "start" | "end";
+  align?: "start" | "end" | "center";
+  side?: "top" | "right" | "bottom" | "left";
 };
 
 const OPTIONS: { value: ManualStatus | null; label: string; status: RichStatus }[] = [
@@ -30,7 +31,7 @@ const OPTIONS: { value: ManualStatus | null; label: string; status: RichStatus }
   { value: "dnd", label: "Do Not Disturb", status: "dnd" },
 ];
 
-export const StatusPicker = ({ userId, align = "start" }: Props) => {
+export const StatusPicker = ({ userId, align = "start", side = "bottom" }: Props) => {
   const rich = useRichPresence(userId);
   const [open, setOpen] = useState(false);
   // Track local optimistic value so it reflects instantly
@@ -58,7 +59,7 @@ export const StatusPicker = ({ userId, align = "start" }: Props) => {
           <span className="truncate max-w-[110px]">{displayLabel}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-52">
+      <DropdownMenuContent align={align} side={side} sideOffset={6} className="w-52 z-[100]">
         {OPTIONS.map((opt, i) => (
           <div key={String(opt.value ?? "auto")}>
             {i === 1 && <DropdownMenuSeparator />}
