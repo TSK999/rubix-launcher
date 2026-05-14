@@ -1,81 +1,78 @@
-## Goal
+## Presence System 2.0 — Build Plan
 
-Replace the flaky Supabase Realtime presence-channel system with a simple, reliable database-backed presence model. Status (online / away / offline) and "Playing {game}" will be derived from a row per user that the client heartbeats, and all clients subscribe via `postgres_changes` + a periodic ticker for staleness.
+A cinematic, ambient presence layer for RUBIX. Builds on the existing `user_presence` table + `presence.ts` store, the Spotify connection, the VC/call system, and the Rubix friends panel.
 
-## Why this is better
+### 1. Data model (one migration)
 
-- Channel presence loses state on reconnect, has join/leave race conditions, and "already joined" errors — all of which we've been fighting.
-- A row per user is easy to inspect, debug in the DB, and survives reconnects.
-- Postgres changes give instant push updates; a 5s ticker is enough to flip users to away/offline based on `last_seen_at`.
+Extend `user_presence` with richer ambient fields (no new social tables):
 
-## Schema (new table)
+- `manual_status` text — `online | available | gaming | in_match | idle | dnd | looking_to_play | null` (null = auto)
+- `auto_status` text — derived snapshot the client writes (gaming when game set, in_match when game + recent activity, etc.)
+- `game_started_at` timestamptz — set when `game` transitions from null → value (for session length)
+- `last_game` text + `last_game_ended_at` timestamptz — for "Last played"
+- `session_seconds_today` int + `session_day` date — daily total, reset on day rollover
+- `vc_call_id` uuid null, `vc_channel_id` uuid null, `vc_conversation_id` uuid null, `vc_joined_at` timestamptz
+- `vc_speaking` bool default false (debounced writes)
 
-`public.user_presence`
-- `user_id uuid primary key` (one row per user, no FK to auth.users)
-- `last_seen_at timestamptz not null default now()` — updated on heartbeat / activity
-- `last_active_at timestamptz not null default now()` — updated only on real activity (mouse/keys/focus); used to compute "away"
-- `game text` — null when not in a game
-- `updated_at timestamptz not null default now()`
+A small `get_friend_presence(_uids uuid[])` SECURITY DEFINER RPC returns presence rows joined with the active call session's channel/conversation name + participant count, the user's current Spotify now-playing (via existing `spotify_connections` + edge function pattern), and the friend's profile basics — single round-trip for hovercards.
 
-Index: `(last_seen_at desc)`.
+### 2. Presence engine (`src/lib/presence.ts`)
 
-RLS:
-- SELECT: any authenticated user (presence is meant to be visible to friends/community).
-- INSERT / UPDATE: only `auth.uid() = user_id` (upsert own row).
-- DELETE: only self.
+Refactor into a single source-of-truth store with:
 
-Realtime: add the table to `supabase_realtime` publication so postgres_changes fire.
+- Status derivation: manual override > VC > game > idle/away/offline.
+- Game transitions: when `setPresenceGame(name)` flips from null → value, write `game_started_at = now()`; when it flips to null, copy to `last_game` + accumulate into `session_seconds_today` (with day-reset).
+- VC integration: new `setPresenceVC({ callId, channelId, conversationId } | null)` called from `call-controller`. `setPresenceSpeaking(bool)` debounced to ≥1s writes.
+- Manual status: `setManualStatus(s | null)` persists to row.
+- Subscriptions stay on `useSyncExternalStore` + the existing realtime channel; ticker stays at 5s.
+- New hook `useRichPresence(userId)` returns a memoized `RichPresence` object: `{ status, game, gameStartedAt, lastGame, sessionToday, vc: { channelName, participants, speaking } | null, spotify: { track, artist, art } | null, manualStatus }`.
+- Spotify: small in-memory cache keyed by user_id, refreshed every 30s only for hovered/visible friends (lazy via `prefetchSpotify(uid)`).
 
-## Status derivation (client side)
+### 3. UI components (new, all in `src/components/presence/`)
 
-Given a row:
-- `now - last_seen_at > 90s` → **offline**
-- else if `now - last_active_at > 5min` → **away**
-- else → **online**
+- `StatusDot.tsx` — colored dot + ring, variants for each status, soft pulse for speaking.
+- `StatusPicker.tsx` — dropdown in user menu / sidebar footer to set manual status (incl. "Looking to Play").
+- `PresenceLine.tsx` — one-line summary ("Playing Valorant · 1h 24m") used in friend rows, message headers, profile.
+- `PresenceHoverCard.tsx` — the cinematic rich card:
+  - Radix `HoverCard` with 200ms open delay.
+  - Background: blurred gradient seeded from game title hash (CSS `linear-gradient` over `--card`, `backdrop-blur`).
+  - Avatar + name + manual status pill.
+  - Game block: cover/logo (lazy from RAWG cache if available, else generic icon) + session timer.
+  - VC block: channel name, participant count, speaking pulse, **Join Voice** button.
+  - Spotify block: art + track + artist, marquee on overflow.
+  - Footer actions: **Join Voice**, **Launch Same Game** (links to library/store), **Message**, **Invite**.
+  - Motion: `animate-in fade-in slide-in-from-bottom-1` + custom `hover-lift` utility.
+- `AmbientActivityFeed.tsx` — small collapsible panel (max ~6 items, no scroll past), subscribes to presence row UPDATEs and emits ephemeral events on transitions (game start, VC join, status → looking_to_play). Items fade in, auto-fade after 30s. No reactions, no persistence.
 
-Game label shown only when `online` (or also `away`, TBD — default: show whenever row not offline).
+### 4. Integrations
 
-## Client changes
+- **`RubixFriendsPanel`**: wrap each `FriendRow` with `PresenceHoverCard`. Replace the simple "Playing X" line with `<PresenceLine>`. Add speaking pulse on the avatar ring when `vc.speaking`.
+- **`Sidebar`**: add `StatusPicker` in the user footer area; show current manual status pill.
+- **`MessagesPanel` / `ConversationView`** header: show `<PresenceLine>` for the other DM participant.
+- **`RubixProfile`** page: add a "Now" card with full rich presence + session-today + last-played.
+- **`StoreGame` / `GameDetail`**: small "Friends playing now" strip filtered by `game === title`.
+- **Communities**: in `CommunityChannelView` voice channels, show speaking pulse using `vc_speaking`.
+- **`call-controller`**: on join → `setPresenceVC(...)`, on leave → `setPresenceVC(null)`; wire the existing speaking-detection to `setPresenceSpeaking`.
+- **`PresenceManager`**: also poll Spotify now-playing for self every 30s and write track to a lightweight `spotify_now` cache row (reuses existing edge fn).
 
-### `src/lib/presence.ts` — full rewrite
+### 5. Motion & theming
 
-- Drop the channel/track/transition machinery and `useSyncExternalStore` snapshot complexity.
-- New module exports the same public API so callers don't change:
-  - `startPresence(userId)`, `stopPresence()`
-  - `setPresenceGame(game)`
-  - `resyncPresence()`
-  - `usePresenceStatus(userId)`, `usePresenceInfo(userId)`, `usePresenceMap(userIds[])`
-- Internals:
-  - On `startPresence(uid)`: upsert row `(uid, now, now, currentGame)`, then start:
-    - **Heartbeat**: every 20s upsert `last_seen_at = now()` (and `last_active_at` if active in last 5min, else leave it).
-    - **Activity listeners** (mousemove/keydown/focus/visibility): update local `lastActive`, debounce an upsert that bumps `last_active_at` (e.g. at most every 5s).
-  - On `setPresenceGame(game)`: upsert with new `game` value immediately.
-  - On `stopPresence()`: one final upsert pushing `last_seen_at` 2 minutes in the past so others see offline quickly, then unsubscribe.
-- **Subscription store**: a single module-level subscription to `postgres_changes` on `user_presence` (events: INSERT/UPDATE/DELETE) maintains a `Map<user_id, row>`. React hooks subscribe via `useSyncExternalStore` to a small notifier.
-- **Lazy fetch**: `usePresenceMap(ids)` fetches missing rows once via `select * from user_presence where user_id in (...)` and stores them; postgres_changes keeps them current.
-- **Ticker**: a 5s `setInterval` that re-emits a snapshot so derived status (online → away → offline based on time) refreshes without DB events.
+- Add tokens to `index.css`: `--presence-online`, `--presence-away`, `--presence-dnd`, `--presence-gaming`, `--presence-looking`, plus `--shadow-presence` (soft glow) and `--gradient-ambient`.
+- Add keyframes: `presence-pulse` (speaking), `card-lift` (hover), `gradient-drift` (slow ambient bg), `presence-in` (slide+fade).
+- Respect `prefers-reduced-motion` — disable pulse and drift.
 
-### `src/components/PresenceManager.tsx`
+### 6. Performance
 
-- Keep the same behavior: on auth, call `startPresence(uid)`; on logout/unmount, `stopPresence()`.
-- Steam game polling unchanged; it still calls `setPresenceGame(name | null)`, which now writes to the DB.
+- All hovercards use `useRichPresence` which reads from the shared store — zero extra subscriptions per card.
+- Spotify + game-art fetches are lazy and only triggered on hovercard open (`onOpenChange`).
+- Speaking writes debounced (1s), heartbeat stays at 20s, activity write debounce stays at 5s.
+- Activity feed derives from existing realtime channel — no new subscription.
+- `PresenceHoverCard` body memoized; gradient computed once per game name via `useMemo`.
 
-### `src/components/RubixFriendsPanel.tsx` and `src/components/SteamFriendsPanel.tsx`
+### Technical notes
 
-- No API changes — they keep using `usePresenceMap` / `usePresenceInfo`.
-
-## Migration steps (in order)
-
-1. **Migration**: create `user_presence` table, RLS policies, `update_updated_at_column` trigger, add to realtime publication.
-2. **Rewrite `src/lib/presence.ts`** as described, preserving exported names.
-3. **Verify** `PresenceManager`, `RubixFriendsPanel`, `SteamFriendsPanel` still compile against the same API; tweak only if a signature changed.
-4. **Manual test**: open two browser sessions, sign in as two users, confirm:
-   - Online dot appears within ~1s of sign-in for the other side.
-   - Idling 5min flips to away (can lower threshold temporarily to test).
-   - Closing tab → offline within ~90s.
-   - Launching a Steam game shows "Playing X" within ~10s (Steam poll interval).
-
-## Out of scope
-
-- Cross-device aggregation (multi-device login picks "most recent" naturally because there's one row per user).
-- Custom status text (already handled by `profiles.status_text` separately).
+- No new tables. One migration extends `user_presence` and adds the `get_friend_presence` RPC.
+- All new colors via HSL semantic tokens; no hex in components.
+- Reuses Radix `HoverCard`, existing `call-controller`, `spotify-now-playing` edge fn, and `rubix-profile` lib.
+- Files added: `src/lib/presence-rich.ts`, `src/components/presence/{StatusDot,StatusPicker,PresenceLine,PresenceHoverCard,AmbientActivityFeed}.tsx`.
+- Files edited: `src/lib/presence.ts`, `src/components/PresenceManager.tsx`, `src/components/RubixFriendsPanel.tsx`, `src/components/Sidebar.tsx`, `src/components/MessagesPanel.tsx`, `src/components/messaging/ConversationView.tsx`, `src/pages/RubixProfile.tsx`, `src/pages/StoreGame.tsx`, `src/components/GameDetail.tsx`, `src/lib/call-controller.ts`, `src/index.css`, `tailwind.config.ts`.

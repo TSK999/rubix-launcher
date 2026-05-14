@@ -948,25 +948,73 @@ export type Database = {
       }
       user_presence: {
         Row: {
+          auto_status: string | null
           game: string | null
+          game_started_at: string | null
           last_active_at: string
+          last_game: string | null
+          last_game_ended_at: string | null
           last_seen_at: string
+          manual_status: string | null
+          session_day: string | null
+          session_seconds_today: number
+          spotify_art_url: string | null
+          spotify_artist: string | null
+          spotify_track: string | null
+          spotify_updated_at: string | null
           updated_at: string
           user_id: string
+          vc_call_id: string | null
+          vc_channel_id: string | null
+          vc_conversation_id: string | null
+          vc_joined_at: string | null
+          vc_speaking: boolean
         }
         Insert: {
+          auto_status?: string | null
           game?: string | null
+          game_started_at?: string | null
           last_active_at?: string
+          last_game?: string | null
+          last_game_ended_at?: string | null
           last_seen_at?: string
+          manual_status?: string | null
+          session_day?: string | null
+          session_seconds_today?: number
+          spotify_art_url?: string | null
+          spotify_artist?: string | null
+          spotify_track?: string | null
+          spotify_updated_at?: string | null
           updated_at?: string
           user_id: string
+          vc_call_id?: string | null
+          vc_channel_id?: string | null
+          vc_conversation_id?: string | null
+          vc_joined_at?: string | null
+          vc_speaking?: boolean
         }
         Update: {
+          auto_status?: string | null
           game?: string | null
+          game_started_at?: string | null
           last_active_at?: string
+          last_game?: string | null
+          last_game_ended_at?: string | null
           last_seen_at?: string
+          manual_status?: string | null
+          session_day?: string | null
+          session_seconds_today?: number
+          spotify_art_url?: string | null
+          spotify_artist?: string | null
+          spotify_track?: string | null
+          spotify_updated_at?: string | null
           updated_at?: string
           user_id?: string
+          vc_call_id?: string | null
+          vc_channel_id?: string | null
+          vc_conversation_id?: string | null
+          vc_joined_at?: string | null
+          vc_speaking?: boolean
         }
         Relationships: []
       }
@@ -1033,6 +1081,32 @@ export type Database = {
         Returns: string
       }
       gen_invite_code: { Args: never; Returns: string }
+      get_friend_presence: {
+        Args: { _uids: string[] }
+        Returns: {
+          game: string
+          game_started_at: string
+          last_active_at: string
+          last_game: string
+          last_game_ended_at: string
+          last_seen_at: string
+          manual_status: string
+          session_seconds_today: number
+          spotify_art_url: string
+          spotify_artist: string
+          spotify_track: string
+          spotify_updated_at: string
+          user_id: string
+          vc_call_id: string
+          vc_channel_id: string
+          vc_channel_name: string
+          vc_conversation_id: string
+          vc_conversation_name: string
+          vc_joined_at: string
+          vc_participant_count: number
+          vc_speaking: boolean
+        }[]
+      }
       get_or_create_direct_conversation: {
         Args: { _other_user_id: string }
         Returns: string
