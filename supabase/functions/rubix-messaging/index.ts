@@ -402,6 +402,351 @@ Deno.serve(async (req) => {
       return json({ ok: true, state: "added" });
     }
 
+    // ════════════════ Communities ════════════════
+    if (path === "/communities" && req.method === "GET") {
+      const { data: mems, error } = await client
+        .from("community_members")
+        .select("community_id, role")
+        .eq("user_id", userId);
+      if (error) return json({ error: error.message }, 400);
+      const ids = (mems ?? []).map((r: any) => r.community_id);
+      if (ids.length === 0) return json({ communities: [] });
+      const { data: comms } = await client
+        .from("communities")
+        .select("*")
+        .in("id", ids);
+      const { data: counts } = await admin()
+        .from("community_members")
+        .select("community_id")
+        .in("community_id", ids);
+      const countMap = new Map<string, number>();
+      (counts ?? []).forEach((r: any) =>
+        countMap.set(r.community_id, (countMap.get(r.community_id) ?? 0) + 1),
+      );
+      const roleMap = new Map<string, string>();
+      (mems ?? []).forEach((r: any) => roleMap.set(r.community_id, r.role));
+      const out = (comms ?? []).map((c: any) => ({
+        ...c,
+        role: roleMap.get(c.id),
+        member_count: countMap.get(c.id) ?? 0,
+      }));
+      return json({ communities: out });
+    }
+
+    if (path === "/communities" && req.method === "POST") {
+      const { name, icon_url = null } = await req.json();
+      if (!name) return json({ error: "name required" }, 400);
+      const { data, error } = await client.rpc("create_community", {
+        _name: name,
+        _icon_url: icon_url,
+      });
+      if (error) return json({ error: error.message }, 400);
+      return json({ community_id: data });
+    }
+
+    if (path === "/communities/join" && req.method === "POST") {
+      const { invite_code } = await req.json();
+      if (!invite_code) return json({ error: "invite_code required" }, 400);
+      const { data, error } = await client.rpc("join_community_by_code", {
+        _code: invite_code,
+      });
+      if (error) return json({ error: error.message }, 400);
+      return json({ community_id: data });
+    }
+
+    m = path.match(/^\/communities\/([0-9a-f-]{36})$/);
+    if (m && req.method === "GET") {
+      const cid = m[1];
+      const { data: comm, error } = await client
+        .from("communities")
+        .select("*")
+        .eq("id", cid)
+        .maybeSingle();
+      if (error) return json({ error: error.message }, 400);
+      if (!comm) return json({ error: "not found" }, 404);
+      const { data: channels } = await client
+        .from("community_channels")
+        .select("*")
+        .eq("community_id", cid)
+        .order("position", { ascending: true });
+      const { data: members } = await client
+        .from("community_members")
+        .select("*")
+        .eq("community_id", cid);
+      const memberIds = (members ?? []).map((r: any) => r.user_id);
+      const { data: profs } = await admin()
+        .from("profiles")
+        .select(PROFILE_COLS)
+        .in("user_id", memberIds);
+      return json({ community: comm, channels: channels ?? [], members: members ?? [], profiles: profs ?? [] });
+    }
+
+    m = path.match(/^\/communities\/([0-9a-f-]{36})\/channels$/);
+    if (m && req.method === "GET") {
+      const cid = m[1];
+      const { data, error } = await client
+        .from("community_channels")
+        .select("*")
+        .eq("community_id", cid)
+        .order("position", { ascending: true });
+      if (error) return json({ error: error.message }, 400);
+      return json({ channels: data ?? [] });
+    }
+    if (m && req.method === "POST") {
+      const cid = m[1];
+      const { name, kind = "text" } = await req.json();
+      if (!name) return json({ error: "name required" }, 400);
+      if (!["text", "voice"].includes(kind)) return json({ error: "kind must be text|voice" }, 400);
+      const { data: maxRow } = await client
+        .from("community_channels")
+        .select("position")
+        .eq("community_id", cid)
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const position = ((maxRow?.position as number | undefined) ?? -1) + 1;
+      const { data, error } = await client
+        .from("community_channels")
+        .insert({ community_id: cid, name, kind, position })
+        .select("*")
+        .single();
+      if (error) return json({ error: error.message }, 400);
+      return json({ channel: data });
+    }
+
+    m = path.match(/^\/communities\/([0-9a-f-]{36})\/leave$/);
+    if (m && req.method === "POST") {
+      const cid = m[1];
+      const { error } = await client
+        .from("community_members")
+        .delete()
+        .eq("community_id", cid)
+        .eq("user_id", userId);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    m = path.match(/^\/communities\/([0-9a-f-]{36})\/invite\/regenerate$/);
+    if (m && req.method === "POST") {
+      const cid = m[1];
+      const { data, error } = await client.rpc("regenerate_invite_code", { _cid: cid });
+      if (error) return json({ error: error.message }, 400);
+      return json({ invite_code: data });
+    }
+
+    // ════════════════ Community channel messages ════════════════
+    m = path.match(/^\/channels\/([0-9a-f-]{36})\/messages$/);
+    if (m && req.method === "GET") {
+      const chid = m[1];
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
+      const before = url.searchParams.get("before");
+      let q = client
+        .from("community_messages")
+        .select("*, attachments:community_message_attachments(*), reactions:community_message_reactions(*)")
+        .eq("channel_id", chid)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (before) q = q.lt("created_at", before);
+      const { data, error } = await q;
+      if (error) return json({ error: error.message }, 400);
+      return json({ messages: (data ?? []).slice().reverse() });
+    }
+    if (m && req.method === "POST") {
+      const chid = m[1];
+      const body = await req.json();
+      const content: string | null = body.content ?? null;
+      const reply_to_id: string | null = body.reply_to_id ?? null;
+      const attachments: any[] = Array.isArray(body.attachments) ? body.attachments : [];
+      if (!content && attachments.length === 0) return json({ error: "content or attachments required" }, 400);
+      const { data: msg, error } = await client
+        .from("community_messages")
+        .insert({ channel_id: chid, sender_id: userId, content, reply_to_id })
+        .select("*")
+        .single();
+      if (error || !msg) return json({ error: error?.message ?? "send failed" }, 400);
+      if (attachments.length > 0) {
+        const rows = attachments.map((a) => ({
+          message_id: msg.id,
+          kind: a.kind ?? "file",
+          external_url: a.external_url ?? null,
+          storage_path: a.storage_path ?? null,
+          mime_type: a.mime_type ?? null,
+          file_name: a.file_name ?? null,
+          size_bytes: a.size_bytes ?? null,
+          width: a.width ?? null,
+          height: a.height ?? null,
+        }));
+        const { error: aErr } = await client.from("community_message_attachments").insert(rows);
+        if (aErr) return json({ error: aErr.message }, 400);
+      }
+      return json({ message: msg });
+    }
+
+    m = path.match(/^\/community-messages\/([0-9a-f-]{36})$/);
+    if (m && req.method === "PATCH") {
+      const id = m[1];
+      const { content } = await req.json();
+      if (typeof content !== "string") return json({ error: "content required" }, 400);
+      const { error } = await client.from("community_messages").update({ content }).eq("id", id);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+    if (m && req.method === "DELETE") {
+      const id = m[1];
+      const { error } = await client
+        .from("community_messages")
+        .update({ deleted_at: new Date().toISOString(), content: null })
+        .eq("id", id);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    m = path.match(/^\/community-messages\/([0-9a-f-]{36})\/reactions$/);
+    if (m && req.method === "POST") {
+      const id = m[1];
+      const { emoji, action = "toggle" } = await req.json();
+      if (!emoji) return json({ error: "emoji required" }, 400);
+      if (action === "remove") {
+        await client.from("community_message_reactions").delete()
+          .eq("message_id", id).eq("user_id", userId).eq("emoji", emoji);
+        return json({ ok: true });
+      }
+      if (action === "add") {
+        await client.from("community_message_reactions")
+          .insert({ message_id: id, user_id: userId, emoji });
+        return json({ ok: true });
+      }
+      const { data: existing } = await client.from("community_message_reactions")
+        .select("emoji").eq("message_id", id).eq("user_id", userId).eq("emoji", emoji).maybeSingle();
+      if (existing) {
+        await client.from("community_message_reactions").delete()
+          .eq("message_id", id).eq("user_id", userId).eq("emoji", emoji);
+        return json({ ok: true, state: "removed" });
+      }
+      await client.from("community_message_reactions")
+        .insert({ message_id: id, user_id: userId, emoji });
+      return json({ ok: true, state: "added" });
+    }
+
+    // ════════════════ Voice (calls) ════════════════
+    if (path === "/calls/active" && req.method === "GET") {
+      const conv = url.searchParams.get("conversation_id");
+      const ch = url.searchParams.get("channel_id");
+      if (!conv && !ch) return json({ error: "conversation_id or channel_id required" }, 400);
+      let q = client.from("call_sessions").select("*").is("ended_at", null);
+      if (conv) q = q.eq("conversation_id", conv);
+      if (ch) q = q.eq("channel_id", ch);
+      const { data: sessions, error } = await q.order("started_at", { ascending: false }).limit(1);
+      if (error) return json({ error: error.message }, 400);
+      const session = (sessions ?? [])[0] ?? null;
+      if (!session) return json({ session: null, participants: [], profiles: [] });
+      const { data: parts } = await client
+        .from("call_participants")
+        .select("*")
+        .eq("call_id", session.id)
+        .is("left_at", null);
+      const ids = (parts ?? []).map((p: any) => p.user_id);
+      const { data: profs } = await admin()
+        .from("profiles")
+        .select(PROFILE_COLS)
+        .in("user_id", ids);
+      return json({ session, participants: parts ?? [], profiles: profs ?? [] });
+    }
+
+    if (path === "/calls/start" && req.method === "POST") {
+      const { conversation_id = null, channel_id = null } = await req.json();
+      if (!conversation_id && !channel_id) return json({ error: "conversation_id or channel_id required" }, 400);
+      // Reuse existing open session if any
+      let q = client.from("call_sessions").select("*").is("ended_at", null);
+      if (conversation_id) q = q.eq("conversation_id", conversation_id);
+      if (channel_id) q = q.eq("channel_id", channel_id);
+      const { data: existing } = await q.limit(1).maybeSingle();
+      if (existing) return json({ call_id: existing.id, reused: true });
+      const { data, error } = await client
+        .from("call_sessions")
+        .insert({ conversation_id, channel_id, started_by: userId })
+        .select("*")
+        .single();
+      if (error) return json({ error: error.message }, 400);
+      return json({ call_id: data.id, reused: false });
+    }
+
+    m = path.match(/^\/calls\/([0-9a-f-]{36})\/join$/);
+    if (m && req.method === "POST") {
+      const call_id = m[1];
+      const { peer_id } = await req.json();
+      if (!peer_id) return json({ error: "peer_id required" }, 400);
+      // Upsert by (call_id, user_id)
+      await client.from("call_participants").delete()
+        .eq("call_id", call_id).eq("user_id", userId);
+      const { error } = await client.from("call_participants")
+        .insert({ call_id, user_id: userId, peer_id });
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    m = path.match(/^\/calls\/([0-9a-f-]{36})\/leave$/);
+    if (m && req.method === "POST") {
+      const call_id = m[1];
+      const { error } = await client.from("call_participants")
+        .update({ left_at: new Date().toISOString() })
+        .eq("call_id", call_id).eq("user_id", userId);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    m = path.match(/^\/calls\/([0-9a-f-]{36})\/heartbeat$/);
+    if (m && req.method === "POST") {
+      const call_id = m[1];
+      const { error } = await client.from("call_participants")
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq("call_id", call_id).eq("user_id", userId);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    if (path === "/presence/vc" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const patch: Record<string, unknown> = {
+        user_id: userId,
+        vc_call_id: body.call_id ?? null,
+        vc_channel_id: body.channel_id ?? null,
+        vc_conversation_id: body.conversation_id ?? null,
+        vc_speaking: !!body.speaking,
+        vc_joined_at: body.call_id ? new Date().toISOString() : null,
+        last_seen_at: new Date().toISOString(),
+        last_active_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await client.from("user_presence").upsert(patch, { onConflict: "user_id" });
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    // ════════════════ Friends + presence ════════════════
+    if (path === "/friends" && req.method === "GET") {
+      const { data: rows, error } = await client
+        .from("rubix_friendships")
+        .select("*")
+        .eq("status", "accepted");
+      if (error) return json({ error: error.message }, 400);
+      const otherIds = (rows ?? []).map((r: any) => (r.user_a === userId ? r.user_b : r.user_a));
+      const { data: profs } = await admin()
+        .from("profiles")
+        .select(PROFILE_COLS)
+        .in("user_id", otherIds);
+      return json({ friends: profs ?? [] });
+    }
+
+    if (path === "/presence" && req.method === "GET") {
+      const idsParam = url.searchParams.get("ids") ?? "";
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) return json({ presence: [] });
+      const { data, error } = await client.rpc("get_friend_presence", { _uids: ids });
+      if (error) return json({ error: error.message }, 400);
+      return json({ presence: data ?? [] });
+    }
+
     return json({ error: "not found" }, 404);
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);

@@ -1,78 +1,57 @@
-## Presence System 2.0 — Build Plan
+## Goal
 
-A cinematic, ambient presence layer for RUBIX. Builds on the existing `user_presence` table + `presence.ts` store, the Spotify connection, the VC/call system, and the Rubix friends panel.
+Expand the `rubix-messaging` edge function to also cover **communities** (servers/channels) and **voice chat (VC)**, then hand you the complete mobile build prompt directly in chat (no file).
 
-### 1. Data model (one migration)
+## 1. Extend `supabase/functions/rubix-messaging/index.ts`
 
-Extend `user_presence` with richer ambient fields (no new social tables):
+Add these endpoints alongside the existing DM/group ones (same auth: `Authorization: Bearer <token>` + `apikey` header).
 
-- `manual_status` text — `online | available | gaming | in_match | idle | dnd | looking_to_play | null` (null = auto)
-- `auto_status` text — derived snapshot the client writes (gaming when game set, in_match when game + recent activity, etc.)
-- `game_started_at` timestamptz — set when `game` transitions from null → value (for session length)
-- `last_game` text + `last_game_ended_at` timestamptz — for "Last played"
-- `session_seconds_today` int + `session_day` date — daily total, reset on day rollover
-- `vc_call_id` uuid null, `vc_channel_id` uuid null, `vc_conversation_id` uuid null, `vc_joined_at` timestamptz
-- `vc_speaking` bool default false (debounced writes)
+### Communities
 
-A small `get_friend_presence(_uids uuid[])` SECURITY DEFINER RPC returns presence rows joined with the active call session's channel/conversation name + participant count, the user's current Spotify now-playing (via existing `spotify_connections` + edge function pattern), and the friend's profile basics — single round-trip for hovercards.
+- `GET    /communities` — list communities the user is a member of (id, name, icon_url, role, member_count).
+- `POST   /communities` `{ name, icon_url? }` — create one (uses `create_community` RPC, which auto-creates `general` text channel + `General Voice` channel and makes you owner).
+- `POST   /communities/join` `{ invite_code }` — join via invite code (uses `join_community_by_code` RPC).
+- `GET    /communities/:cid` — community detail + members + channels.
+- `GET    /communities/:cid/channels` — text + voice channels with positions.
+- `POST   /communities/:cid/channels` `{ name, kind: "text"|"voice" }` — admins only.
+- `POST   /communities/:cid/leave`
+- `POST   /communities/:cid/invite/regenerate` — admins only (uses `regenerate_invite_code` RPC).
 
-### 2. Presence engine (`src/lib/presence.ts`)
+### Community channel messages (text channels)
 
-Refactor into a single source-of-truth store with:
+- `GET    /channels/:chid/messages?limit&before` — paginated, with attachments + reactions.
+- `POST   /channels/:chid/messages` `{ content, reply_to_id?, attachments? }`
+- `PATCH  /community-messages/:mid` `{ content }`
+- `DELETE /community-messages/:mid`
+- `POST   /community-messages/:mid/reactions` `{ emoji, action }`
 
-- Status derivation: manual override > VC > game > idle/away/offline.
-- Game transitions: when `setPresenceGame(name)` flips from null → value, write `game_started_at = now()`; when it flips to null, copy to `last_game` + accumulate into `session_seconds_today` (with day-reset).
-- VC integration: new `setPresenceVC({ callId, channelId, conversationId } | null)` called from `call-controller`. `setPresenceSpeaking(bool)` debounced to ≥1s writes.
-- Manual status: `setManualStatus(s | null)` persists to row.
-- Subscriptions stay on `useSyncExternalStore` + the existing realtime channel; ticker stays at 5s.
-- New hook `useRichPresence(userId)` returns a memoized `RichPresence` object: `{ status, game, gameStartedAt, lastGame, sessionToday, vc: { channelName, participants, speaking } | null, spotify: { track, artist, art } | null, manualStatus }`.
-- Spotify: small in-memory cache keyed by user_id, refreshed every 30s only for hovered/visible friends (lazy via `prefetchSpotify(uid)`).
+### Voice (VC) — discovery + presence, signaling stays realtime
 
-### 3. UI components (new, all in `src/components/presence/`)
+- `GET    /calls/active?conversation_id=…` or `?channel_id=…` — current open call session + participant list with profiles.
+- `POST   /calls/start` `{ conversation_id?, channel_id? }` — insert a `call_sessions` row, return `{ call_id }`.
+- `POST   /calls/:call_id/join` `{ peer_id }` — insert into `call_participants`.
+- `POST   /calls/:call_id/leave` — set `left_at = now()` on the user's row.
+- `POST   /calls/:call_id/heartbeat` — update `last_seen_at` (so stale participants can be cleaned).
+- `POST   /presence/vc` `{ call_id?, channel_id?, conversation_id?, speaking? }` — write to `user_presence` so the rest of the platform sees you in VC.
 
-- `StatusDot.tsx` — colored dot + ring, variants for each status, soft pulse for speaking.
-- `StatusPicker.tsx` — dropdown in user menu / sidebar footer to set manual status (incl. "Looking to Play").
-- `PresenceLine.tsx` — one-line summary ("Playing Valorant · 1h 24m") used in friend rows, message headers, profile.
-- `PresenceHoverCard.tsx` — the cinematic rich card:
-  - Radix `HoverCard` with 200ms open delay.
-  - Background: blurred gradient seeded from game title hash (CSS `linear-gradient` over `--card`, `backdrop-blur`).
-  - Avatar + name + manual status pill.
-  - Game block: cover/logo (lazy from RAWG cache if available, else generic icon) + session timer.
-  - VC block: channel name, participant count, speaking pulse, **Join Voice** button.
-  - Spotify block: art + track + artist, marquee on overflow.
-  - Footer actions: **Join Voice**, **Launch Same Game** (links to library/store), **Message**, **Invite**.
-  - Motion: `animate-in fade-in slide-in-from-bottom-1` + custom `hover-lift` utility.
-- `AmbientActivityFeed.tsx` — small collapsible panel (max ~6 items, no scroll past), subscribes to presence row UPDATEs and emits ephemeral events on transitions (game start, VC join, status → looking_to_play). Items fade in, auto-fade after 30s. No reactions, no persistence.
+### Friends / presence (read-only, needed for the mobile app's friends tab)
 
-### 4. Integrations
+- `GET    /friends` — accepted friendships only, with profiles.
+- `GET    /presence?ids=uuid,uuid,…` — calls existing `get_friend_presence` RPC.
 
-- **`RubixFriendsPanel`**: wrap each `FriendRow` with `PresenceHoverCard`. Replace the simple "Playing X" line with `<PresenceLine>`. Add speaking pulse on the avatar ring when `vc.speaking`.
-- **`Sidebar`**: add `StatusPicker` in the user footer area; show current manual status pill.
-- **`MessagesPanel` / `ConversationView`** header: show `<PresenceLine>` for the other DM participant.
-- **`RubixProfile`** page: add a "Now" card with full rich presence + session-today + last-played.
-- **`StoreGame` / `GameDetail`**: small "Friends playing now" strip filtered by `game === title`.
-- **Communities**: in `CommunityChannelView` voice channels, show speaking pulse using `vc_speaking`.
-- **`call-controller`**: on join → `setPresenceVC(...)`, on leave → `setPresenceVC(null)`; wire the existing speaking-detection to `setPresenceSpeaking`.
-- **`PresenceManager`**: also poll Spotify now-playing for self every 30s and write track to a lightweight `spotify_now` cache row (reuses existing edge fn).
+All routes return JSON, share the same CORS + auth helpers already in the file. No DB migration required — every table and RPC needed already exists.
 
-### 5. Motion & theming
+## 2. Deliver the mobile build prompt in chat
 
-- Add tokens to `index.css`: `--presence-online`, `--presence-away`, `--presence-dnd`, `--presence-gaming`, `--presence-looking`, plus `--shadow-presence` (soft glow) and `--gradient-ambient`.
-- Add keyframes: `presence-pulse` (speaking), `card-lift` (hover), `gradient-drift` (slow ambient bg), `presence-in` (slide+fade).
-- Respect `prefers-reduced-motion` — disable pulse and drift.
+After you approve, my next message (in build mode) will:
 
-### 6. Performance
+1. Add the new routes to `supabase/functions/rubix-messaging/index.ts`.
+2. Delete the old `docs/rubix-messaging-mobile-prompt.md` file.
+3. Paste the full updated mobile build prompt **inline in chat** — covering auth, DMs, groups, communities (servers + text channels), voice chat (using WebRTC over Supabase Realtime, with the desktop launcher's existing signaling channels `crail-vc-<call_id>` / `call-<call_id>` already whitelisted in RLS), friends + presence, screens, motion, and Capacitor packaging.
 
-- All hovercards use `useRichPresence` which reads from the shared store — zero extra subscriptions per card.
-- Spotify + game-art fetches are lazy and only triggered on hovercard open (`onOpenChange`).
-- Speaking writes debounced (1s), heartbeat stays at 20s, activity write debounce stays at 5s.
-- Activity feed derives from existing realtime channel — no new subscription.
-- `PresenceHoverCard` body memoized; gradient computed once per game name via `useMemo`.
+## Notes
 
-### Technical notes
+- **Voice transport stays the same:** WebRTC peer connections with signaling over Supabase Realtime channels. The REST endpoints above only handle session bookkeeping (who's in the call) so the mobile UI can show "join voice" rooms and active speakers — they do not replace the WebRTC data path.
+- **No new tables, no new RLS, no new RPCs.** Everything maps to existing `communities`, `community_channels`, `community_messages`, `call_sessions`, `call_participants`, `user_presence`, `rubix_friendships`.
 
-- No new tables. One migration extends `user_presence` and adds the `get_friend_presence` RPC.
-- All new colors via HSL semantic tokens; no hex in components.
-- Reuses Radix `HoverCard`, existing `call-controller`, `spotify-now-playing` edge fn, and `rubix-profile` lib.
-- Files added: `src/lib/presence-rich.ts`, `src/components/presence/{StatusDot,StatusPicker,PresenceLine,PresenceHoverCard,AmbientActivityFeed}.tsx`.
-- Files edited: `src/lib/presence.ts`, `src/components/PresenceManager.tsx`, `src/components/RubixFriendsPanel.tsx`, `src/components/Sidebar.tsx`, `src/components/MessagesPanel.tsx`, `src/components/messaging/ConversationView.tsx`, `src/pages/RubixProfile.tsx`, `src/pages/StoreGame.tsx`, `src/components/GameDetail.tsx`, `src/lib/call-controller.ts`, `src/index.css`, `tailwind.config.ts`.
+Approve and I'll implement + paste the final prompt right here in chat.
