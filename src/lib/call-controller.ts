@@ -20,6 +20,7 @@ import {
 } from "./calls";
 import { requestCallMicrophone, stopCallStream } from "./call-media";
 import { getPreferredMicId } from "./audio-devices";
+import { setPresenceVC, setPresenceSpeaking } from "./presence";
 
 export type CallContext =
   | { kind: "dm"; conversationId: string; title?: string }
