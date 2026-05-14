@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   userId: string | null;
-  align?: "start" | "end";
+  align?: "start" | "end" | "center";
+  side?: "top" | "right" | "bottom" | "left";
 };
 
 const OPTIONS: { value: ManualStatus | null; label: string; status: RichStatus }[] = [
