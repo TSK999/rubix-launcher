@@ -468,6 +468,7 @@ export const STATUS_LABEL: Record<RichStatus, string> = {
   available: "Available",
   gaming: "Gaming",
   in_match: "In Match",
+  idle: "Idle",
   dnd: "Do Not Disturb",
   looking_to_play: "Looking to Play",
 };
