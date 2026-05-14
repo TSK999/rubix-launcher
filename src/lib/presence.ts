@@ -11,7 +11,14 @@ export type ManualStatus =
   | "dnd"
   | "looking_to_play";
 
-export type RichStatus = PresenceStatus | "gaming" | "in_match" | "dnd" | "looking_to_play" | "available";
+export type RichStatus =
+  | PresenceStatus
+  | "gaming"
+  | "in_match"
+  | "dnd"
+  | "looking_to_play"
+  | "available"
+  | "idle";
 
 const TABLE = "user_presence";
 const HEARTBEAT_MS = 20_000;
