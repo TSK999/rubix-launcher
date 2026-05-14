@@ -730,3 +730,65 @@ All colors MUST be HSL.
     transition-duration: .05s !important;
   }
 }
+
+/* ===== Presence System 2.0 ===== */
+@layer utilities {
+  :root {
+    --presence-online: 142 70% 50%;
+    --presence-away: 38 92% 55%;
+    --presence-dnd: 0 78% 58%;
+    --presence-offline: 0 0% 45%;
+    --presence-gaming: 280 90% 60%;
+    --presence-looking: 200 90% 55%;
+    --presence-idle: 38 92% 55%;
+  }
+
+  /* Status dot colors */
+  .presence-dot-online   { background: hsl(var(--presence-online)); }
+  .presence-dot-away     { background: hsl(var(--presence-away)); }
+  .presence-dot-idle     { background: hsl(var(--presence-idle)); }
+  .presence-dot-dnd      { background: hsl(var(--presence-dnd)); }
+  .presence-dot-offline  { background: hsl(var(--presence-offline)); }
+  .presence-dot-gaming   { background: hsl(var(--presence-gaming)); box-shadow: 0 0 8px hsl(var(--presence-gaming) / 0.6); }
+  .presence-dot-in_match { background: hsl(var(--presence-gaming)); box-shadow: 0 0 10px hsl(var(--presence-gaming) / 0.85); }
+  .presence-dot-available { background: hsl(var(--presence-online)); }
+  .presence-dot-looking_to_play { background: hsl(var(--presence-looking)); box-shadow: 0 0 10px hsl(var(--presence-looking) / 0.7); }
+
+  @keyframes presence-speaking-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--presence-online) / 0.55); }
+    50%      { box-shadow: 0 0 0 6px hsl(var(--presence-online) / 0); }
+  }
+  .presence-speaking-ring {
+    animation: presence-speaking-pulse 1.4s ease-out infinite;
+    border-radius: 9999px;
+  }
+
+  @keyframes presence-card-in {
+    0% { opacity: 0; transform: translateY(6px) scale(0.985); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .presence-card-in { animation: presence-card-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  @keyframes presence-gradient-drift {
+    0%   { transform: translate3d(-4%, -2%, 0) scale(1.02); }
+    50%  { transform: translate3d(3%, 2%, 0) scale(1.05); }
+    100% { transform: translate3d(-4%, -2%, 0) scale(1.02); }
+  }
+  .presence-gradient-drift {
+    animation: presence-gradient-drift 14s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes presence-feed-in {
+    0% { opacity: 0; transform: translateY(4px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .presence-feed-in { animation: presence-feed-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .presence-speaking-ring,
+    .presence-gradient-drift,
+    .presence-card-in,
+    .presence-feed-in { animation: none !important; }
+  }
+}
