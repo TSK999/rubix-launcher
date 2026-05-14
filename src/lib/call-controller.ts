@@ -60,6 +60,15 @@ class CallController {
   private rosterTimer: number | null = null;
   private heartbeatTimer: number | null = null;
   private remoteAudioEls = new Map<string, HTMLAudioElement>();
+  private vad: {
+    ctx: AudioContext;
+    analyser: AnalyserNode;
+    source: MediaStreamAudioSourceNode;
+    raf: number;
+    speaking: boolean;
+    speakingSince: number;
+    silentSince: number;
+  } | null = null;
 
   getState = (): ActiveCallState => this.state;
 
