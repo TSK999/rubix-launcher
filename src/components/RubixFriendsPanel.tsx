@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { ChevronDown, Loader2, RefreshCw, Users, MessageSquare, Check, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,23 +16,28 @@ import {
   type RubixFriendEntry,
 } from "@/lib/rubix-profile";
 import { getOrCreateDm } from "@/lib/messaging";
-import { usePresenceMap, type PresenceInfo } from "@/lib/presence";
+import { useRichPresenceMap, type RichPresence, type RichStatus } from "@/lib/presence";
+import { PresenceHoverCard } from "@/components/presence/PresenceHoverCard";
+import { PresenceLine } from "@/components/presence/PresenceLine";
+import { StatusDot } from "@/components/presence/StatusDot";
+import { AmbientActivityFeed } from "@/components/presence/AmbientActivityFeed";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 
-const STATUS_LABELS: Record<PresenceInfo["status"], string> = {
-  online: "Online",
+const GROUP_LABELS: Record<"active" | "away" | "offline", string> = {
+  active: "Online",
   away: "Away",
   offline: "Offline",
 };
 
-const STATUS_DOTS: Record<PresenceInfo["status"], string> = {
-  online: "bg-emerald-500",
-  away: "bg-amber-500",
-  offline: "bg-muted-foreground/60",
-};
-
 type Props = {
   userId: string | null;
+};
+
+const groupOf = (rich: RichPresence): "active" | "away" | "offline" => {
+  if (rich.baseStatus === "offline") return "offline";
+  if (rich.baseStatus === "away" || rich.manualStatus === "idle" || rich.status === "idle")
+    return "away";
+  return "active";
 };
 
 export const RubixFriendsPanel = ({ userId }: Props) => {
@@ -57,7 +62,6 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
     void load();
   }, [load]);
 
-  // Realtime: refresh when friendships involving me change
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
@@ -105,10 +109,27 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
   const friends = entries.filter((e) => e.kind === "friends");
   const incoming = entries.filter((e) => e.kind === "incoming");
   const outgoing = entries.filter((e) => e.kind === "outgoing");
-  const presence = usePresenceMap(friends.map((e) => e.profile.user_id));
-  const friendGroups = ["online", "away", "offline"].map((status) => ({
-    status: status as PresenceInfo["status"],
-    list: friends.filter((e) => (presence.get(e.profile.user_id)?.status ?? "offline") === status),
+  const friendIds = useMemo(() => friends.map((e) => e.profile.user_id), [friends]);
+  const presence = useRichPresenceMap(friendIds);
+
+  const profilesMap = useMemo(() => {
+    const m: Record<string, { user_id: string; username: string; display_name: string | null }> = {};
+    for (const e of friends)
+      m[e.profile.user_id] = {
+        user_id: e.profile.user_id,
+        username: e.profile.username,
+        display_name: e.profile.display_name ?? null,
+      };
+    return m;
+  }, [friends]);
+
+  const friendGroups = (["active", "away", "offline"] as const).map((g) => ({
+    group: g,
+    list: friends.filter((e) => {
+      const rich = presence.get(e.profile.user_id);
+      if (!rich) return g === "offline";
+      return groupOf(rich) === g;
+    }),
   }));
 
   if (!userId) return null;
@@ -187,17 +208,21 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
               </Section>
             )}
 
-            {friendGroups.map(({ status, list }) => list.length > 0 && (
-              <Section key={status} title={STATUS_LABELS[status]} dot={STATUS_DOTS[status]} count={list.length}>
-                {list.map((e) => (
-                  <FriendRow
-                    key={e.row.id}
-                    entry={e}
-                    presence={presence.get(e.profile.user_id) ?? { status: "offline", game: null }}
-                    onMessage={() => handleMessage(e.profile.user_id)}
-                    onRemove={() => handleRemove(e.row.id, "Friend removed")}
-                  />
-                ))}
+            {friendGroups.map(({ group, list }) => list.length > 0 && (
+              <Section key={group} title={GROUP_LABELS[group]} count={list.length}>
+                {list.map((e) => {
+                  const rich = presence.get(e.profile.user_id);
+                  return (
+                    <FriendRow
+                      key={e.row.id}
+                      entry={e}
+                      status={rich?.status ?? "offline"}
+                      speaking={!!rich?.vc?.speaking}
+                      onMessage={() => handleMessage(e.profile.user_id)}
+                      onRemove={() => handleRemove(e.row.id, "Friend removed")}
+                    />
+                  );
+                })}
               </Section>
             ))}
 
@@ -228,16 +253,19 @@ export const RubixFriendsPanel = ({ userId }: Props) => {
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {friends.length > 0 && (
+        <AmbientActivityFeed friendIds={friendIds} profiles={profilesMap} />
+      )}
     </div>
   );
 };
 
-const Section = ({ title, children, dot, count }: { title: string; children: React.ReactNode; dot?: string; count?: number }) => (
+const Section = ({ title, children, count }: { title: string; children: React.ReactNode; count?: number }) => (
   <div>
     <p className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium flex items-center gap-1.5">
-      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />}
       {title}
-      {typeof count === "number" && <span>{count}</span>}
+      {typeof count === "number" && <span>· {count}</span>}
     </p>
     <div className="space-y-0.5">{children}</div>
   </div>
@@ -265,44 +293,66 @@ const ProfileAvatar = ({ entry }: { entry: RubixFriendEntry }) => (
 
 const FriendRow = ({
   entry,
-  presence,
+  status,
+  speaking,
   onMessage,
   onRemove,
 }: {
   entry: RubixFriendEntry;
-  presence: PresenceInfo;
+  status: RichStatus;
+  speaking: boolean;
   onMessage: () => void;
   onRemove: () => void;
-}) => (
-  <div className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-secondary/40">
-    <div className="relative shrink-0">
-      <ProfileAvatar entry={entry} />
-      <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card", STATUS_DOTS[presence.status])} />
-    </div>
-    <Link
-      to={`/u/${entry.profile.username}`}
-      className="min-w-0 flex-1 hover:text-primary transition-colors"
-    >
-      <p className="text-xs font-medium truncate">
-        {entry.profile.display_name ?? entry.profile.username}
-      </p>
-      <p className={cn("text-[10px] truncate", presence.game ? "text-emerald-400" : "text-muted-foreground")}>
-        {presence.game ? `Playing ${presence.game}` : `@${entry.profile.username}`}
-      </p>
-    </Link>
-    <button
-      onClick={onMessage}
-      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-opacity"
-      title="Message"
-    >
-      <MessageSquare className="h-3.5 w-3.5" />
-    </button>
-    <button
-      onClick={onRemove}
-      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-muted-foreground hover:text-destructive transition-opacity"
-      title="Remove friend"
-    >
-      <X className="h-3.5 w-3.5" />
-    </button>
-  </div>
-);
+}) => {
+  const profile = {
+    user_id: entry.profile.user_id,
+    username: entry.profile.username,
+    display_name: entry.profile.display_name ?? null,
+    avatar_url: entry.profile.avatar_url ?? null,
+  };
+  return (
+    <PresenceHoverCard profile={profile}>
+      <div className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-secondary/40 transition-colors">
+        <div className="relative shrink-0">
+          <div className={cn(speaking && "presence-speaking-ring")}>
+            <ProfileAvatar entry={entry} />
+          </div>
+          <span className="absolute -bottom-0.5 -right-0.5">
+            <StatusDot status={status} size="sm" ring />
+          </span>
+        </div>
+        <Link
+          to={`/u/${entry.profile.username}`}
+          className="min-w-0 flex-1 hover:text-primary transition-colors"
+        >
+          <p className="text-xs font-medium truncate">
+            {entry.profile.display_name ?? entry.profile.username}
+          </p>
+          <PresenceLine userId={entry.profile.user_id} compact />
+        </Link>
+        <button
+          onClick={(ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            onMessage();
+          }}
+          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-opacity"
+          title="Message"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={(ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            onRemove();
+          }}
+          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-muted-foreground hover:text-destructive transition-opacity"
+          title="Remove friend"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </PresenceHoverCard>
+  );
+};
