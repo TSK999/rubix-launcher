@@ -114,11 +114,11 @@ export const Sidebar = ({
       </div>
 
       {userId && (
-        <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">
+        <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium shrink-0">
             Status
           </span>
-          <StatusPicker userId={userId} align="end" />
+          <StatusPicker userId={userId} align="end" side="right" />
         </div>
       )}
 
