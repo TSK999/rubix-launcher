@@ -59,7 +59,7 @@ export const StatusPicker = ({ userId, align = "start", side = "bottom" }: Props
           <span className="truncate max-w-[110px]">{displayLabel}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-52">
+      <DropdownMenuContent align={align} side={side} sideOffset={6} className="w-52 z-[100]">
         {OPTIONS.map((opt, i) => (
           <div key={String(opt.value ?? "auto")}>
             {i === 1 && <DropdownMenuSeparator />}
