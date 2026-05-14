@@ -11,6 +11,7 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
+import { StatusPicker } from "@/components/presence/StatusPicker";
 import type { GameSource } from "@/lib/game-types";
 import { useState } from "react";
 
