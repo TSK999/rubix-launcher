@@ -326,6 +326,8 @@ class CallController {
     const callId = this.state.callId;
     this.set({ status: "leaving" });
     this.clearTimers();
+    this.stopVad();
+    setPresenceVC(null);
     const m = this.manager;
     this.manager = null;
     try {
