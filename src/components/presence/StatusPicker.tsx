@@ -31,7 +31,7 @@ const OPTIONS: { value: ManualStatus | null; label: string; status: RichStatus }
   { value: "dnd", label: "Do Not Disturb", status: "dnd" },
 ];
 
-export const StatusPicker = ({ userId, align = "start" }: Props) => {
+export const StatusPicker = ({ userId, align = "start", side = "bottom" }: Props) => {
   const rich = useRichPresence(userId);
   const [open, setOpen] = useState(false);
   // Track local optimistic value so it reflects instantly
