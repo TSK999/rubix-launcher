@@ -20,6 +20,7 @@ import {
 } from "./calls";
 import { requestCallMicrophone, stopCallStream } from "./call-media";
 import { getPreferredMicId } from "./audio-devices";
+import { setPresenceVC, setPresenceSpeaking } from "./presence";
 
 export type CallContext =
   | { kind: "dm"; conversationId: string; title?: string }
@@ -59,6 +60,15 @@ class CallController {
   private rosterTimer: number | null = null;
   private heartbeatTimer: number | null = null;
   private remoteAudioEls = new Map<string, HTMLAudioElement>();
+  private vad: {
+    ctx: AudioContext;
+    analyser: AnalyserNode;
+    source: MediaStreamAudioSourceNode;
+    raf: number;
+    speaking: boolean;
+    speakingSince: number;
+    silentSince: number;
+  } | null = null;
 
   getState = (): ActiveCallState => this.state;
 
@@ -160,6 +170,14 @@ class CallController {
       throw err;
     }
 
+    // Broadcast VC presence
+    setPresenceVC({
+      callId: session.id,
+      channelId: ctx.kind === "channel" ? ctx.channelId : null,
+      conversationId: ctx.kind === "dm" ? ctx.conversationId : null,
+    });
+    this.startVad(stream);
+
     // Roster polling + heartbeat
     const refreshRoster = async () => {
       const list = await listActiveParticipants(session.id);
@@ -170,6 +188,84 @@ class CallController {
     this.heartbeatTimer = window.setInterval(() => {
       void heartbeatCall(session.id);
     }, 6000);
+  }
+
+  private startVad(stream: MediaStream) {
+    this.stopVad();
+    try {
+      const Ctor: typeof AudioContext =
+        (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const ctx = new Ctor();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const vad = {
+        ctx,
+        analyser,
+        source,
+        raf: 0,
+        speaking: false,
+        speakingSince: 0,
+        silentSince: 0,
+      };
+      this.vad = vad;
+      const tick = () => {
+        if (!this.vad) return;
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = (buf[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / buf.length);
+        const now = Date.now();
+        const ON = 0.045;
+        const OFF = 0.025;
+        const muted = this.state.muted;
+        const isLoud = !muted && rms > ON;
+        const isQuiet = muted || rms < OFF;
+        if (isLoud) {
+          vad.silentSince = 0;
+          if (!vad.speaking) {
+            vad.speakingSince ||= now;
+            if (now - vad.speakingSince > 60) {
+              vad.speaking = true;
+              setPresenceSpeaking(true);
+            }
+          }
+        } else if (isQuiet) {
+          vad.speakingSince = 0;
+          if (vad.speaking) {
+            vad.silentSince ||= now;
+            if (now - vad.silentSince > 600) {
+              vad.speaking = false;
+              setPresenceSpeaking(false);
+            }
+          }
+        }
+        vad.raf = window.requestAnimationFrame(tick);
+      };
+      vad.raf = window.requestAnimationFrame(tick);
+    } catch {
+      /* AudioContext unavailable; skip VAD */
+    }
+  }
+
+  private stopVad() {
+    if (!this.vad) return;
+    try {
+      window.cancelAnimationFrame(this.vad.raf);
+      this.vad.source.disconnect();
+      void this.vad.ctx.close();
+    } catch {
+      /* ignore */
+    }
+    if (this.vad.speaking) setPresenceSpeaking(false);
+    this.vad = null;
   }
 
   // We can't know "me" from a participant row alone; supabase auth is async.
@@ -230,6 +326,8 @@ class CallController {
     const callId = this.state.callId;
     this.set({ status: "leaving" });
     this.clearTimers();
+    this.stopVad();
+    setPresenceVC(null);
     const m = this.manager;
     this.manager = null;
     try {
