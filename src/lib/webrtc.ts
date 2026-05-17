@@ -68,7 +68,7 @@ export class CallManager {
     }
     this.events.onLocalStream(this.localStream);
 
-    this.channel = supabase.channel(`call:${this.callId}`, {
+    this.channel = supabase.channel(`call-${this.callId}`, {
       config: { broadcast: { self: false, ack: false } },
     });
 
