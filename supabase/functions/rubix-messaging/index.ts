@@ -747,6 +747,236 @@ Deno.serve(async (req) => {
       return json({ presence: data ?? [] });
     }
 
+    // ════════════════ Single message + threads ════════════════
+    // Tries DM messages first, then community_messages.
+    m = path.match(/^\/messages\/([0-9a-f-]{36})$/);
+    if (m && req.method === "GET") {
+      const id = m[1];
+      const { data: dm } = await client
+        .from("messages")
+        .select("*, attachments:message_attachments(*), reactions:message_reactions(*)")
+        .eq("id", id)
+        .maybeSingle();
+      if (dm) {
+        const { count } = await client
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("reply_to_id", id);
+        return json({ message: { ...dm, thread_count: count ?? 0, scope: "dm" } });
+      }
+      const { data: cm } = await client
+        .from("community_messages")
+        .select("*, attachments:community_message_attachments(*), reactions:community_message_reactions(*)")
+        .eq("id", id)
+        .maybeSingle();
+      if (cm) {
+        const { count } = await client
+          .from("community_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("reply_to_id", id);
+        return json({ message: { ...cm, thread_count: count ?? 0, scope: "community" } });
+      }
+      return json({ error: "not found" }, 404);
+    }
+
+    m = path.match(/^\/messages\/([0-9a-f-]{36})\/thread$/);
+    if (m && req.method === "GET") {
+      const id = m[1];
+      // DM
+      const { data: root } = await client
+        .from("messages")
+        .select("*, attachments:message_attachments(*), reactions:message_reactions(*)")
+        .eq("id", id)
+        .maybeSingle();
+      if (root) {
+        const { data: replies } = await client
+          .from("messages")
+          .select("*, attachments:message_attachments(*), reactions:message_reactions(*)")
+          .eq("reply_to_id", id)
+          .order("created_at", { ascending: true });
+        return json({ root, replies: replies ?? [], scope: "dm" });
+      }
+      const { data: croot } = await client
+        .from("community_messages")
+        .select("*, attachments:community_message_attachments(*), reactions:community_message_reactions(*)")
+        .eq("id", id)
+        .maybeSingle();
+      if (croot) {
+        const { data: replies } = await client
+          .from("community_messages")
+          .select("*, attachments:community_message_attachments(*), reactions:community_message_reactions(*)")
+          .eq("reply_to_id", id)
+          .order("created_at", { ascending: true });
+        return json({ root: croot, replies: replies ?? [], scope: "community" });
+      }
+      return json({ error: "not found" }, 404);
+    }
+
+    // Reply within the same conversation/channel as the parent.
+    m = path.match(/^\/messages\/([0-9a-f-]{36})\/replies$/);
+    if (m && req.method === "POST") {
+      const parentId = m[1];
+      const body = await req.json().catch(() => ({}));
+      const content: string | null = body.content ?? null;
+      const attachments: any[] = Array.isArray(body.attachments) ? body.attachments : [];
+      if (!content && attachments.length === 0) {
+        return json({ error: "content or attachments required" }, 400);
+      }
+      // Resolve parent scope
+      const { data: dmParent } = await client
+        .from("messages")
+        .select("id, conversation_id")
+        .eq("id", parentId)
+        .maybeSingle();
+      if (dmParent) {
+        const { data: msg, error } = await client
+          .from("messages")
+          .insert({
+            conversation_id: dmParent.conversation_id,
+            sender_id: userId,
+            content,
+            reply_to_id: parentId,
+          })
+          .select("*")
+          .single();
+        if (error || !msg) return json({ error: error?.message ?? "send failed" }, 400);
+        if (attachments.length > 0) {
+          const rows = attachments.map((a) => ({
+            message_id: msg.id,
+            kind: a.kind ?? "file",
+            external_url: a.external_url ?? null,
+            storage_path: a.storage_path ?? null,
+            mime_type: a.mime_type ?? null,
+            file_name: a.file_name ?? null,
+            size_bytes: a.size_bytes ?? null,
+            width: a.width ?? null,
+            height: a.height ?? null,
+          }));
+          const { error: aErr } = await client.from("message_attachments").insert(rows);
+          if (aErr) return json({ error: aErr.message }, 400);
+        }
+        return json({ message: { ...msg, scope: "dm" } });
+      }
+      const { data: cParent } = await client
+        .from("community_messages")
+        .select("id, channel_id")
+        .eq("id", parentId)
+        .maybeSingle();
+      if (cParent) {
+        const { data: msg, error } = await client
+          .from("community_messages")
+          .insert({
+            channel_id: cParent.channel_id,
+            sender_id: userId,
+            content,
+            reply_to_id: parentId,
+          })
+          .select("*")
+          .single();
+        if (error || !msg) return json({ error: error?.message ?? "send failed" }, 400);
+        if (attachments.length > 0) {
+          const rows = attachments.map((a) => ({
+            message_id: msg.id,
+            kind: a.kind ?? "file",
+            external_url: a.external_url ?? null,
+            storage_path: a.storage_path ?? null,
+            mime_type: a.mime_type ?? null,
+            file_name: a.file_name ?? null,
+            size_bytes: a.size_bytes ?? null,
+            width: a.width ?? null,
+            height: a.height ?? null,
+          }));
+          const { error: aErr } = await client.from("community_message_attachments").insert(rows);
+          if (aErr) return json({ error: aErr.message }, 400);
+        }
+        return json({ message: { ...msg, scope: "community" } });
+      }
+      return json({ error: "parent message not found" }, 404);
+    }
+
+    // ════════════════ Signed uploads (chat-attachments bucket) ════════════════
+    if (path === "/uploads/sign" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const filename: string = (body.filename ?? "file").toString();
+      const mime: string | null = body.mime ?? null;
+      const size: number | null =
+        typeof body.size === "number" ? body.size : null;
+      const MAX = 50 * 1024 * 1024;
+      if (size !== null && size > MAX) {
+        return json({ error: "file too large (max 50MB)" }, 400);
+      }
+      const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+      const path = `${userId}/${crypto.randomUUID()}-${safe}`;
+      const { data, error } = await admin()
+        .storage.from("chat-attachments")
+        .createSignedUploadUrl(path);
+      if (error || !data) {
+        return json({ error: error?.message ?? "sign failed" }, 400);
+      }
+      const upload_url = data.signedUrl.startsWith("http")
+        ? data.signedUrl
+        : `${SUPABASE_URL}${data.signedUrl}`;
+      return json({
+        bucket: "chat-attachments",
+        storage_path: path,
+        token: data.token,
+        upload_url,
+        headers: mime ? { "Content-Type": mime } : {},
+        // chat-attachments is private; clients should request signed read URLs
+        // via the existing get-signed-url flow, or use storage.from().createSignedUrl(path).
+        public_url: null,
+      });
+    }
+
+    // ════════════════ OG link preview ════════════════
+    if (path === "/link-preview" && req.method === "GET") {
+      const target = url.searchParams.get("url") ?? "";
+      try {
+        const u = new URL(target);
+        if (!["http:", "https:"].includes(u.protocol)) throw new Error("bad protocol");
+        const ctl = new AbortController();
+        const tmo = setTimeout(() => ctl.abort(), 5000);
+        const res = await fetch(u.toString(), {
+          redirect: "follow",
+          signal: ctl.signal,
+          headers: {
+            "User-Agent": "RubixLinkPreview/1.0 (+https://rubix.app)",
+            "Accept": "text/html,application/xhtml+xml",
+          },
+        });
+        clearTimeout(tmo);
+        const html = (await res.text()).slice(0, 200_000);
+        const pick = (re: RegExp) => {
+          const m = html.match(re);
+          return m ? m[1].trim() : null;
+        };
+        const meta = (prop: string) =>
+          pick(
+            new RegExp(
+              `<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`,
+              "i",
+            ),
+          ) ??
+          pick(
+            new RegExp(
+              `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`,
+              "i",
+            ),
+          );
+        const title =
+          meta("og:title") ?? meta("twitter:title") ?? pick(/<title[^>]*>([^<]+)<\/title>/i);
+        const description =
+          meta("og:description") ?? meta("twitter:description") ?? meta("description");
+        let image = meta("og:image") ?? meta("twitter:image");
+        if (image && image.startsWith("//")) image = u.protocol + image;
+        if (image && image.startsWith("/")) image = `${u.protocol}//${u.host}${image}`;
+        const site = meta("og:site_name") ?? u.host;
+        return json({ url: u.toString(), title, description, image, site });
+      } catch (e) {
+        return json({ error: e instanceof Error ? e.message : "preview failed" }, 400);
+      }
+    }
+
     return json({ error: "not found" }, 404);
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
