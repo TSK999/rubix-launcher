@@ -20,6 +20,14 @@ contextBridge.exposeInMainWorld("rubix", {
     scanInstalled: () => ipcRenderer.invoke("riot:scan-installed"),
     launch: (payload) => ipcRenderer.invoke("riot:launch", payload),
   },
+  screenshots: {
+    capture: () => ipcRenderer.invoke("screenshots:capture"),
+    onCaptured: (cb) => {
+      const handler = (_evt, data) => cb(data);
+      ipcRenderer.on("screenshots:captured", handler);
+      return () => ipcRenderer.removeListener("screenshots:captured", handler);
+    },
+  },
   updater: {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),

@@ -1,57 +1,56 @@
-## Goal
+## Game Notes, Tags & Screenshots
 
-Expand the `rubix-messaging` edge function to also cover **communities** (servers/channels) and **voice chat (VC)**, then hand you the complete mobile build prompt directly in chat (no file).
+Add three tightly-connected features to each game's detail panel:
 
-## 1. Extend `supabase/functions/rubix-messaging/index.ts`
+1. **Notes** — free-form markdown-ish text per game (tips, builds, todo lists).
+2. **Tags** — user-defined labels for filtering the library (e.g. `coop`, `replay`, `finished`).
+3. **Screenshots** — a local screenshot gallery per game, with hotkey capture in Electron and drag-and-drop import in the browser.
 
-Add these endpoints alongside the existing DM/group ones (same auth: `Authorization: Bearer <token>` + `apikey` header).
+### Scope
 
-### Communities
+- Per-user, per-game, stored in Lovable Cloud so they sync across devices when signed in.
+- Library page gets a tag filter chip row + a "Has notes" toggle.
+- `GameDetail.tsx` gets a new **Notes & Media** tab.
 
-- `GET    /communities` — list communities the user is a member of (id, name, icon_url, role, member_count).
-- `POST   /communities` `{ name, icon_url? }` — create one (uses `create_community` RPC, which auto-creates `general` text channel + `General Voice` channel and makes you owner).
-- `POST   /communities/join` `{ invite_code }` — join via invite code (uses `join_community_by_code` RPC).
-- `GET    /communities/:cid` — community detail + members + channels.
-- `GET    /communities/:cid/channels` — text + voice channels with positions.
-- `POST   /communities/:cid/channels` `{ name, kind: "text"|"voice" }` — admins only.
-- `POST   /communities/:cid/leave`
-- `POST   /communities/:cid/invite/regenerate` — admins only (uses `regenerate_invite_code` RPC).
+### Data model (new tables)
 
-### Community channel messages (text channels)
+- `game_user_data` — one row per (user_id, game_key)
+  - `game_key` (text) — stable client-side key from `Game.id` so it works for Steam/Epic/EA/Xbox/Riot imports
+  - `title_snapshot`, `source` — denormalized so we can render a list without the local library
+  - `notes` (text), `tags` (text[]), `is_pinned` (bool)
+- `game_screenshots_user` — gallery items
+  - `user_id`, `game_key`, `storage_path`, `caption`, `taken_at`, `width`, `height`
+- New storage bucket `game-screenshots` (private), RLS scoped to `auth.uid()` folder prefix.
 
-- `GET    /channels/:chid/messages?limit&before` — paginated, with attachments + reactions.
-- `POST   /channels/:chid/messages` `{ content, reply_to_id?, attachments? }`
-- `PATCH  /community-messages/:mid` `{ content }`
-- `DELETE /community-messages/:mid`
-- `POST   /community-messages/:mid/reactions` `{ emoji, action }`
+All tables get RLS: only owner can read/write their rows.
 
-### Voice (VC) — discovery + presence, signaling stays realtime
+### Electron side (screenshot hotkey)
 
-- `GET    /calls/active?conversation_id=…` or `?channel_id=…` — current open call session + participant list with profiles.
-- `POST   /calls/start` `{ conversation_id?, channel_id? }` — insert a `call_sessions` row, return `{ call_id }`.
-- `POST   /calls/:call_id/join` `{ peer_id }` — insert into `call_participants`.
-- `POST   /calls/:call_id/leave` — set `left_at = now()` on the user's row.
-- `POST   /calls/:call_id/heartbeat` — update `last_seen_at` (so stale participants can be cleaned).
-- `POST   /presence/vc` `{ call_id?, channel_id?, conversation_id?, speaking? }` — write to `user_presence` so the rest of the platform sees you in VC.
+- `electron/main.cjs`: register a global shortcut (default **F12**, configurable later) that:
+  - detects the foreground window title, matches against the launcher's "currently launched game" (we already track `lastPlayedAt` / `game_started_at` in presence)
+  - captures the active screen via `desktopCapturer`, writes PNG to a temp file
+  - emits `rubix:screenshot-captured` to the renderer with the file path
+- `electron/preload.cjs`: expose `rubix.screenshots.onCaptured(cb)` and `rubix.screenshots.readFile(path)`
+- Renderer uploads the PNG to the `game-screenshots` bucket and inserts a row.
 
-### Friends / presence (read-only, needed for the mobile app's friends tab)
+In the browser (non-Electron) we skip the hotkey and only offer drag-and-drop / file picker upload.
 
-- `GET    /friends` — accepted friendships only, with profiles.
-- `GET    /presence?ids=uuid,uuid,…` — calls existing `get_friend_presence` RPC.
+### UI changes
 
-All routes return JSON, share the same CORS + auth helpers already in the file. No DB migration required — every table and RPC needed already exists.
+- `src/components/GameDetail.tsx`: add a tabs strip — **Overview · Notes · Screenshots**.
+  - Notes tab: textarea with autosave (debounced 800ms), tag editor (chip input).
+  - Screenshots tab: responsive masonry grid, lightbox on click, delete + set-as-cover actions.
+- `src/pages/Library.tsx`: tag chip filter row above the grid (multi-select, AND semantics), plus a "Notes" filter toggle.
+- `src/components/GameCard.tsx`: small icon badges when a game has notes or tags.
+- New `src/lib/game-user-data.ts` + `src/lib/game-screenshots.ts` helpers wrapping the Supabase calls.
+- New `src/hooks/useGameUserData.ts` to load+cache per-game data via React Query.
 
-## 2. Deliver the mobile build prompt in chat
+### Out of scope (future)
 
-After you approve, my next message (in build mode) will:
+- Per-screenshot sharing to Rubix friends/messages (would reuse existing message-attachment flow).
+- OCR / auto-tagging.
+- Cloud-synced screenshot thumbnails generation (we'll store originals only for now).
 
-1. Add the new routes to `supabase/functions/rubix-messaging/index.ts`.
-2. Delete the old `docs/rubix-messaging-mobile-prompt.md` file.
-3. Paste the full updated mobile build prompt **inline in chat** — covering auth, DMs, groups, communities (servers + text channels), voice chat (using WebRTC over Supabase Realtime, with the desktop launcher's existing signaling channels `crail-vc-<call_id>` / `call-<call_id>` already whitelisted in RLS), friends + presence, screens, motion, and Capacitor packaging.
+### Open question
 
-## Notes
-
-- **Voice transport stays the same:** WebRTC peer connections with signaling over Supabase Realtime channels. The REST endpoints above only handle session bookkeeping (who's in the call) so the mobile UI can show "join voice" rooms and active speakers — they do not replace the WebRTC data path.
-- **No new tables, no new RLS, no new RPCs.** Everything maps to existing `communities`, `community_channels`, `community_messages`, `call_sessions`, `call_participants`, `user_presence`, `rubix_friendships`.
-
-Approve and I'll implement + paste the final prompt right here in chat.
+Default screenshot hotkey — keep **F12** or pick something less likely to conflict (e.g. **Ctrl+Shift+S**)? I'll go with **F12** unless you say otherwise, and expose it in Settings later.
