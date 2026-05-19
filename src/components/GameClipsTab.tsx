@@ -94,6 +94,26 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
     }
   };
 
+  const onDownload = async (c: GameClip) => {
+    if (!c.url) return;
+    try {
+      const res = await fetch(c.url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "webm").split(";")[0];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safe = (game.name || "clip").replace(/[^a-z0-9-_]+/gi, "_");
+      a.download = `${safe}-${c.id.slice(0, 8)}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast.error("Download failed");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div
