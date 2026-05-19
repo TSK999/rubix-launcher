@@ -3,9 +3,14 @@ import { Clock, Gamepad2, Heart, Loader2, Pencil, Play, Sparkles, Trash2, X } fr
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { searchRawg } from "@/lib/rawg";
 import type { Game } from "@/lib/game-types";
+import { useRubixAuth } from "@/hooks/useRubixAuth";
+import { useGameUserData } from "@/hooks/useGameUserData";
+import { GameNotesTab } from "@/components/GameNotesTab";
+import { GameScreenshotsTab } from "@/components/GameScreenshotsTab";
 
 type Props = {
   game: Game | null;
@@ -33,6 +38,8 @@ export const GameDetail = ({
   onUpdate,
 }: Props) => {
   const [refreshing, setRefreshing] = useState(false);
+  const { user } = useRubixAuth();
+  const { data, setNotes, setTags, shots, setShots } = useGameUserData(game);
 
   const refreshMetadata = async () => {
     if (!game) return;
@@ -166,42 +173,80 @@ export const GameDetail = ({
                 </Button>
               </div>
 
-              {game.description && (
-                <div>
-                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                    About
-                  </h3>
-                  <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                    {game.description}
-                  </p>
-                </div>
-              )}
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 rounded-2xl">
+                  <TabsTrigger value="overview" className="rounded-xl">Overview</TabsTrigger>
+                  <TabsTrigger value="notes" className="rounded-xl">
+                    Notes{data.tags.length ? ` · ${data.tags.length}` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="shots" className="rounded-xl">
+                    Shots{shots.length ? ` · ${shots.length}` : ""}
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-secondary/60 p-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <Clock className="h-3 w-3" /> Last played
-                  </div>
-                  <p className="font-semibold">{formatDate(game.lastPlayedAt)}</p>
-                </div>
-                <div className="rounded-2xl bg-secondary/60 p-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <Play className="h-3 w-3" /> Times launched
-                  </div>
-                  <p className="font-semibold">{game.playCount ?? 0}</p>
-                </div>
-              </div>
+                <TabsContent value="overview" className="space-y-5 pt-4">
+                  {game.description && (
+                    <div>
+                      <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">
+                        About
+                      </h3>
+                      <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                        {game.description}
+                      </p>
+                    </div>
+                  )}
 
-              {game.path && (
-                <div>
-                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                    Launch target
-                  </h3>
-                  <code className="block text-xs bg-secondary rounded-xl px-3 py-2 text-foreground/80 break-all">
-                    {game.path}
-                  </code>
-                </div>
-              )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-secondary/60 p-4">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Clock className="h-3 w-3" /> Last played
+                      </div>
+                      <p className="font-semibold">{formatDate(game.lastPlayedAt)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-secondary/60 p-4">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Play className="h-3 w-3" /> Times launched
+                      </div>
+                      <p className="font-semibold">{game.playCount ?? 0}</p>
+                    </div>
+                  </div>
+
+                  {game.path && (
+                    <div>
+                      <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">
+                        Launch target
+                      </h3>
+                      <code className="block text-xs bg-secondary rounded-xl px-3 py-2 text-foreground/80 break-all">
+                        {game.path}
+                      </code>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="notes" className="pt-4">
+                  {user ? (
+                    <GameNotesTab
+                      notes={data.notes}
+                      tags={data.tags}
+                      onNotesChange={setNotes}
+                      onTagsChange={setTags}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Sign in to your Rubix account to save notes and tags.
+                    </p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="shots" className="pt-4">
+                  <GameScreenshotsTab
+                    game={game}
+                    userId={user?.id ?? null}
+                    shots={shots}
+                    setShots={setShots}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           </>
         )}
