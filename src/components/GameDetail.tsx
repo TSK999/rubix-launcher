@@ -175,13 +175,16 @@ export const GameDetail = ({
               </div>
 
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 rounded-2xl">
+                <TabsList className="grid w-full grid-cols-4 rounded-2xl">
                   <TabsTrigger value="overview" className="rounded-xl">Overview</TabsTrigger>
                   <TabsTrigger value="notes" className="rounded-xl">
                     Notes{data.tags.length ? ` · ${data.tags.length}` : ""}
                   </TabsTrigger>
                   <TabsTrigger value="shots" className="rounded-xl">
                     Shots{shots.length ? ` · ${shots.length}` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="clips" className="rounded-xl">
+                    Clips{clips.length ? ` · ${clips.length}` : ""}
                   </TabsTrigger>
                 </TabsList>
 
