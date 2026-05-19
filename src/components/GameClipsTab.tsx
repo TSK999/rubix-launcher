@@ -103,7 +103,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const safe = (game.name || "clip").replace(/[^a-z0-9-_]+/gi, "_");
+      const safe = (game.title || "clip").replace(/[^a-z0-9-_]+/gi, "_");
       a.download = `${safe}-${c.id.slice(0, 8)}.${ext}`;
       document.body.appendChild(a);
       a.click();
