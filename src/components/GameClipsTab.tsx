@@ -49,7 +49,6 @@ const formatSize = (b?: number | null) => {
 export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [lightbox, setLightbox] = useState<GameClip | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = async (files: FileList | File[]) => {
