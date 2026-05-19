@@ -575,6 +575,78 @@ export type Database = {
           },
         ]
       }
+      game_screenshots_user: {
+        Row: {
+          caption: string | null
+          created_at: string
+          game_key: string
+          height: number | null
+          id: string
+          storage_path: string
+          taken_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          game_key: string
+          height?: number | null
+          id?: string
+          storage_path: string
+          taken_at?: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          game_key?: string
+          height?: number | null
+          id?: string
+          storage_path?: string
+          taken_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      game_user_data: {
+        Row: {
+          created_at: string
+          game_key: string
+          id: string
+          notes: string
+          source: string | null
+          tags: string[]
+          title_snapshot: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_key: string
+          id?: string
+          notes?: string
+          source?: string | null
+          tags?: string[]
+          title_snapshot?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_key?: string
+          id?: string
+          notes?: string
+          source?: string | null
+          tags?: string[]
+          title_snapshot?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           age_rating: string
