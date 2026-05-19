@@ -18,8 +18,9 @@ export const KeybindManager = () => {
             toast("Not in a voice call");
             return;
           }
-          const muted = callController.toggleMute?.();
-          toast(muted ? "Microphone muted" : "Microphone unmuted");
+          const next = !state.muted;
+          callController.setMuted(next);
+          toast(next ? "Microphone muted" : "Microphone unmuted");
           break;
         }
         case "togglePresence": {
