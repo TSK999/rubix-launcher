@@ -499,6 +499,48 @@ export type Database = {
           },
         ]
       }
+      game_clips_user: {
+        Row: {
+          caption: string | null
+          created_at: string
+          duration_seconds: number | null
+          game_key: string
+          height: number | null
+          id: string
+          size_bytes: number | null
+          storage_path: string
+          taken_at: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          game_key: string
+          height?: number | null
+          id?: string
+          size_bytes?: number | null
+          storage_path: string
+          taken_at?: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          game_key?: string
+          height?: number | null
+          id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          taken_at?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       game_requirements: {
         Row: {
           cpu: string | null

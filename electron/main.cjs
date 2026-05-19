@@ -844,6 +844,29 @@ ipcMain.handle("screenshots:capture", async () => {
   return { ok: true, ...shot };
 });
 
+// ---------- Clip capture source (F9 global hotkey) ----------
+// Actual recording lives in the renderer via MediaRecorder + a rolling
+// buffer. Main just resolves the chromeMediaSource id for the active
+// display and forwards the F9 trigger.
+
+ipcMain.handle("clips:get-source", async () => {
+  try {
+    const cursor = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursor);
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: { width: 0, height: 0 },
+    });
+    const match =
+      sources.find((s) => String(s.display_id) === String(display.id)) ||
+      sources[0];
+    if (!match) return { ok: false, error: "No screen source" };
+    return { ok: true, sourceId: match.id, displayId: String(display.id) };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
 function registerShortcuts() {
   try {
     globalShortcut.register("F12", async () => {
@@ -854,6 +877,17 @@ function registerShortcuts() {
     });
   } catch (err) {
     log.warn("Failed to register screenshot shortcut", err);
+  }
+  try {
+    globalShortcut.register("F9", () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("clips:save-trigger", {
+          triggeredAt: Date.now(),
+        });
+      }
+    });
+  } catch (err) {
+    log.warn("Failed to register clip shortcut", err);
   }
 }
 

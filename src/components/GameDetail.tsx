@@ -11,6 +11,7 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { useGameUserData } from "@/hooks/useGameUserData";
 import { GameNotesTab } from "@/components/GameNotesTab";
 import { GameScreenshotsTab } from "@/components/GameScreenshotsTab";
+import { GameClipsTab } from "@/components/GameClipsTab";
 
 type Props = {
   game: Game | null;
@@ -39,7 +40,7 @@ export const GameDetail = ({
 }: Props) => {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useRubixAuth();
-  const { data, setNotes, setTags, shots, setShots } = useGameUserData(game);
+  const { data, setNotes, setTags, shots, setShots, clips, setClips } = useGameUserData(game);
 
   const refreshMetadata = async () => {
     if (!game) return;
@@ -174,13 +175,16 @@ export const GameDetail = ({
               </div>
 
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 rounded-2xl">
+                <TabsList className="grid w-full grid-cols-4 rounded-2xl">
                   <TabsTrigger value="overview" className="rounded-xl">Overview</TabsTrigger>
                   <TabsTrigger value="notes" className="rounded-xl">
                     Notes{data.tags.length ? ` · ${data.tags.length}` : ""}
                   </TabsTrigger>
                   <TabsTrigger value="shots" className="rounded-xl">
                     Shots{shots.length ? ` · ${shots.length}` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="clips" className="rounded-xl">
+                    Clips{clips.length ? ` · ${clips.length}` : ""}
                   </TabsTrigger>
                 </TabsList>
 
@@ -244,6 +248,15 @@ export const GameDetail = ({
                     userId={user?.id ?? null}
                     shots={shots}
                     setShots={setShots}
+                  />
+                </TabsContent>
+
+                <TabsContent value="clips" className="pt-4">
+                  <GameClipsTab
+                    game={game}
+                    userId={user?.id ?? null}
+                    clips={clips}
+                    setClips={setClips}
                   />
                 </TabsContent>
               </Tabs>

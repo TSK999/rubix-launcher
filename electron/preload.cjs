@@ -28,6 +28,14 @@ contextBridge.exposeInMainWorld("rubix", {
       return () => ipcRenderer.removeListener("screenshots:captured", handler);
     },
   },
+  clips: {
+    getSource: () => ipcRenderer.invoke("clips:get-source"),
+    onSaveTrigger: (cb) => {
+      const handler = (_evt, data) => cb(data);
+      ipcRenderer.on("clips:save-trigger", handler);
+      return () => ipcRenderer.removeListener("clips:save-trigger", handler);
+    },
+  },
   updater: {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),

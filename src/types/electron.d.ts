@@ -133,6 +133,15 @@ declare global {
           cb: (data: { dataUrl: string; width: number; height: number }) => void,
         ) => () => void;
       };
+      clips: {
+        getSource: () => Promise<
+          | { ok: true; sourceId: string; displayId: string }
+          | { ok: false; error: string }
+        >;
+        onSaveTrigger: (
+          cb: (data: { triggeredAt: number }) => void,
+        ) => () => void;
+      };
     };
   }
 }

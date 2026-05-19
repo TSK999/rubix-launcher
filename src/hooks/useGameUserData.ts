@@ -7,12 +7,14 @@ import {
   type GameScreenshot,
   type GameUserData,
 } from "@/lib/game-user-data";
+import { fetchGameClips, type GameClip } from "@/lib/game-clips";
 import type { Game } from "@/lib/game-types";
 
 export const useGameUserData = (game: Game | null) => {
   const { user } = useRubixAuth();
   const [data, setData] = useState<GameUserData>({ notes: "", tags: [] });
   const [shots, setShots] = useState<GameScreenshot[]>([]);
+  const [clips, setClips] = useState<GameClip[]>([]);
   const [loading, setLoading] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const lastGameId = useRef<string | null>(null);
@@ -21,6 +23,7 @@ export const useGameUserData = (game: Game | null) => {
     if (!user || !game) {
       setData({ notes: "", tags: [] });
       setShots([]);
+      setClips([]);
       lastGameId.current = null;
       return;
     }
@@ -30,10 +33,12 @@ export const useGameUserData = (game: Game | null) => {
     Promise.all([
       fetchGameUserData(user.id, game.id),
       fetchGameScreenshots(user.id, game.id),
+      fetchGameClips(user.id, game.id),
     ])
-      .then(([d, s]) => {
+      .then(([d, s, c]) => {
         setData(d);
         setShots(s);
+        setClips(c);
       })
       .finally(() => setLoading(false));
   }, [user, game]);
@@ -62,5 +67,5 @@ export const useGameUserData = (game: Game | null) => {
     });
   };
 
-  return { data, setNotes, setTags, shots, setShots, loading };
+  return { data, setNotes, setTags, shots, setShots, clips, setClips, loading };
 };

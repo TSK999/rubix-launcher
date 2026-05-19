@@ -31,6 +31,7 @@ import { IncomingCallToast } from "./components/messaging/IncomingCallToast";
 import { MiniCallWidget } from "./components/messaging/MiniCallWidget";
 import { PresenceManager } from "./components/PresenceManager";
 import { ScreenshotHotkeyManager } from "./components/ScreenshotHotkeyManager";
+import { ClipHotkeyManager } from "./components/ClipHotkeyManager";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
       <Router>
         <PresenceManager />
         <ScreenshotHotkeyManager />
+        <ClipHotkeyManager />
         <IncomingCallToast />
         <MiniCallWidget />
         <Routes>
