@@ -124,6 +124,11 @@ class ClipBuffer {
     this.stream = stream;
 
     const track = stream.getVideoTracks()[0];
+    if (!track) {
+      stream.getTracks().forEach((t) => t.stop());
+      this.setStatus("error");
+      throw new Error("Video capture started without a video track");
+    }
     const settings = track.getSettings?.() ?? {};
     this.width = settings.width ?? 0;
     this.height = settings.height ?? 0;
