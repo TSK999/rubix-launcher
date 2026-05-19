@@ -237,6 +237,10 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
               </div>
             </TabsContent>
 
+            <TabsContent value="keybinds" className="pt-4">
+              <KeybindsPanel />
+            </TabsContent>
+
             <TabsContent value="updates" className="pt-4">
               <UpdatesPanel />
             </TabsContent>
