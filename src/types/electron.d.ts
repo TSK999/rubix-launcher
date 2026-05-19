@@ -142,6 +142,15 @@ declare global {
           cb: (data: { triggeredAt: number }) => void,
         ) => () => void;
       };
+      hotkeys: {
+        set: (map: Record<string, string>) => Promise<{
+          ok: boolean;
+          active: Record<string, string>;
+          results: Record<string, { ok: boolean; accelerator?: string; error?: string }>;
+        }>;
+        get: () => Promise<{ ok: boolean; active: Record<string, string> }>;
+        onFired: (cb: (data: { action: string; at: number }) => void) => () => void;
+      };
     };
   }
 }
