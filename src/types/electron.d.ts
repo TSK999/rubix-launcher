@@ -124,6 +124,15 @@ declare global {
         clearPendingReleaseNotes: () => Promise<{ ok: boolean }>;
         onStatus: (cb: (data: UpdaterStatus) => void) => () => void;
       };
+      screenshots: {
+        capture: () => Promise<
+          | { ok: true; dataUrl: string; width: number; height: number }
+          | { ok: false; error: string }
+        >;
+        onCaptured: (
+          cb: (data: { dataUrl: string; width: number; height: number }) => void,
+        ) => () => void;
+      };
     };
   }
 }
