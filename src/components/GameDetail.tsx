@@ -11,6 +11,7 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { useGameUserData } from "@/hooks/useGameUserData";
 import { GameNotesTab } from "@/components/GameNotesTab";
 import { GameScreenshotsTab } from "@/components/GameScreenshotsTab";
+import { GameClipsTab } from "@/components/GameClipsTab";
 
 type Props = {
   game: Game | null;
