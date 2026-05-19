@@ -87,7 +87,6 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
 
   const onDelete = async (c: GameClip) => {
     setClips((prev) => prev.filter((x) => x.id !== c.id));
-    if (lightbox?.id === c.id) setLightbox(null);
     try {
       await deleteClip(c);
     } catch {
