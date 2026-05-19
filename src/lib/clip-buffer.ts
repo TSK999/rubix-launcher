@@ -53,24 +53,24 @@ class ClipBuffer {
   async start(): Promise<void> {
     if (this.status === "recording" || this.status === "starting") return;
     const api = (window as any).rubix;
-    if (!api?.isElectron || !api.clips?.getSource) {
+    if (!api?.isElectron) {
       throw new Error("Clip buffer only runs inside the desktop app");
     }
     this.setStatus("starting");
 
-    const src = await api.clips.getSource();
-    if (!src?.ok) throw new Error(src?.error || "No screen source");
-
-    const stream = await (navigator.mediaDevices as any).getUserMedia({
-      audio: false,
-      video: {
-        mandatory: {
-          chromeMediaSource: "desktop",
-          chromeMediaSourceId: src.sourceId,
-          maxFrameRate: 30,
-        },
-      },
-    });
+    // Electron ≥30 routes desktop capture through getDisplayMedia + the
+    // main-process setDisplayMediaRequestHandler we wired up. The legacy
+    // getUserMedia({ chromeMediaSource: "desktop" }) path was removed.
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 } as MediaTrackConstraints,
+        audio: false,
+      });
+    } catch (err) {
+      this.setStatus("error");
+      throw err instanceof Error ? err : new Error(String(err));
+    }
     this.stream = stream;
 
     const track = stream.getVideoTracks()[0];

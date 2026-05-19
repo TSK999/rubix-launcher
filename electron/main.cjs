@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut, desktopCapturer, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut, desktopCapturer, screen, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -924,6 +924,35 @@ ipcMain.handle("hotkeys:set", (_evt, map) => {
 ipcMain.handle("hotkeys:get", () => ({ ok: true, active: activeHotkeys }));
 
 app.whenReady().then(() => {
+  // Wire getDisplayMedia → desktopCapturer so the renderer can grab the
+  // active screen via the standard web API (Electron ≥30 removed the legacy
+  // getUserMedia chromeMediaSource path that the clip buffer used to rely on).
+  try {
+    session.defaultSession.setDisplayMediaRequestHandler(
+      async (_request, callback) => {
+        try {
+          const cursor = screen.getCursorScreenPoint();
+          const display = screen.getDisplayNearestPoint(cursor);
+          const sources = await desktopCapturer.getSources({
+            types: ["screen"],
+            thumbnailSize: { width: 0, height: 0 },
+          });
+          const match =
+            sources.find((s) => String(s.display_id) === String(display.id)) ||
+            sources[0];
+          if (!match) return callback({});
+          callback({ video: match, audio: "loopback" });
+        } catch (err) {
+          log.warn("display media handler failed", err);
+          callback({});
+        }
+      },
+      { useSystemPicker: false },
+    );
+  } catch (err) {
+    log.warn("setDisplayMediaRequestHandler unavailable", err);
+  }
+
   createWindow();
   registerShortcuts(DEFAULT_HOTKEYS);
 });
