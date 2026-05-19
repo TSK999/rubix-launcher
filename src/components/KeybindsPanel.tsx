@@ -29,6 +29,17 @@ export const KeybindsPanel = () => {
       }
       const acc = eventToAccelerator(e);
       if (!acc) return;
+      const conflict = (Object.entries(map) as [HotkeyAction, string][]).find(
+        ([id, v]) => id !== recording && v === acc,
+      );
+      if (conflict) {
+        const other = HOTKEYS.find((h) => h.id === conflict[0]);
+        toast.error("Shortcut already in use", {
+          description: `${prettyAccelerator(acc)} is bound to "${other?.label ?? conflict[0]}". Pick another combination.`,
+        });
+        setRecording(null);
+        return;
+      }
       const next = { ...map, [recording]: acc };
       setMap(next);
       saveKeybinds(next);

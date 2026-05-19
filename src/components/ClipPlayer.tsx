@@ -46,6 +46,36 @@ export const ClipPlayer = ({ src, className, poster }: Props) => {
     };
   }, [src]);
 
+  // Keyboard shortcuts while hovering: Space=play/pause, ←/→ seek 5s, M=mute
+  useEffect(() => {
+    if (!hover) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+      const v = videoRef.current;
+      if (!v) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (v.paused) void v.play();
+        else v.pause();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        v.currentTime = Math.min((v.duration || 0), v.currentTime + 5);
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        v.currentTime = Math.max(0, v.currentTime - 5);
+      } else if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        v.muted = !v.muted;
+        setMuted(v.muted);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hover]);
+
   const toggle = () => {
     const v = videoRef.current;
     if (!v) return;

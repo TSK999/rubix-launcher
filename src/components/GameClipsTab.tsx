@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
-import { Film, Loader2, Trash2, Upload } from "lucide-react";
+import { Download, Film, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClipPlayer } from "@/components/ClipPlayer";
@@ -94,6 +94,26 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
     }
   };
 
+  const onDownload = async (c: GameClip) => {
+    if (!c.url) return;
+    try {
+      const res = await fetch(c.url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "webm").split(";")[0];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safe = (game.title || "clip").replace(/[^a-z0-9-_]+/gi, "_");
+      a.download = `${safe}-${c.id.slice(0, 8)}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast.error("Download failed");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div
@@ -161,14 +181,24 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
                 ) : (
                   <div className="aspect-video w-full rounded-xl bg-secondary" />
                 )}
-                <button
-                  type="button"
-                  onClick={() => void onDelete(c)}
-                  className="absolute top-1.5 right-1.5 z-10 h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-destructive hover:bg-background"
-                  aria-label="Delete clip"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => void onDownload(c)}
+                    className="h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background"
+                    aria-label="Download clip"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onDelete(c)}
+                    className="h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur text-destructive hover:bg-background"
+                    aria-label="Delete clip"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground/80">
