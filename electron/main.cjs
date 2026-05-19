@@ -941,7 +941,10 @@ app.whenReady().then(() => {
             sources.find((s) => String(s.display_id) === String(display.id)) ||
             sources[0];
           if (!match) return callback({});
-          callback({ video: match, audio: "loopback" });
+          // The clip buffer records video-only. Supplying loopback audio here
+          // can make Chromium reject the stream on systems where desktop audio
+          // capture is unavailable, which prevents clips from starting at all.
+          callback({ video: match });
         } catch (err) {
           log.warn("display media handler failed", err);
           callback({});
