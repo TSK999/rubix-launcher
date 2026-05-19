@@ -30,40 +30,53 @@ const getCaptureStream = async (): Promise<MediaStream> => {
     getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   };
 
+  const api = (window as any).rubix;
+  if (!navigator.mediaDevices || !media.getUserMedia) {
+    throw new Error("Desktop capture is unavailable");
+  }
+
+  // Use Electron's desktopCapturer source id path first. Unlike
+  // getDisplayMedia(), this can start from the background rolling buffer
+  // without a browser user-activation gesture.
+  let sourceError: unknown;
+  if (api?.clips?.getSource) {
+    try {
+      const source = await api.clips.getSource();
+      if (!source?.ok || !source.sourceId) {
+        throw new Error(source?.error || "No screen source found");
+      }
+
+      return await media.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.sourceId,
+            maxFrameRate: 30,
+          },
+        } as unknown as MediaTrackConstraints,
+      });
+    } catch (err) {
+      sourceError = err;
+    }
+  }
+
   if (media.getDisplayMedia) {
     try {
       return await media.getDisplayMedia({
         video: { frameRate: 30 } as MediaTrackConstraints,
         audio: false,
       });
-    } catch (err) {
-      const name = err instanceof DOMException ? err.name : "";
-      // If the handler path fails in a packaged Electron build, fall back to
-      // the explicit desktopCapturer source id path below. User-denied picker
-      // errors should still surface immediately.
-      if (["NotAllowedError", "AbortError"].includes(name)) throw err;
+    } catch (displayError) {
+      const sourceMessage = sourceError instanceof Error ? sourceError.message : String(sourceError || "unknown source error");
+      const displayMessage = displayError instanceof Error ? displayError.message : String(displayError);
+      throw new Error(`Video capture failed. Source: ${sourceMessage}. Display: ${displayMessage}`);
     }
   }
 
-  const api = (window as any).rubix;
-  if (!api?.clips?.getSource || !media.getUserMedia) {
-    throw new Error("Desktop capture is unavailable");
-  }
-  const source = await api.clips.getSource();
-  if (!source?.ok || !source.sourceId) {
-    throw new Error(source?.error || "No screen source found");
-  }
-
-  return media.getUserMedia({
-    audio: false,
-    video: {
-      mandatory: {
-        chromeMediaSource: "desktop",
-        chromeMediaSourceId: source.sourceId,
-        maxFrameRate: 30,
-      },
-    } as unknown as MediaTrackConstraints,
-  });
+  throw sourceError instanceof Error
+    ? sourceError
+    : new Error("Video capture failed");
 };
 
 class ClipBuffer {
@@ -99,8 +112,8 @@ class ClipBuffer {
     }
     this.setStatus("starting");
 
-    // Prefer Electron's getDisplayMedia handler, with a desktopCapturer source
-    // fallback for packaged builds where the handler path can fail silently.
+    // Prefer Electron's desktopCapturer source-id video capture path so the
+    // rolling buffer can start automatically after sign-in.
     let stream: MediaStream;
     try {
       stream = await getCaptureStream();
@@ -111,6 +124,11 @@ class ClipBuffer {
     this.stream = stream;
 
     const track = stream.getVideoTracks()[0];
+    if (!track) {
+      stream.getTracks().forEach((t) => t.stop());
+      this.setStatus("error");
+      throw new Error("Video capture started without a video track");
+    }
     const settings = track.getSettings?.() ?? {};
     this.width = settings.width ?? 0;
     this.height = settings.height ?? 0;
