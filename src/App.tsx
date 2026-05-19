@@ -32,6 +32,7 @@ import { MiniCallWidget } from "./components/messaging/MiniCallWidget";
 import { PresenceManager } from "./components/PresenceManager";
 import { ScreenshotHotkeyManager } from "./components/ScreenshotHotkeyManager";
 import { ClipHotkeyManager } from "./components/ClipHotkeyManager";
+import { KeybindManager } from "./components/KeybindManager";
 
 const queryClient = new QueryClient();
 
