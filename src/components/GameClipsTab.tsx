@@ -1,7 +1,8 @@
 import { useRef, useState, type DragEvent } from "react";
-import { Film, Loader2, Trash2, Upload, X } from "lucide-react";
+import { Film, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ClipPlayer } from "@/components/ClipPlayer";
 import {
   deleteClip,
   uploadClip,
@@ -48,7 +49,6 @@ const formatSize = (b?: number | null) => {
 export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [lightbox, setLightbox] = useState<GameClip | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = async (files: FileList | File[]) => {
@@ -87,7 +87,6 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
 
   const onDelete = async (c: GameClip) => {
     setClips((prev) => prev.filter((x) => x.id !== c.id));
-    if (lightbox?.id === c.id) setLightbox(null);
     try {
       await deleteClip(c);
     } catch {
@@ -153,62 +152,32 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
           No clips yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {clips.map((c) => (
-            <div
-              key={c.id}
-              className="group relative aspect-video rounded-xl overflow-hidden bg-secondary cursor-pointer ring-1 ring-border"
-              onClick={() => setLightbox(c)}
-            >
-              {c.url && (
-                <video
-                  src={c.url}
-                  className="h-full w-full object-cover"
-                  preload="metadata"
-                  muted
-                />
-              )}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent px-3 py-2 text-[11px] text-foreground/90 flex items-center justify-between">
-                <span className="font-medium">
+            <div key={c.id} className="space-y-1.5">
+              <div className="relative">
+                {c.url ? (
+                  <ClipPlayer src={c.url} className="aspect-video w-full" />
+                ) : (
+                  <div className="aspect-video w-full rounded-xl bg-secondary" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => void onDelete(c)}
+                  className="absolute top-1.5 right-1.5 z-10 h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity text-destructive hover:bg-background"
+                  aria-label="Delete clip"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+                <span className="font-medium text-foreground/80">
                   {c.duration_seconds ? `${c.duration_seconds}s` : "Clip"}
                 </span>
-                <span className="text-muted-foreground">{formatSize(c.size_bytes)}</span>
+                <span>{formatSize(c.size_bytes)}</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void onDelete(c);
-                }}
-                className="absolute top-1.5 right-1.5 h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-background"
-                aria-label="Delete clip"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
             </div>
           ))}
-        </div>
-      )}
-
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-background/90 backdrop-blur grid place-items-center p-6"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            className="absolute top-4 right-4 h-9 w-9 grid place-items-center rounded-full bg-secondary"
-            onClick={() => setLightbox(null)}
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <video
-            src={lightbox.url}
-            className="max-h-full max-w-full rounded-xl shadow-2xl"
-            controls
-            autoPlay
-            onClick={(e) => e.stopPropagation()}
-          />
         </div>
       )}
     </div>

@@ -36,6 +36,15 @@ contextBridge.exposeInMainWorld("rubix", {
       return () => ipcRenderer.removeListener("clips:save-trigger", handler);
     },
   },
+  hotkeys: {
+    set: (map) => ipcRenderer.invoke("hotkeys:set", map),
+    get: () => ipcRenderer.invoke("hotkeys:get"),
+    onFired: (cb) => {
+      const handler = (_evt, data) => cb(data);
+      ipcRenderer.on("hotkeys:fired", handler);
+      return () => ipcRenderer.removeListener("hotkeys:fired", handler);
+    },
+  },
   updater: {
     check: () => ipcRenderer.invoke("updater:check"),
     install: () => ipcRenderer.invoke("updater:install"),

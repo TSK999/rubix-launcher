@@ -867,33 +867,65 @@ ipcMain.handle("clips:get-source", async () => {
   }
 });
 
-function registerShortcuts() {
-  try {
-    globalShortcut.register("F12", async () => {
-      const shot = await captureActiveScreen();
+const DEFAULT_HOTKEYS = {
+  screenshot: "F12",
+  clip: "F9",
+  toggleMute: "F7",
+  togglePresence: "F8",
+};
+
+let activeHotkeys = { ...DEFAULT_HOTKEYS };
+
+function runHotkey(action) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (action === "screenshot") {
+    captureActiveScreen().then((shot) => {
       if (shot && mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send("screenshots:captured", shot);
       }
     });
-  } catch (err) {
-    log.warn("Failed to register screenshot shortcut", err);
+    return;
   }
-  try {
-    globalShortcut.register("F9", () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("clips:save-trigger", {
-          triggeredAt: Date.now(),
-        });
-      }
-    });
-  } catch (err) {
-    log.warn("Failed to register clip shortcut", err);
+  if (action === "clip") {
+    mainWindow.webContents.send("clips:save-trigger", { triggeredAt: Date.now() });
+    return;
   }
+  mainWindow.webContents.send("hotkeys:fired", { action, at: Date.now() });
 }
+
+function registerShortcuts(map) {
+  try {
+    globalShortcut.unregisterAll();
+  } catch (_) {}
+  activeHotkeys = { ...DEFAULT_HOTKEYS, ...(map || {}) };
+  const results = {};
+  for (const [action, accel] of Object.entries(activeHotkeys)) {
+    if (!accel) {
+      results[action] = { ok: false, error: "empty" };
+      continue;
+    }
+    try {
+      const ok = globalShortcut.register(accel, () => runHotkey(action));
+      results[action] = { ok: !!ok, accelerator: accel };
+      if (!ok) log.warn("Failed to register accelerator", action, accel);
+    } catch (err) {
+      results[action] = { ok: false, error: String(err && err.message) };
+      log.warn("Error registering accelerator", action, accel, err);
+    }
+  }
+  return results;
+}
+
+ipcMain.handle("hotkeys:set", (_evt, map) => {
+  const results = registerShortcuts(map);
+  return { ok: true, active: activeHotkeys, results };
+});
+
+ipcMain.handle("hotkeys:get", () => ({ ok: true, active: activeHotkeys }));
 
 app.whenReady().then(() => {
   createWindow();
-  registerShortcuts();
+  registerShortcuts(DEFAULT_HOTKEYS);
 });
 
 app.on("will-quit", () => {
