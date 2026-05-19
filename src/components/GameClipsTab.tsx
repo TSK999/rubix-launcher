@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
-import { Film, Loader2, Trash2, Upload } from "lucide-react";
+import { Download, Film, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClipPlayer } from "@/components/ClipPlayer";
