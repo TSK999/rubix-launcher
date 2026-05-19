@@ -250,6 +250,15 @@ export const GameDetail = ({
                     setShots={setShots}
                   />
                 </TabsContent>
+
+                <TabsContent value="clips" className="pt-4">
+                  <GameClipsTab
+                    game={game}
+                    userId={user?.id ?? null}
+                    clips={clips}
+                    setClips={setClips}
+                  />
+                </TabsContent>
               </Tabs>
             </div>
           </>
