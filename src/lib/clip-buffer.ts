@@ -25,6 +25,47 @@ const BUFFER_SECONDS = 30;
 const TIMESLICE_MS = 1000;
 const MAX_CHUNKS = BUFFER_SECONDS + 4; // small safety margin
 
+const getCaptureStream = async (): Promise<MediaStream> => {
+  const media = navigator.mediaDevices as MediaDevices & {
+    getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
+  };
+
+  if (media.getDisplayMedia) {
+    try {
+      return await media.getDisplayMedia({
+        video: { frameRate: 30 } as MediaTrackConstraints,
+        audio: false,
+      });
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
+      // If the handler path fails in a packaged Electron build, fall back to
+      // the explicit desktopCapturer source id path below. User-denied picker
+      // errors should still surface immediately.
+      if (["NotAllowedError", "AbortError"].includes(name)) throw err;
+    }
+  }
+
+  const api = (window as any).rubix;
+  if (!api?.clips?.getSource || !media.getUserMedia) {
+    throw new Error("Desktop capture is unavailable");
+  }
+  const source = await api.clips.getSource();
+  if (!source?.ok || !source.sourceId) {
+    throw new Error(source?.error || "No screen source found");
+  }
+
+  return media.getUserMedia({
+    audio: false,
+    video: {
+      mandatory: {
+        chromeMediaSource: "desktop",
+        chromeMediaSourceId: source.sourceId,
+        maxFrameRate: 30,
+      },
+    } as unknown as MediaTrackConstraints,
+  });
+};
+
 class ClipBuffer {
   private stream: MediaStream | null = null;
   private recorder: MediaRecorder | null = null;
@@ -58,15 +99,11 @@ class ClipBuffer {
     }
     this.setStatus("starting");
 
-    // Electron ≥30 routes desktop capture through getDisplayMedia + the
-    // main-process setDisplayMediaRequestHandler we wired up. The legacy
-    // getUserMedia({ chromeMediaSource: "desktop" }) path was removed.
+    // Prefer Electron's getDisplayMedia handler, with a desktopCapturer source
+    // fallback for packaged builds where the handler path can fail silently.
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: 30 } as MediaTrackConstraints,
-        audio: false,
-      });
+      stream = await getCaptureStream();
     } catch (err) {
       this.setStatus("error");
       throw err instanceof Error ? err : new Error(String(err));
