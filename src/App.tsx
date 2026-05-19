@@ -46,6 +46,7 @@ const App = () => (
       <Router>
         <PresenceManager />
         <ScreenshotHotkeyManager />
+        <ClipHotkeyManager />
         <IncomingCallToast />
         <MiniCallWidget />
         <Routes>
