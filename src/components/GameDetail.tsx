@@ -40,7 +40,7 @@ export const GameDetail = ({
 }: Props) => {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useRubixAuth();
-  const { data, setNotes, setTags, shots, setShots } = useGameUserData(game);
+  const { data, setNotes, setTags, shots, setShots, clips, setClips } = useGameUserData(game);
 
   const refreshMetadata = async () => {
     if (!game) return;
