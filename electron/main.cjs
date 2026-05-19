@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog, globalShortcut, desktopCapturer, screen } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -805,7 +805,66 @@ ipcMain.handle("xbox:launch", async (_evt, payload) => {
   }
 });
 
-app.whenReady().then(createWindow);
+// ---------- Screenshot capture (F12 global hotkey) ----------
+
+async function captureActiveScreen() {
+  try {
+    const cursor = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursor);
+    const { width, height } = display.size;
+    const scale = display.scaleFactor || 1;
+    const thumbSize = {
+      width: Math.round(width * scale),
+      height: Math.round(height * scale),
+    };
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: thumbSize,
+    });
+    // Best-effort match by display id; fall back to first source
+    const match =
+      sources.find((s) => String(s.display_id) === String(display.id)) ||
+      sources[0];
+    if (!match) return null;
+    const buf = match.thumbnail.toPNG();
+    return {
+      dataUrl: `data:image/png;base64,${buf.toString("base64")}`,
+      width: match.thumbnail.getSize().width,
+      height: match.thumbnail.getSize().height,
+    };
+  } catch (err) {
+    log.warn("Screenshot capture failed", err);
+    return null;
+  }
+}
+
+ipcMain.handle("screenshots:capture", async () => {
+  const shot = await captureActiveScreen();
+  if (!shot) return { ok: false, error: "Capture failed" };
+  return { ok: true, ...shot };
+});
+
+function registerShortcuts() {
+  try {
+    globalShortcut.register("F12", async () => {
+      const shot = await captureActiveScreen();
+      if (shot && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("screenshots:captured", shot);
+      }
+    });
+  } catch (err) {
+    log.warn("Failed to register screenshot shortcut", err);
+  }
+}
+
+app.whenReady().then(() => {
+  createWindow();
+  registerShortcuts();
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
