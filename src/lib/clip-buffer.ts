@@ -264,8 +264,16 @@ class ClipBuffer {
     rec.ondataavailable = (e) => {
       const endedAt = Date.now();
       if (!e.data || e.data.size === 0) return;
-      this.chunks.push({ blob: e.data, startedAt: chunkStartedAt, endedAt });
+      const chunk: BufferedChunk = { blob: e.data, startedAt: chunkStartedAt, endedAt };
       chunkStartedAt = endedAt;
+      // The first chunk emitted by MediaRecorder carries the WebM init/header
+      // segment. Without it, any later slice is an unplayable/corrupt file.
+      // Keep it pinned and prepend on save.
+      if (!this.initChunk) {
+        this.initChunk = chunk;
+        return;
+      }
+      this.chunks.push(chunk);
       if (this.chunks.length > MAX_CHUNKS) {
         this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
       }
