@@ -139,6 +139,19 @@ declare global {
           | { ok: true; sourceId: string; displayId: string; name?: string }
           | { ok: false; error: string }
         >;
+        listDisplays: () => Promise<{
+          ok: boolean;
+          displays: Array<{
+            id: string;
+            label: string;
+            width: number;
+            height: number;
+            isPrimary: boolean;
+            isCursor: boolean;
+          }>;
+          error?: string;
+        }>;
+        setPreferredDisplay: (displayId: string | null) => Promise<{ ok: boolean }>;
         onSaveTrigger: (
           cb: (data: { triggeredAt: number }) => void,
         ) => () => void;
