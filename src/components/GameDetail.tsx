@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Clock, Gamepad2, Heart, Loader2, Pencil, Play, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { searchRawg } from "@/lib/rawg";
@@ -75,6 +75,7 @@ export const GameDetail = ({
         >
         {game && (
           <>
+            <SheetTitle className="sr-only">{game.title}</SheetTitle>
             {/* Hero banner */}
             <div className="relative aspect-video bg-secondary overflow-hidden">
               {game.cover ? (
