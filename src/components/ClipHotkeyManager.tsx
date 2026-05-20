@@ -80,7 +80,7 @@ export const ClipHotkeyManager = () => {
         return;
       }
       try {
-        const clip = await clipBuffer.saveClip(30);
+        const clip = await clipBuffer.saveClip(getClipPrefs().durationSeconds);
         toast.loading(`Saving ${clip.durationSeconds}s clip…`, { id: "clip-save" });
         const saved = await uploadClip(user.id, game.id, clip.blob, {
           duration_seconds: clip.durationSeconds,
