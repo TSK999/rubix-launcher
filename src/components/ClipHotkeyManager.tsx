@@ -36,7 +36,14 @@ export const ClipHotkeyManager = () => {
     if (!api?.isElectron || !api.clips?.onSaveTrigger) return;
     if (!user) return;
 
-    const unsubStatus = clipBuffer.subscribe(setStatus);
+    const unsubStatus = clipBuffer.subscribe((next) => {
+      setStatus(next);
+      window.dispatchEvent(
+        new CustomEvent("rubix:clips-status", {
+          detail: { status: next, error: clipBuffer.getLastError() },
+        }),
+      );
+    });
 
     const startRecorder = async (preferDisplayMedia = false) => {
       try {
