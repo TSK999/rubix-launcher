@@ -41,6 +41,7 @@ import { searchRawg } from "@/lib/rawg";
 import { applyTheme, clearTheme, importThemeFromFile, saveTheme } from "@/lib/theme-loader";
 import { THEME_FILE_EXT } from "@/lib/theme-schema";
 import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/game-types";
+import { getGameLaunchTarget, isExternalProtocol, openExternalProtocol } from "@/lib/game-launch";
 
 const RECENT_WINDOW_DAYS = 30;
 
@@ -287,20 +288,22 @@ const Index = () => {
       return;
     }
 
-    if (!g.path) {
+    const launchTarget = getGameLaunchTarget(g);
+
+    if (!launchTarget) {
       toast(`No launch path set for ${g.title}`, {
         description: "Edit the game to add a path or URL.",
       });
       return;
     }
     if (window.rubix?.isElectron) {
-      const res = await window.rubix.launchGame(g.path);
+      const res = await window.rubix.launchGame(launchTarget);
       if (res.ok) toast.success(`Launching ${g.title}`);
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(g.path)) {
-      window.open(g.path, "_blank");
+    if (isExternalProtocol(launchTarget)) {
+      openExternalProtocol(launchTarget);
       toast.success(`Opening ${g.title}`);
     } else {
       toast.error("Local files can only be launched in the desktop app", {

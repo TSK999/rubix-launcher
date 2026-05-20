@@ -14,6 +14,7 @@ import { fetchNowPlaying, fetchSpotifyLinkedUsers, type SpotifyTrack } from "@/l
 import { getOrCreateDm } from "@/lib/messaging";
 import { usePresenceMap } from "@/lib/presence";
 import { SteamProfileDialog } from "@/components/SteamProfileDialog";
+import { openExternalProtocol, steamLaunchTarget } from "@/lib/game-launch";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import spotifyIcon from "@/assets/spotify-icon.png";
 
@@ -54,7 +55,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
   const launchFriendGame = async (e: React.MouseEvent, gameId: string, gameName: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const target = `steam://rungameid/${gameId}`;
+    const target = steamLaunchTarget(gameId);
     if (window.rubix?.isElectron) {
       const res = await window.rubix.launchGame(target);
       if (res.ok) {
@@ -63,7 +64,7 @@ export const SteamFriendsPanel = ({ steamId }: Props) => {
         toast.error("Couldn't launch", { description: res.error });
       }
     } else {
-      window.location.href = target;
+      openExternalProtocol(target);
     }
   };
 
