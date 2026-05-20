@@ -4,6 +4,7 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { uploadClip } from "@/lib/game-clips";
 import { clipBuffer, type ClipBufferStatus } from "@/lib/clip-buffer";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
+import { getClipPrefs, onClipPrefsChange } from "@/lib/clip-prefs";
 
 const findMostRecentGame = (): Game | null => {
   try {
@@ -79,7 +80,7 @@ export const ClipHotkeyManager = () => {
         return;
       }
       try {
-        const clip = await clipBuffer.saveClip(30);
+        const clip = await clipBuffer.saveClip(getClipPrefs().durationSeconds);
         toast.loading(`Saving ${clip.durationSeconds}s clip…`, { id: "clip-save" });
         const saved = await uploadClip(user.id, game.id, clip.blob, {
           duration_seconds: clip.durationSeconds,
@@ -101,10 +102,24 @@ export const ClipHotkeyManager = () => {
     window.addEventListener("rubix:clips-arm", onArm);
     window.addEventListener("rubix:clips-start-background", onBackgroundStart);
 
+    // Push pinned display to main and restart recorder whenever clip prefs
+    // change (monitor / mic / audio toggles), so changes take effect live.
+    const pushDisplayPref = (id: string | null) => {
+      void api.clips.setPreferredDisplay?.(id ?? "");
+    };
+    pushDisplayPref(getClipPrefs().displayId);
+    const offPrefs = onClipPrefsChange((p) => {
+      pushDisplayPref(p.displayId);
+      if (clipBuffer.getStatus() === "recording") {
+        void startRecorder(false, true);
+      }
+    });
+
     return () => {
       offSave?.();
       window.removeEventListener("rubix:clips-arm", onArm);
       window.removeEventListener("rubix:clips-start-background", onBackgroundStart);
+      offPrefs();
       unsubStatus();
       clipBuffer.stop();
     };

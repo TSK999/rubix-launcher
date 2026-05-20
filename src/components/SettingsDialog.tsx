@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Gamepad2, Keyboard, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
+import { Film, Gamepad2, Keyboard, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeManager } from "@/components/ThemeManager";
 import { KeybindsPanel } from "@/components/KeybindsPanel";
 import { UpdatesPanel } from "@/components/UpdatesPanel";
+import { ClipsSettingsPanel } from "@/components/ClipsSettingsPanel";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
@@ -113,10 +114,14 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
           </DialogHeader>
 
           <Tabs defaultValue="account" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="connections">Connections</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
+              <TabsTrigger value="clips">
+                <Film className="mr-1.5 h-3.5 w-3.5" />
+                Clips
+              </TabsTrigger>
               <TabsTrigger value="keybinds">
                 <Keyboard className="mr-1.5 h-3.5 w-3.5" />
                 Keys
@@ -235,6 +240,10 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
                 </div>
                 <ThemeManager embedded />
               </div>
+            </TabsContent>
+
+            <TabsContent value="clips" className="pt-4">
+              <ClipsSettingsPanel />
             </TabsContent>
 
             <TabsContent value="keybinds" className="pt-4">

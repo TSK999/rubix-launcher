@@ -9,6 +9,12 @@
  * Lives entirely in the renderer; main only resolves the desktopCapturer
  * source id and fires the F9 trigger.
  */
+import {
+  CLIP_DURATION_DEFAULT,
+  CLIP_DURATION_MAX,
+  getClipPrefs,
+} from "./clip-prefs";
+
 
 export type ClipBufferStatus = "idle" | "starting" | "recording" | "error";
 
@@ -29,9 +35,11 @@ type PreparedCapture = {
   hasAudio: boolean;
 };
 
-const BUFFER_SECONDS = 30;
 const TIMESLICE_MS = 1000;
-const MAX_CHUNKS = BUFFER_SECONDS + 4; // small safety margin
+// Buffer enough seconds for the longest configurable clip length, with a
+// small safety margin so the last chunk is always available on save.
+const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
+
 
 const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
   if (!media.getDisplayMedia) {
@@ -118,22 +126,46 @@ const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream
 };
 
 const getMicStream = async (media: MediaDevices): Promise<MediaStream | null> => {
+  const prefs = getClipPrefs();
+  if (!prefs.includeMic) return null;
+  const baseAudio: MediaTrackConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  if (prefs.micDeviceId) {
+    (baseAudio as MediaTrackConstraints & { deviceId?: ConstrainDOMString }).deviceId = {
+      exact: prefs.micDeviceId,
+    } as ConstrainDOMString;
+  }
   try {
-    return await media.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-      video: false,
-    });
+    return await media.getUserMedia({ audio: baseAudio, video: false });
   } catch {
+    // Fall back to default mic if the pinned device is no longer available.
+    if (prefs.micDeviceId) {
+      try {
+        return await media.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+          video: false,
+        });
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
 };
 
 const mixAudioIntoCapture = async (capture: MediaStream): Promise<PreparedCapture> => {
   const media = navigator.mediaDevices;
+  const prefs = getClipPrefs();
+  // Drop loopback tracks if the user disabled desktop audio.
+  if (!prefs.includeDesktopAudio) {
+    capture.getAudioTracks().forEach((t) => {
+      t.stop();
+      capture.removeTrack(t);
+    });
+  }
   const mic = await getMicStream(media);
   const audioTracks = [...capture.getAudioTracks(), ...(mic?.getAudioTracks() ?? [])];
   if (audioTracks.length === 0) {
@@ -305,7 +337,7 @@ class ClipBuffer {
     this.setStatus("idle");
   }
 
-  async saveClip(seconds = BUFFER_SECONDS): Promise<ClipResult> {
+  async saveClip(seconds = getClipPrefs().durationSeconds || CLIP_DURATION_DEFAULT): Promise<ClipResult> {
     if (this.status !== "recording" || !this.recorder) {
       throw new Error("Buffer is not recording");
     }

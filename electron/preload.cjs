@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("rubix", {
   clips: {
     setTarget: (target) => ipcRenderer.invoke("clips:set-target", target),
     getSource: () => ipcRenderer.invoke("clips:get-source"),
+    listDisplays: () => ipcRenderer.invoke("clips:list-displays"),
+    setPreferredDisplay: (displayId) =>
+      ipcRenderer.invoke("clips:set-preferred-display", displayId),
     onSaveTrigger: (cb) => {
       const handler = (_evt, data) => cb(data);
       ipcRenderer.on("clips:save-trigger", handler);
