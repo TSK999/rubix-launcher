@@ -930,12 +930,17 @@ ipcMain.handle("hotkeys:get", () => ({ ok: true, active: activeHotkeys }));
 
 app.whenReady().then(() => {
   try {
-    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-      const allowed = ["media", "display-capture"].includes(permission);
-      callback(allowed);
+    const isCapturePermission = (permission, details = {}) => {
+      if (permission === "display-capture") return true;
+      if (permission !== "media") return false;
+      const mediaTypes = Array.isArray(details.mediaTypes) ? details.mediaTypes : [];
+      return mediaTypes.includes("video") || mediaTypes.includes("screen");
+    };
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+      callback(isCapturePermission(permission, details));
     });
-    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
-      return ["media", "display-capture"].includes(permission);
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission, _origin, details) => {
+      return isCapturePermission(permission, details);
     });
   } catch (err) {
     log.warn("capture permission handler unavailable", err);
