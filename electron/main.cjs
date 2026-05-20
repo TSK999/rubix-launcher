@@ -137,6 +137,23 @@ ipcMain.handle("launch-game", async (_evt, target) => {
       await shell.openExternal(trimmed);
       return { ok: true, method: "url" };
     } catch (err) {
+      // Fallback for Windows: shell.openExternal sometimes fails with
+      // 0x800401F5 (APPMODEL_ERROR_NO_APPLICATION) for steam:// and other
+      // custom URI schemes when invoked from a packaged Electron app.
+      // Use cmd's `start` which goes through ShellExecuteEx and reliably
+      // resolves registered protocol handlers.
+      if (process.platform === "win32") {
+        try {
+          const child = spawn("cmd.exe", ["/c", "start", "", trimmed], {
+            detached: true,
+            stdio: "ignore",
+          });
+          child.unref();
+          return { ok: true, method: "cmd-start" };
+        } catch (err2) {
+          return { ok: false, error: `${err} | fallback: ${err2}` };
+        }
+      }
       return { ok: false, error: String(err) };
     }
   }
