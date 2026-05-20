@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Gamepad2, Keyboard, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
+import { Film, Gamepad2, Keyboard, Link2, LogOut, Mic, Palette, Pencil, RefreshCw, Settings, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
