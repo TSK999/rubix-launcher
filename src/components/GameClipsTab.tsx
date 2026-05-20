@@ -183,8 +183,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
         </div>
         {typeof window !== "undefined" && (window as any).rubix?.isElectron && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Tip: press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">F9</kbd> in-game
-            to save the last 30 seconds of gameplay.
+            Press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">Arm recorder</kbd> once if Windows asks for capture access, then press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">F9</kbd> in-game to save the last 30 seconds.
           </p>
         )}
       </div>
