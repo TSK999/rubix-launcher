@@ -19,6 +19,12 @@ const signedUrlFor = async (path: string) => {
   return data?.signedUrl ?? "";
 };
 
+const clipContentType = (file: Blob) => {
+  if (file.type.startsWith("video/mp4")) return "video/mp4";
+  if (file.type.startsWith("video/webm")) return "video/webm";
+  return file.type || "video/webm";
+};
+
 export const fetchGameClips = async (
   userId: string,
   gameKey: string,
@@ -46,7 +52,8 @@ export const uploadClip = async (
     caption?: string;
   },
 ): Promise<GameClip> => {
-  const ext = (file.type.split("/")[1] || "webm").split(";")[0];
+  const contentType = clipContentType(file);
+  const ext = (contentType.split("/")[1] || "webm").split(";")[0];
   const safeKey = gameKey.replace(/[^a-zA-Z0-9_-]/g, "_");
   const path = `${userId}/${safeKey}/${Date.now()}-${Math.random()
     .toString(36)
@@ -54,7 +61,7 @@ export const uploadClip = async (
   const { error: upErr } = await supabase.storage
     .from("game-clips")
     .upload(path, file, {
-      contentType: file.type || "video/webm",
+      contentType,
       upsert: false,
     });
   if (upErr) throw upErr;
