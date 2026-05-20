@@ -25,58 +25,61 @@ const BUFFER_SECONDS = 30;
 const TIMESLICE_MS = 1000;
 const MAX_CHUNKS = BUFFER_SECONDS + 4; // small safety margin
 
-const getCaptureStream = async (): Promise<MediaStream> => {
+const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
+  if (!media.getDisplayMedia) {
+    throw new Error("Display capture is unavailable");
+  }
+  return media.getDisplayMedia({
+    video: { frameRate: 30 } as MediaTrackConstraints,
+    audio: false,
+  });
+};
+
+const getLegacyDesktopCapture = async (
+  media: MediaDevices & { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> },
+): Promise<MediaStream> => {
+  const api = (window as any).rubix;
+  if (!api?.clips?.getSource) {
+    throw new Error("Desktop source bridge is unavailable");
+  }
+  const source = await api.clips.getSource();
+  if (!source?.ok || !source.sourceId) {
+    throw new Error(source?.error || "No screen source found");
+  }
+
+  return media.getUserMedia!({
+    audio: false,
+    video: {
+      mandatory: {
+        chromeMediaSource: "desktop",
+        chromeMediaSourceId: source.sourceId,
+        maxFrameRate: 30,
+      },
+    } as unknown as MediaTrackConstraints,
+  });
+};
+
+const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream> => {
   const media = navigator.mediaDevices as MediaDevices & {
     getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   };
-
-  const api = (window as any).rubix;
   if (!navigator.mediaDevices || !media.getUserMedia) {
     throw new Error("Desktop capture is unavailable");
   }
 
-  // Use Electron's desktopCapturer source id path first. Unlike
-  // getDisplayMedia(), this can start from the background rolling buffer
-  // without a browser user-activation gesture.
-  let sourceError: unknown;
-  if (api?.clips?.getSource) {
-    try {
-      const source = await api.clips.getSource();
-      if (!source?.ok || !source.sourceId) {
-        throw new Error(source?.error || "No screen source found");
-      }
+  const attempts = preferDisplayMedia
+    ? [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)]
+    : [() => getLegacyDesktopCapture(media), () => getDisplayCapture(media)];
 
-      return await media.getUserMedia({
-        audio: false,
-        video: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-            chromeMediaSourceId: source.sourceId,
-            maxFrameRate: 30,
-          },
-        } as unknown as MediaTrackConstraints,
-      });
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
     } catch (err) {
-      sourceError = err;
+      errors.push(err instanceof Error ? err.message : String(err));
     }
   }
-
-  if (media.getDisplayMedia) {
-    try {
-      return await media.getDisplayMedia({
-        video: { frameRate: 30 } as MediaTrackConstraints,
-        audio: false,
-      });
-    } catch (displayError) {
-      const sourceMessage = sourceError instanceof Error ? sourceError.message : String(sourceError || "unknown source error");
-      const displayMessage = displayError instanceof Error ? displayError.message : String(displayError);
-      throw new Error(`Video capture failed. Source: ${sourceMessage}. Display: ${displayMessage}`);
-    }
-  }
-
-  throw sourceError instanceof Error
-    ? sourceError
-    : new Error("Video capture failed");
+  throw new Error(`Video capture failed: ${errors.filter(Boolean).join(" | ")}`);
 };
 
 class ClipBuffer {
@@ -87,10 +90,15 @@ class ClipBuffer {
   private width = 0;
   private height = 0;
   private status: ClipBufferStatus = "idle";
+  private lastError = "";
   private listeners = new Set<Listener>();
 
   getStatus() {
     return this.status;
+  }
+
+  getLastError() {
+    return this.lastError;
   }
 
   subscribe(l: Listener) {
@@ -99,12 +107,13 @@ class ClipBuffer {
     return () => this.listeners.delete(l);
   }
 
-  private setStatus(s: ClipBufferStatus) {
+  private setStatus(s: ClipBufferStatus, error = "") {
     this.status = s;
+    this.lastError = error;
     this.listeners.forEach((l) => l(s));
   }
 
-  async start(): Promise<void> {
+  async start(options?: { preferDisplayMedia?: boolean }): Promise<void> {
     if (this.status === "recording" || this.status === "starting") return;
     const api = (window as any).rubix;
     if (!api?.isElectron) {
@@ -116,17 +125,18 @@ class ClipBuffer {
     // rolling buffer can start automatically after sign-in.
     let stream: MediaStream;
     try {
-      stream = await getCaptureStream();
+      stream = await getCaptureStream(Boolean(options?.preferDisplayMedia));
     } catch (err) {
-      this.setStatus("error");
-      throw err instanceof Error ? err : new Error(String(err));
+      const error = err instanceof Error ? err.message : String(err);
+      this.setStatus("error", error);
+      throw new Error(error);
     }
     this.stream = stream;
 
     const track = stream.getVideoTracks()[0];
     if (!track) {
       stream.getTracks().forEach((t) => t.stop());
-      this.setStatus("error");
+      this.setStatus("error", "Video capture started without a video track");
       throw new Error("Video capture started without a video track");
     }
     const settings = track.getSettings?.() ?? {};
@@ -135,7 +145,6 @@ class ClipBuffer {
 
     // Pick a supported codec.
     const candidates = [
-      "video/webm;codecs=vp9,opus",
       "video/webm;codecs=vp9",
       "video/webm;codecs=vp8",
       "video/webm",
@@ -183,9 +192,14 @@ class ClipBuffer {
     await new Promise<void>((resolve) => {
       const rec = this.recorder!;
       const once = () => {
+        window.clearTimeout(timeout);
         rec.removeEventListener("dataavailable", once);
         resolve();
       };
+      const timeout = window.setTimeout(() => {
+        rec.removeEventListener("dataavailable", once);
+        resolve();
+      }, 1200);
       rec.addEventListener("dataavailable", once);
       try {
         rec.requestData();
@@ -195,6 +209,9 @@ class ClipBuffer {
     });
 
     const want = Math.min(seconds, this.chunks.length);
+    if (want <= 0) {
+      throw new Error("Clip recorder is warming up — try again in a few seconds");
+    }
     const slice = this.chunks.slice(-Math.max(want, 1));
     const blob = new Blob(slice, { type: this.mime });
     return {

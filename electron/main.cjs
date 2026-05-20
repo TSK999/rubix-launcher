@@ -5,6 +5,11 @@ const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 
+// Keep desktop capture available for the recorder on Chromium/Electron builds
+// that still honor the legacy chromeMediaSource path. Modern builds use the
+// setDisplayMediaRequestHandler below.
+app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
+
 // ---------- Auto-updater setup ----------
 log.transports.file.level = "info";
 autoUpdater.logger = log;
@@ -924,6 +929,20 @@ ipcMain.handle("hotkeys:set", (_evt, map) => {
 ipcMain.handle("hotkeys:get", () => ({ ok: true, active: activeHotkeys }));
 
 app.whenReady().then(() => {
+  try {
+    const isMediaPermission = (permission) => {
+      return ["media", "display-capture"].includes(permission);
+    };
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+      callback(isMediaPermission(permission));
+    });
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+      return isMediaPermission(permission);
+    });
+  } catch (err) {
+    log.warn("capture permission handler unavailable", err);
+  }
+
   // Wire getDisplayMedia → desktopCapturer so the renderer can grab the
   // active screen via the standard web API (Electron ≥30 removed the legacy
   // getUserMedia chromeMediaSource path that the clip buffer used to rely on).

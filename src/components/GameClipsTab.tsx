@@ -1,5 +1,5 @@
-import { useRef, useState, type DragEvent } from "react";
-import { Download, Film, Loader2, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import { Download, Film, Loader2, Radio, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClipPlayer } from "@/components/ClipPlayer";
@@ -9,6 +9,7 @@ import {
   type GameClip,
 } from "@/lib/game-clips";
 import type { Game } from "@/lib/game-types";
+import type { ClipBufferStatus } from "@/lib/clip-buffer";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -49,7 +50,27 @@ const formatSize = (b?: number | null) => {
 export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [recorderStatus, setRecorderStatus] = useState<ClipBufferStatus>("idle");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem("rubix:active-clip-game", JSON.stringify(game));
+    const onSaved = (event: Event) => {
+      const detail = (event as CustomEvent<{ gameId: string; clip: GameClip }>).detail;
+      if (detail?.gameId !== game.id || !detail.clip) return;
+      setClips((prev) => [detail.clip, ...prev.filter((c) => c.id !== detail.clip.id)]);
+    };
+    const onStatus = (event: Event) => {
+      const detail = (event as CustomEvent<{ status: ClipBufferStatus }>).detail;
+      if (detail?.status) setRecorderStatus(detail.status);
+    };
+    window.addEventListener("rubix:clip-saved", onSaved);
+    window.addEventListener("rubix:clips-status", onStatus);
+    return () => {
+      window.removeEventListener("rubix:clip-saved", onSaved);
+      window.removeEventListener("rubix:clips-status", onStatus);
+    };
+  }, [game, setClips]);
 
   const handleFiles = async (files: FileList | File[]) => {
     if (!userId) {
@@ -135,6 +156,22 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
             <span className="text-muted-foreground">· drag a video here or</span>
           </div>
           <div className="flex items-center gap-2">
+            {typeof window !== "undefined" && (window as any).rubix?.isElectron && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-xl"
+                disabled={recorderStatus === "starting"}
+                onClick={() => window.dispatchEvent(new CustomEvent("rubix:clips-arm"))}
+              >
+                {recorderStatus === "starting" ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Radio className={cn("h-3.5 w-3.5 mr-1.5", recorderStatus === "recording" && "text-primary")} />
+                )}
+                {recorderStatus === "recording" ? "Armed" : "Arm recorder"}
+              </Button>
+            )}
             <input
               ref={inputRef}
               type="file"
@@ -161,8 +198,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
         </div>
         {typeof window !== "undefined" && (window as any).rubix?.isElectron && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Tip: press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">F9</kbd> in-game
-            to save the last 30 seconds of gameplay.
+            Press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">Arm recorder</kbd> once if Windows asks for capture access, then press <kbd className="px-1 py-0.5 rounded bg-background border border-border font-mono text-[10px]">F9</kbd> in-game to save the last 30 seconds.
           </p>
         )}
       </div>
@@ -175,7 +211,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {clips.map((c) => (
             <div key={c.id} className="space-y-1.5">
-              <div className="relative">
+              <div className="group relative">
                 {c.url ? (
                   <ClipPlayer src={c.url} className="aspect-video w-full" />
                 ) : (
