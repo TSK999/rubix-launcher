@@ -12,10 +12,14 @@ import {
 import {
   CLIP_DURATION_MAX,
   CLIP_DURATION_MIN,
+  CLIP_FRAMERATES,
+  CLIP_RESOLUTIONS,
   getClipPrefs,
   onClipPrefsChange,
   setClipPrefs,
+  type ClipFramerate,
   type ClipPrefs,
+  type ClipResolution,
 } from "@/lib/clip-prefs";
 import { listMicDevicesWithPermission, type MicDevice } from "@/lib/audio-devices";
 
