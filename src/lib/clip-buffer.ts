@@ -35,9 +35,11 @@ type PreparedCapture = {
   hasAudio: boolean;
 };
 
-const BUFFER_SECONDS = 30;
 const TIMESLICE_MS = 1000;
-const MAX_CHUNKS = BUFFER_SECONDS + 4; // small safety margin
+// Buffer enough seconds for the longest configurable clip length, with a
+// small safety margin so the last chunk is always available on save.
+const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
+
 
 const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
   if (!media.getDisplayMedia) {
