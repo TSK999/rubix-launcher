@@ -301,6 +301,7 @@ class ClipBuffer {
     this.audioContext = null;
     this.audioNodes = [];
     this.chunks = [];
+    this.initChunk = null;
     this.setStatus("idle");
   }
 
