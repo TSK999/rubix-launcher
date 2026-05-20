@@ -214,8 +214,9 @@ class ClipBuffer {
       throw new Error("Video capture started without a video track");
     }
     const settings = track.getSettings?.() ?? {};
-    this.width = settings.width ?? 0;
-    this.height = settings.height ?? 0;
+    const rubixStream = stream as RubixCaptureStream;
+    this.width = settings.width ?? rubixStream.__rubixWidth ?? 0;
+    this.height = settings.height ?? rubixStream.__rubixHeight ?? 0;
 
     // Pick a supported codec.
     const candidates = [
@@ -251,6 +252,7 @@ class ClipBuffer {
     } catch {
       /* noop */
     }
+    (this.stream as RubixCaptureStream | null)?.__rubixStop?.();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.recorder = null;
     this.stream = null;
