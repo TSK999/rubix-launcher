@@ -20,10 +20,32 @@ export type ClipResult = {
 };
 
 type Listener = (s: ClipBufferStatus) => void;
+type RubixCaptureStream = MediaStream & {
+  __rubixStop?: () => void;
+  __rubixWidth?: number;
+  __rubixHeight?: number;
+};
 
 const BUFFER_SECONDS = 30;
 const TIMESLICE_MS = 1000;
 const MAX_CHUNKS = BUFFER_SECONDS + 4; // small safety margin
+
+const drawDataUrl = (
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  dataUrl: string,
+  requestFrame?: () => void,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      requestFrame?.();
+      resolve();
+    };
+    img.onerror = () => reject(new Error("Screenshot frame could not be decoded"));
+    img.src = dataUrl;
+  });
 
 const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
   if (!media.getDisplayMedia) {
@@ -59,6 +81,58 @@ const getLegacyDesktopCapture = async (
   });
 };
 
+const getScreenshotCanvasCapture = async (): Promise<RubixCaptureStream> => {
+  const api = (window as any).rubix;
+  if (!api?.screenshots?.capture) {
+    throw new Error("Screenshot capture bridge is unavailable");
+  }
+  const canvas = document.createElement("canvas");
+  if (!canvas.captureStream) {
+    throw new Error("Canvas video capture is unavailable");
+  }
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) throw new Error("Canvas renderer is unavailable");
+
+  const first = await api.screenshots.capture();
+  if (!first?.ok || !first.dataUrl) {
+    throw new Error(first?.error || "Screen frame capture failed");
+  }
+  canvas.width = Math.max(2, first.width || 1280);
+  canvas.height = Math.max(2, first.height || 720);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const stream = canvas.captureStream(8) as RubixCaptureStream;
+  const track = stream.getVideoTracks()[0] as (CanvasCaptureMediaStreamTrack & { requestFrame?: () => void }) | undefined;
+  const requestFrame = () => track?.requestFrame?.();
+  await drawDataUrl(canvas, ctx, first.dataUrl, requestFrame);
+
+  let stopped = false;
+  let inFlight = false;
+  const timer = window.setInterval(async () => {
+    if (stopped || inFlight) return;
+    inFlight = true;
+    try {
+      const shot = await api.screenshots.capture();
+      if (shot?.ok && shot.dataUrl) {
+        await drawDataUrl(canvas, ctx, shot.dataUrl, requestFrame);
+      }
+    } finally {
+      inFlight = false;
+    }
+  }, 125);
+
+  const stop = () => {
+    stopped = true;
+    window.clearInterval(timer);
+  };
+  track?.addEventListener("ended", stop, { once: true });
+  stream.__rubixStop = stop;
+  stream.__rubixWidth = canvas.width;
+  stream.__rubixHeight = canvas.height;
+  return stream;
+};
+
 const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream> => {
   const media = navigator.mediaDevices as MediaDevices & {
     getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
@@ -68,8 +142,8 @@ const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream
   }
 
   const attempts = preferDisplayMedia
-    ? [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)]
-    : [() => getLegacyDesktopCapture(media), () => getDisplayCapture(media)];
+    ? [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media), () => getScreenshotCanvasCapture()]
+    : [() => getLegacyDesktopCapture(media), () => getDisplayCapture(media), () => getScreenshotCanvasCapture()];
 
   const errors: string[] = [];
   for (const attempt of attempts) {
