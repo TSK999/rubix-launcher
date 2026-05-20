@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getGameLaunchTarget, getSteamProtocolFallbackUrl, isExternalProtocol, openExternalProtocol, steamLaunchTarget } from "./game-launch";
+import { getGameLaunchTarget, getSteamLaunchHandoffUrl, isExternalProtocol, openExternalProtocol, steamLaunchTarget } from "./game-launch";
 
 describe("game launch helpers", () => {
   it("uses Steam's browser-safe run protocol for Steam games", () => {
@@ -26,9 +26,9 @@ describe("game launch helpers", () => {
     remove.mockRestore();
   });
 
-  it("provides a Steam HTTPS handoff for sandboxed previews", () => {
-    expect(getSteamProtocolFallbackUrl("steam://run/1172470")).toBe(
-      "https://steamcommunity.com/linkfilter/?url=steam%3A%2F%2Frun%2F1172470",
+  it("provides an in-app Steam HTTPS handoff for sandboxed previews", () => {
+    expect(getSteamLaunchHandoffUrl("steam://run/1172470")).toBe(
+      "http://localhost:3000/launch/steam/1172470",
     );
   });
 });
