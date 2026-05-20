@@ -161,10 +161,15 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
                 size="sm"
                 variant="secondary"
                 className="rounded-xl"
+                disabled={recorderStatus === "starting"}
                 onClick={() => window.dispatchEvent(new CustomEvent("rubix:clips-arm"))}
               >
-                <Radio className="h-3.5 w-3.5 mr-1.5" />
-                Arm recorder
+                {recorderStatus === "starting" ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Radio className={cn("h-3.5 w-3.5 mr-1.5", recorderStatus === "recording" && "text-primary")} />
+                )}
+                {recorderStatus === "recording" ? "Armed" : "Arm recorder"}
               </Button>
             )}
             <input
