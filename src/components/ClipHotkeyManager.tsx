@@ -7,6 +7,8 @@ import { STORAGE_KEY, type Game } from "@/lib/game-types";
 
 const findMostRecentGame = (): Game | null => {
   try {
+    const active = localStorage.getItem("rubix:active-clip-game");
+    if (active) return JSON.parse(active) as Game;
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const games = JSON.parse(raw) as Game[];
@@ -36,17 +38,27 @@ export const ClipHotkeyManager = () => {
 
     const unsubStatus = clipBuffer.subscribe(setStatus);
 
-    clipBuffer
-      .start()
-      .catch((e) =>
+    const startRecorder = async (preferDisplayMedia = false) => {
+      try {
+        await clipBuffer.start({ preferDisplayMedia });
+        if (preferDisplayMedia) toast.success("Clip recorder armed");
+      } catch (e) {
         toast.error("Clip recorder unavailable", {
           description: e instanceof Error ? e.message : undefined,
-        }),
-      );
+        });
+      }
+    };
+
+    void startRecorder(false);
 
     const offSave = api.clips.onSaveTrigger(async () => {
       if (clipBuffer.getStatus() !== "recording") {
-        toast.error("Clip buffer not ready");
+        await startRecorder(true);
+      }
+      if (clipBuffer.getStatus() !== "recording") {
+        toast.error("Clip buffer not ready", {
+          description: clipBuffer.getLastError() || "Open Clips and press Arm recorder once.",
+        });
         return;
       }
       const game = findMostRecentGame();
@@ -57,11 +69,12 @@ export const ClipHotkeyManager = () => {
       try {
         const clip = await clipBuffer.saveClip(30);
         toast.loading(`Saving ${clip.durationSeconds}s clip…`, { id: "clip-save" });
-        await uploadClip(user.id, game.id, clip.blob, {
+        const saved = await uploadClip(user.id, game.id, clip.blob, {
           duration_seconds: clip.durationSeconds,
           width: clip.width,
           height: clip.height,
         });
+        window.dispatchEvent(new CustomEvent("rubix:clip-saved", { detail: { gameId: game.id, clip: saved } }));
         toast.success(`Clip saved to ${game.title}`, { id: "clip-save" });
       } catch (e) {
         toast.error("Could not save clip", {
@@ -71,8 +84,12 @@ export const ClipHotkeyManager = () => {
       }
     });
 
+    const onArm = () => void startRecorder(true);
+    window.addEventListener("rubix:clips-arm", onArm);
+
     return () => {
       offSave?.();
+      window.removeEventListener("rubix:clips-arm", onArm);
       unsubStatus();
       clipBuffer.stop();
     };
