@@ -53,7 +53,12 @@ export const ClipsSettingsPanel = () => {
   const api = (window as any).rubix;
   const isElectron = !!api?.isElectron;
 
-  useEffect(() => onClipPrefsChange(setPrefs), []);
+  useEffect(() => {
+    const off = onClipPrefsChange(setPrefs);
+    return () => {
+      off();
+    };
+  }, []);
 
   useEffect(() => {
     if (isElectron && api.clips?.listDisplays) {
