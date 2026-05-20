@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mic, Monitor, Volume2, Clock, Film } from "lucide-react";
+import { Mic, Monitor, Volume2, Clock, Film, MonitorPlay, Gauge } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
