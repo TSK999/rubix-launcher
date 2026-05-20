@@ -867,17 +867,36 @@ function normalizeSourceText(value) {
 function chooseClipSource(sources) {
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
+  const screens = sources.filter((s) => s.id.startsWith("screen:"));
+  const windows = sources.filter((s) => s.id.startsWith("window:"));
+
   const targetParts = [activeClipTarget?.title, activeClipTarget?.exe]
     .map(normalizeSourceText)
     .filter((part) => part.length >= 3);
-  const targetMatch = targetParts.length
-    ? sources.find((source) => {
-        const name = normalizeSourceText(source.name);
-        return targetParts.some((part) => name.includes(part) || part.includes(name));
-      })
-    : null;
-  const screenMatch = sources.find((source) => String(source.display_id) === String(display.id));
-  return targetMatch || screenMatch || sources[0] || null;
+
+  // Find which display the target game window lives on (if any). Window
+  // sources on Windows/macOS include a `display_id` for the screen the
+  // window is currently on — use that to pick the right screen source.
+  let preferredDisplayId = null;
+  if (targetParts.length) {
+    const targetWindow = windows.find((source) => {
+      const name = normalizeSourceText(source.name);
+      return targetParts.some((part) => name.includes(part) || part.includes(name));
+    });
+    if (targetWindow?.display_id) preferredDisplayId = String(targetWindow.display_id);
+  }
+
+  // Always return a SCREEN source. Window sources fail to capture frames
+  // for exclusive/borderless fullscreen games (black/blank video), while
+  // screen sources work via DXGI/desktop duplication regardless of game mode.
+  const byDisplay = (id) => screens.find((s) => String(s.display_id) === String(id));
+  return (
+    (preferredDisplayId && byDisplay(preferredDisplayId)) ||
+    byDisplay(display.id) ||
+    screens[0] ||
+    sources[0] ||
+    null
+  );
 }
 
 ipcMain.handle("clips:set-target", async (_evt, target) => {
