@@ -191,6 +191,60 @@ export const ClipsSettingsPanel = () => {
       </div>
 
       <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <MonitorPlay className="h-4 w-4 text-primary" />
+          Video quality
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Higher resolution and framerate look better, but use more disk and CPU.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div>
+            <p className="mb-1 text-[11px] font-medium text-muted-foreground">Resolution</p>
+            <Select
+              value={prefs.resolution}
+              onValueChange={(v) => update({ resolution: v as ClipResolution })}
+            >
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIP_RESOLUTIONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <p className="mb-1 text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+              <Gauge className="h-3 w-3" />
+              Framerate
+            </p>
+            <Select
+              value={String(prefs.framerate)}
+              onValueChange={(v) => update({ framerate: Number(v) as ClipFramerate })}
+            >
+              <SelectTrigger className="w-full rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIP_FRAMERATES.map((f) => (
+                  <SelectItem key={f} value={String(f)}>
+                    {f} fps
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Changes apply on the next recorder start (re-arm or relaunch a game).
+        </p>
+      </div>
+
+      <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-medium flex items-center gap-2">
