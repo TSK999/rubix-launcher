@@ -4,6 +4,7 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { uploadClip } from "@/lib/game-clips";
 import { clipBuffer, type ClipBufferStatus } from "@/lib/clip-buffer";
 import { STORAGE_KEY, type Game } from "@/lib/game-types";
+import { getClipPrefs, onClipPrefsChange } from "@/lib/clip-prefs";
 
 const findMostRecentGame = (): Game | null => {
   try {
