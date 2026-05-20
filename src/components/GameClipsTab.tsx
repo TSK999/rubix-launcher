@@ -1,5 +1,5 @@
-import { useRef, useState, type DragEvent } from "react";
-import { Download, Film, Loader2, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import { Download, Film, Loader2, Radio, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClipPlayer } from "@/components/ClipPlayer";
@@ -50,6 +50,17 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem("rubix:active-clip-game", JSON.stringify(game));
+    const onSaved = (event: Event) => {
+      const detail = (event as CustomEvent<{ gameId: string; clip: GameClip }>).detail;
+      if (detail?.gameId !== game.id || !detail.clip) return;
+      setClips((prev) => [detail.clip, ...prev.filter((c) => c.id !== detail.clip.id)]);
+    };
+    window.addEventListener("rubix:clip-saved", onSaved);
+    return () => window.removeEventListener("rubix:clip-saved", onSaved);
+  }, [game, setClips]);
 
   const handleFiles = async (files: FileList | File[]) => {
     if (!userId) {
@@ -135,6 +146,17 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
             <span className="text-muted-foreground">· drag a video here or</span>
           </div>
           <div className="flex items-center gap-2">
+            {typeof window !== "undefined" && (window as any).rubix?.isElectron && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-xl"
+                onClick={() => window.dispatchEvent(new CustomEvent("rubix:clips-arm"))}
+              >
+                <Radio className="h-3.5 w-3.5 mr-1.5" />
+                Arm recorder
+              </Button>
+            )}
             <input
               ref={inputRef}
               type="file"
@@ -175,7 +197,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {clips.map((c) => (
             <div key={c.id} className="space-y-1.5">
-              <div className="relative">
+              <div className="group relative">
                 {c.url ? (
                   <ClipPlayer src={c.url} className="aspect-video w-full" />
                 ) : (
