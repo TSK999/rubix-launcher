@@ -191,15 +191,15 @@ class ClipBuffer {
     // Flush any in-flight chunk so the tail of the clip lands on disk.
     await new Promise<void>((resolve) => {
       const rec = this.recorder!;
-      const timeout = window.setTimeout(() => {
-        rec.removeEventListener("dataavailable", once);
-        resolve();
-      }, 1200);
       const once = () => {
         window.clearTimeout(timeout);
         rec.removeEventListener("dataavailable", once);
         resolve();
       };
+      const timeout = window.setTimeout(() => {
+        rec.removeEventListener("dataavailable", once);
+        resolve();
+      }, 1200);
       rec.addEventListener("dataavailable", once);
       try {
         rec.requestData();
