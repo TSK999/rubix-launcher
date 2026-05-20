@@ -114,10 +114,14 @@ export const SettingsDialog = ({ open, onOpenChange, userId, steamId, onSignedOu
           </DialogHeader>
 
           <Tabs defaultValue="account" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="connections">Connections</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
+              <TabsTrigger value="clips">
+                <Film className="mr-1.5 h-3.5 w-3.5" />
+                Clips
+              </TabsTrigger>
               <TabsTrigger value="keybinds">
                 <Keyboard className="mr-1.5 h-3.5 w-3.5" />
                 Keys
