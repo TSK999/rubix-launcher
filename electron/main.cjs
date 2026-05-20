@@ -859,6 +859,7 @@ ipcMain.handle("screenshots:capture", async () => {
 // display and forwards the F9 trigger.
 
 let activeClipTarget = null;
+let preferredDisplayId = null; // user-pinned monitor; overrides cursor/window heuristics
 
 function normalizeSourceText(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
