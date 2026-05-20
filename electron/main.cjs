@@ -9,6 +9,9 @@ const log = require("electron-log");
 // that still honor the legacy chromeMediaSource path. Modern builds use the
 // setDisplayMediaRequestHandler below.
 app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-background-timer-throttling");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
 
 // ---------- Auto-updater setup ----------
 log.transports.file.level = "info";
@@ -108,6 +111,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
   });
 
@@ -854,19 +858,47 @@ ipcMain.handle("screenshots:capture", async () => {
 // buffer. Main just resolves the chromeMediaSource id for the active
 // display and forwards the F9 trigger.
 
+let activeClipTarget = null;
+
+function normalizeSourceText(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function chooseClipSource(sources) {
+  const cursor = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursor);
+  const targetParts = [activeClipTarget?.title, activeClipTarget?.exe]
+    .map(normalizeSourceText)
+    .filter((part) => part.length >= 3);
+  const targetMatch = targetParts.length
+    ? sources.find((source) => {
+        const name = normalizeSourceText(source.name);
+        return targetParts.some((part) => name.includes(part) || part.includes(name));
+      })
+    : null;
+  const screenMatch = sources.find((source) => String(source.display_id) === String(display.id));
+  return targetMatch || screenMatch || sources[0] || null;
+}
+
+ipcMain.handle("clips:set-target", async (_evt, target) => {
+  activeClipTarget = target && typeof target === "object"
+    ? {
+        title: String(target.title || ""),
+        exe: path.basename(String(target.path || ""), path.extname(String(target.path || ""))),
+      }
+    : null;
+  return { ok: true };
+});
+
 ipcMain.handle("clips:get-source", async () => {
   try {
-    const cursor = screen.getCursorScreenPoint();
-    const display = screen.getDisplayNearestPoint(cursor);
     const sources = await desktopCapturer.getSources({
-      types: ["screen"],
+      types: ["screen", "window"],
       thumbnailSize: { width: 0, height: 0 },
     });
-    const match =
-      sources.find((s) => String(s.display_id) === String(display.id)) ||
-      sources[0];
+    const match = chooseClipSource(sources);
     if (!match) return { ok: false, error: "No screen source" };
-    return { ok: true, sourceId: match.id, displayId: String(display.id) };
+    return { ok: true, sourceId: match.id, displayId: String(match.display_id || ""), name: match.name };
   } catch (err) {
     return { ok: false, error: String(err?.message || err) };
   }
@@ -950,20 +982,13 @@ app.whenReady().then(() => {
     session.defaultSession.setDisplayMediaRequestHandler(
       async (_request, callback) => {
         try {
-          const cursor = screen.getCursorScreenPoint();
-          const display = screen.getDisplayNearestPoint(cursor);
           const sources = await desktopCapturer.getSources({
-            types: ["screen"],
+            types: ["screen", "window"],
             thumbnailSize: { width: 0, height: 0 },
           });
-          const match =
-            sources.find((s) => String(s.display_id) === String(display.id)) ||
-            sources[0];
+          const match = chooseClipSource(sources);
           if (!match) return callback({});
-          // The clip buffer records video-only. Supplying loopback audio here
-          // can make Chromium reject the stream on systems where desktop audio
-          // capture is unavailable, which prevents clips from starting at all.
-          callback({ video: match });
+          callback({ video: match, audio: process.platform === "darwin" ? undefined : "loopback" });
         } catch (err) {
           log.warn("display media handler failed", err);
           callback({});

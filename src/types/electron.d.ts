@@ -134,8 +134,9 @@ declare global {
         ) => () => void;
       };
       clips: {
+        setTarget: (target: { title?: string; path?: string } | null) => Promise<{ ok: boolean }>;
         getSource: () => Promise<
-          | { ok: true; sourceId: string; displayId: string }
+          | { ok: true; sourceId: string; displayId: string; name?: string }
           | { ok: false; error: string }
         >;
         onSaveTrigger: (
