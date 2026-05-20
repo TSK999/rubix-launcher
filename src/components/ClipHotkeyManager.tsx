@@ -45,9 +45,9 @@ export const ClipHotkeyManager = () => {
       );
     });
 
-    const startRecorder = async (preferDisplayMedia = false) => {
+    const startRecorder = async (preferDisplayMedia = false, restart = false) => {
       try {
-        await clipBuffer.start({ preferDisplayMedia });
+        await clipBuffer.start({ preferDisplayMedia, restart });
         if (preferDisplayMedia) toast.success("Clip recorder armed");
       } catch (e) {
         if (!preferDisplayMedia) return;
@@ -57,11 +57,15 @@ export const ClipHotkeyManager = () => {
       }
     };
 
-    void startRecorder(false);
-
     const offSave = api.clips.onSaveTrigger(async () => {
       if (clipBuffer.getStatus() !== "recording") {
         await startRecorder(true);
+        if (clipBuffer.getStatus() === "recording") {
+          toast.success("Clip recorder started", {
+            description: "Press F9 again after a few seconds to save a clip.",
+          });
+        }
+        return;
       }
       if (clipBuffer.getStatus() !== "recording") {
         toast.error("Clip buffer not ready", {
@@ -93,11 +97,14 @@ export const ClipHotkeyManager = () => {
     });
 
     const onArm = () => void startRecorder(true);
+    const onBackgroundStart = () => void startRecorder(false, true);
     window.addEventListener("rubix:clips-arm", onArm);
+    window.addEventListener("rubix:clips-start-background", onBackgroundStart);
 
     return () => {
       offSave?.();
       window.removeEventListener("rubix:clips-arm", onArm);
+      window.removeEventListener("rubix:clips-start-background", onBackgroundStart);
       unsubStatus();
       clipBuffer.stop();
     };

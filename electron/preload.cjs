@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("rubix", {
     },
   },
   clips: {
+    setTarget: (target) => ipcRenderer.invoke("clips:set-target", target),
     getSource: () => ipcRenderer.invoke("clips:get-source"),
     onSaveTrigger: (cb) => {
       const handler = (_evt, data) => cb(data);

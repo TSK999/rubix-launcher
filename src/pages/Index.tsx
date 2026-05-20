@@ -225,13 +225,22 @@ const Index = () => {
     setGames((g) => g.map((x) => (x.id === id ? { ...x, favorite: !x.favorite } : x)));
   };
 
-  const launchGame = async (g: Game) => {
-    setLaunchingGame(g);
+  const prepareClipTarget = (g: Game) => {
     try {
       localStorage.setItem("rubix:active-clip-game", JSON.stringify(g));
+      void window.rubix?.clips?.setTarget?.({ title: g.title, path: g.path });
     } catch {
-      /* keep launching even if local storage is unavailable */
+      /* keep launching even if clip targeting is unavailable */
     }
+  };
+
+  const restartClipRecorderAfterLaunch = () => {
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("rubix:clips-start-background")), 8000);
+  };
+
+  const launchGame = async (g: Game) => {
+    setLaunchingGame(g);
+    prepareClipTarget(g);
     // Update stats first
     setGames((all) =>
       all.map((x) =>
@@ -248,7 +257,10 @@ const Index = () => {
         catalogNamespace: g.epicCatalogNamespace,
         catalogItemId: g.epicCatalogItemId,
       });
-      if (res.ok) toast.success(`Launching ${g.title} via Epic`);
+      if (res.ok) {
+        restartClipRecorderAfterLaunch();
+        toast.success(`Launching ${g.title} via Epic`);
+      }
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
@@ -259,7 +271,10 @@ const Index = () => {
         appId: g.eaAppId,
         contentId: g.eaContentId,
       });
-      if (res.ok) toast.success(`Launching ${g.title} via EA app`);
+      if (res.ok) {
+        restartClipRecorderAfterLaunch();
+        toast.success(`Launching ${g.title} via EA app`);
+      }
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
@@ -270,7 +285,10 @@ const Index = () => {
         appUserModelId: g.xboxAppUserModelId,
         packageFamilyName: g.xboxPackageFamilyName,
       });
-      if (res.ok) toast.success(`Launching ${g.title} via Xbox`);
+      if (res.ok) {
+        restartClipRecorderAfterLaunch();
+        toast.success(`Launching ${g.title} via Xbox`);
+      }
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
@@ -282,7 +300,10 @@ const Index = () => {
         patchline: g.riotPatchline,
         clientPath: g.riotClientPath,
       });
-      if (res.ok) toast.success(`Launching ${g.title} via Riot`);
+      if (res.ok) {
+        restartClipRecorderAfterLaunch();
+        toast.success(`Launching ${g.title} via Riot`);
+      }
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
@@ -295,7 +316,10 @@ const Index = () => {
     }
     if (window.rubix?.isElectron) {
       const res = await window.rubix.launchGame(g.path);
-      if (res.ok) toast.success(`Launching ${g.title}`);
+      if (res.ok) {
+        restartClipRecorderAfterLaunch();
+        toast.success(`Launching ${g.title}`);
+      }
       else toast.error(`Failed to launch ${g.title}`, { description: res.error });
       return;
     }
