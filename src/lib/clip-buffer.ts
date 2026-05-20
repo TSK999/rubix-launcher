@@ -313,7 +313,7 @@ class ClipBuffer {
     this.setStatus("idle");
   }
 
-  async saveClip(seconds = BUFFER_SECONDS): Promise<ClipResult> {
+  async saveClip(seconds = getClipPrefs().durationSeconds || CLIP_DURATION_DEFAULT): Promise<ClipResult> {
     if (this.status !== "recording" || !this.recorder) {
       throw new Error("Buffer is not recording");
     }
