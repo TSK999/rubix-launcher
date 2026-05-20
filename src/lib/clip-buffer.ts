@@ -179,6 +179,7 @@ class ClipBuffer {
   private audioNodes: MediaStreamAudioSourceNode[] = [];
   private recorder: MediaRecorder | null = null;
   private chunks: BufferedChunk[] = [];
+  private initChunk: BufferedChunk | null = null;
   private mime = "video/webm;codecs=vp9";
   private width = 0;
   private height = 0;
