@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeManager } from "@/components/ThemeManager";
 import { KeybindsPanel } from "@/components/KeybindsPanel";
 import { UpdatesPanel } from "@/components/UpdatesPanel";
+import { ClipsSettingsPanel } from "@/components/ClipsSettingsPanel";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { useControllerMode } from "@/hooks/useControllerMode";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
