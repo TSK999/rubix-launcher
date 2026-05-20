@@ -9,6 +9,12 @@
  * Lives entirely in the renderer; main only resolves the desktopCapturer
  * source id and fires the F9 trigger.
  */
+import {
+  CLIP_DURATION_DEFAULT,
+  CLIP_DURATION_MAX,
+  getClipPrefs,
+} from "./clip-prefs";
+
 
 export type ClipBufferStatus = "idle" | "starting" | "recording" | "error";
 
