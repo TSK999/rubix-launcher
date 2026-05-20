@@ -179,6 +179,7 @@ class ClipBuffer {
   private audioNodes: MediaStreamAudioSourceNode[] = [];
   private recorder: MediaRecorder | null = null;
   private chunks: BufferedChunk[] = [];
+  private initChunk: BufferedChunk | null = null;
   private mime = "video/webm;codecs=vp9";
   private width = 0;
   private height = 0;
@@ -263,8 +264,16 @@ class ClipBuffer {
     rec.ondataavailable = (e) => {
       const endedAt = Date.now();
       if (!e.data || e.data.size === 0) return;
-      this.chunks.push({ blob: e.data, startedAt: chunkStartedAt, endedAt });
+      const chunk: BufferedChunk = { blob: e.data, startedAt: chunkStartedAt, endedAt };
       chunkStartedAt = endedAt;
+      // The first chunk emitted by MediaRecorder carries the WebM init/header
+      // segment. Without it, any later slice is an unplayable/corrupt file.
+      // Keep it pinned and prepend on save.
+      if (!this.initChunk) {
+        this.initChunk = chunk;
+        return;
+      }
+      this.chunks.push(chunk);
       if (this.chunks.length > MAX_CHUNKS) {
         this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
       }
@@ -292,6 +301,7 @@ class ClipBuffer {
     this.audioContext = null;
     this.audioNodes = [];
     this.chunks = [];
+    this.initChunk = null;
     this.setStatus("idle");
   }
 
@@ -319,7 +329,7 @@ class ClipBuffer {
       }
     });
 
-    if (this.chunks.length <= 0) {
+    if (this.chunks.length <= 0 || !this.initChunk) {
       throw new Error("Clip recorder is warming up — try again in a few seconds");
     }
     const latest = this.chunks[this.chunks.length - 1];
@@ -327,7 +337,10 @@ class ClipBuffer {
     const slice = this.chunks.filter((chunk) => chunk.endedAt >= cutoff);
     const first = slice[0] ?? latest;
     const durationSeconds = Math.max(1, Math.round((latest.endedAt - first.startedAt) / 1000));
-    const blob = new Blob(slice.map((chunk) => chunk.blob), { type: this.mime });
+    // Always prepend the init segment so the WebM container stays valid even
+    // after the original first chunk has aged out of the rolling buffer.
+    const parts = [this.initChunk.blob, ...slice.map((c) => c.blob)];
+    const blob = new Blob(parts, { type: this.mime });
     return {
       blob,
       durationSeconds: Math.min(seconds, durationSeconds),
