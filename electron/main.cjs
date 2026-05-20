@@ -875,16 +875,17 @@ function chooseClipSource(sources) {
     .map(normalizeSourceText)
     .filter((part) => part.length >= 3);
 
-  // Find which display the target game window lives on (if any). Window
-  // sources on Windows/macOS include a `display_id` for the screen the
-  // window is currently on — use that to pick the right screen source.
-  let preferredDisplayId = null;
-  if (targetParts.length) {
+  // Resolve which display to capture, in priority order:
+  // 1) user-pinned monitor from Settings
+  // 2) the display the targeted game window is on
+  // 3) the display under the cursor
+  let displayIdHint = preferredDisplayId ? String(preferredDisplayId) : null;
+  if (!displayIdHint && targetParts.length) {
     const targetWindow = windows.find((source) => {
       const name = normalizeSourceText(source.name);
       return targetParts.some((part) => name.includes(part) || part.includes(name));
     });
-    if (targetWindow?.display_id) preferredDisplayId = String(targetWindow.display_id);
+    if (targetWindow?.display_id) displayIdHint = String(targetWindow.display_id);
   }
 
   // Always return a SCREEN source. Window sources fail to capture frames
@@ -892,13 +893,37 @@ function chooseClipSource(sources) {
   // screen sources work via DXGI/desktop duplication regardless of game mode.
   const byDisplay = (id) => screens.find((s) => String(s.display_id) === String(id));
   return (
-    (preferredDisplayId && byDisplay(preferredDisplayId)) ||
+    (displayIdHint && byDisplay(displayIdHint)) ||
     byDisplay(display.id) ||
     screens[0] ||
     sources[0] ||
     null
   );
 }
+
+ipcMain.handle("clips:list-displays", async () => {
+  try {
+    const cursor = screen.getCursorScreenPoint();
+    const primaryId = String(screen.getPrimaryDisplay().id);
+    const cursorId = String(screen.getDisplayNearestPoint(cursor).id);
+    const displays = screen.getAllDisplays().map((d, i) => ({
+      id: String(d.id),
+      label: d.label || `Display ${i + 1}`,
+      width: d.size.width,
+      height: d.size.height,
+      isPrimary: String(d.id) === primaryId,
+      isCursor: String(d.id) === cursorId,
+    }));
+    return { ok: true, displays };
+  } catch (err) {
+    return { ok: false, displays: [], error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("clips:set-preferred-display", async (_evt, id) => {
+  preferredDisplayId = id ? String(id) : null;
+  return { ok: true };
+});
 
 ipcMain.handle("clips:set-target", async (_evt, target) => {
   activeClipTarget = target && typeof target === "object"
