@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
           lastPlayedAt: g.rtime_last_played
             ? g.rtime_last_played * 1000
             : undefined,
-          launchPath: `steam://run/${g.appid}`,
+          launchPath: `steam://rungameid/${g.appid}`,
         }))
         .sort((a, b) => b.playtimeMinutes - a.playtimeMinutes);
 
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
           appId: g.appid,
           title: g.name,
           cover: coverUrl(g.appid),
-          launchPath: `steam://run/${g.appid}`,
+          launchPath: `steam://rungameid/${g.appid}`,
           playtimeMinutes: g.playtime_forever ?? 0,
           lastPlayedAt: g.rtime_last_played
             ? g.rtime_last_played * 1000

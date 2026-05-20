@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchSteamProfile, type SteamProfileResponse } from "@/lib/steam-profile";
-import { openExternalProtocol, steamLaunchTarget } from "@/lib/game-launch";
 
 type Props = {
   steamId: string | null;
@@ -30,12 +29,12 @@ const formatDate = (unix?: number) =>
   unix ? new Date(unix * 1000).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
 
 const launchSteamApp = async (appId: number) => {
-  const target = steamLaunchTarget(appId);
+  const target = `steam://rungameid/${appId}`;
   if (window.rubix?.isElectron) {
     const res = await window.rubix.launchGame(target);
     if (!res.ok) toast.error("Couldn't launch", { description: res.error });
   } else {
-    openExternalProtocol(target);
+    window.location.href = target;
   }
 };
 

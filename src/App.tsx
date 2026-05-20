@@ -22,7 +22,6 @@ import DeveloperApply from "./pages/DeveloperApply.tsx";
 import DeveloperDashboard from "./pages/DeveloperDashboard.tsx";
 import GameForm from "./pages/GameForm.tsx";
 import AdminReview from "./pages/AdminReview.tsx";
-
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
@@ -85,7 +84,6 @@ const App = () => (
           />
           <Route path="/store" element={<Store />} />
           <Route path="/store/:slug" element={<StoreGame />} />
-          
           <Route
             path="/library"
             element={
