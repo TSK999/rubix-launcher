@@ -9,6 +9,7 @@ import {
   type GameClip,
 } from "@/lib/game-clips";
 import type { Game } from "@/lib/game-types";
+import type { ClipBufferStatus } from "@/lib/clip-buffer";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -49,6 +50,7 @@ const formatSize = (b?: number | null) => {
 export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [recorderStatus, setRecorderStatus] = useState<ClipBufferStatus>("idle");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,8 +60,16 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
       if (detail?.gameId !== game.id || !detail.clip) return;
       setClips((prev) => [detail.clip, ...prev.filter((c) => c.id !== detail.clip.id)]);
     };
+    const onStatus = (event: Event) => {
+      const detail = (event as CustomEvent<{ status: ClipBufferStatus }>).detail;
+      if (detail?.status) setRecorderStatus(detail.status);
+    };
     window.addEventListener("rubix:clip-saved", onSaved);
-    return () => window.removeEventListener("rubix:clip-saved", onSaved);
+    window.addEventListener("rubix:clips-status", onStatus);
+    return () => {
+      window.removeEventListener("rubix:clip-saved", onSaved);
+      window.removeEventListener("rubix:clips-status", onStatus);
+    };
   }, [game, setClips]);
 
   const handleFiles = async (files: FileList | File[]) => {
