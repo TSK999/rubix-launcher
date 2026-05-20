@@ -102,10 +102,24 @@ export const ClipHotkeyManager = () => {
     window.addEventListener("rubix:clips-arm", onArm);
     window.addEventListener("rubix:clips-start-background", onBackgroundStart);
 
+    // Push pinned display to main and restart recorder whenever clip prefs
+    // change (monitor / mic / audio toggles), so changes take effect live.
+    const pushDisplayPref = (id: string | null) => {
+      void api.clips.setPreferredDisplay?.(id ?? "");
+    };
+    pushDisplayPref(getClipPrefs().displayId);
+    const offPrefs = onClipPrefsChange((p) => {
+      pushDisplayPref(p.displayId);
+      if (clipBuffer.getStatus() === "recording") {
+        void startRecorder(false, true);
+      }
+    });
+
     return () => {
       offSave?.();
       window.removeEventListener("rubix:clips-arm", onArm);
       window.removeEventListener("rubix:clips-start-background", onBackgroundStart);
+      offPrefs();
       unsubStatus();
       clipBuffer.stop();
     };
