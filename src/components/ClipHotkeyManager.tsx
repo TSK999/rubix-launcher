@@ -50,6 +50,7 @@ export const ClipHotkeyManager = () => {
         await clipBuffer.start({ preferDisplayMedia });
         if (preferDisplayMedia) toast.success("Clip recorder armed");
       } catch (e) {
+        if (!preferDisplayMedia) return;
         toast.error("Clip recorder unavailable", {
           description: e instanceof Error ? e.message : undefined,
         });
