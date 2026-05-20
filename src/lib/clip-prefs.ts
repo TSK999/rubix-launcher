@@ -5,13 +5,29 @@
  * or audio sources change).
  */
 
+export type ClipResolution = "source" | "2160" | "1440" | "1080" | "720" | "480";
+export type ClipFramerate = 24 | 30 | 48 | 60 | 120;
+
+export const CLIP_RESOLUTIONS: { value: ClipResolution; label: string }[] = [
+  { value: "source", label: "Source (native)" },
+  { value: "2160", label: "2160p (4K)" },
+  { value: "1440", label: "1440p (2K)" },
+  { value: "1080", label: "1080p (Full HD)" },
+  { value: "720", label: "720p (HD)" },
+  { value: "480", label: "480p" },
+];
+
+export const CLIP_FRAMERATES: ClipFramerate[] = [24, 30, 48, 60, 120];
+
 export type ClipPrefs = {
-  displayId: string | null;        // electron screen id ("0", "1", ...)
-  micDeviceId: string | null;       // separate from in-call mic
-  desktopAudioDeviceId: string | null; // informational; null = system loopback
+  displayId: string | null;
+  micDeviceId: string | null;
+  desktopAudioDeviceId: string | null;
   includeDesktopAudio: boolean;
   includeMic: boolean;
   durationSeconds: number;          // 10..120
+  resolution: ClipResolution;       // target vertical resolution
+  framerate: ClipFramerate;         // target fps
 };
 
 const KEY = "rubix:clip-prefs";
@@ -27,6 +43,8 @@ const DEFAULTS: ClipPrefs = {
   includeDesktopAudio: true,
   includeMic: true,
   durationSeconds: CLIP_DURATION_DEFAULT,
+  resolution: "1080",
+  framerate: 60,
 };
 
 const clamp = (n: number, min: number, max: number) =>
