@@ -227,6 +227,11 @@ const Index = () => {
 
   const launchGame = async (g: Game) => {
     setLaunchingGame(g);
+    try {
+      localStorage.setItem("rubix:active-clip-game", JSON.stringify(g));
+    } catch {
+      /* keep launching even if local storage is unavailable */
+    }
     // Update stats first
     setGames((all) =>
       all.map((x) =>
