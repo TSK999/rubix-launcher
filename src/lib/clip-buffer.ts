@@ -329,7 +329,7 @@ class ClipBuffer {
       }
     });
 
-    if (this.chunks.length <= 0) {
+    if (this.chunks.length <= 0 || !this.initChunk) {
       throw new Error("Clip recorder is warming up — try again in a few seconds");
     }
     const latest = this.chunks[this.chunks.length - 1];
@@ -337,7 +337,10 @@ class ClipBuffer {
     const slice = this.chunks.filter((chunk) => chunk.endedAt >= cutoff);
     const first = slice[0] ?? latest;
     const durationSeconds = Math.max(1, Math.round((latest.endedAt - first.startedAt) / 1000));
-    const blob = new Blob(slice.map((chunk) => chunk.blob), { type: this.mime });
+    // Always prepend the init segment so the WebM container stays valid even
+    // after the original first chunk has aged out of the rolling buffer.
+    const parts = [this.initChunk.blob, ...slice.map((c) => c.blob)];
+    const blob = new Blob(parts, { type: this.mime });
     return {
       blob,
       durationSeconds: Math.min(seconds, durationSeconds),
