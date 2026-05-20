@@ -126,22 +126,46 @@ const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream
 };
 
 const getMicStream = async (media: MediaDevices): Promise<MediaStream | null> => {
+  const prefs = getClipPrefs();
+  if (!prefs.includeMic) return null;
+  const baseAudio: MediaTrackConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  if (prefs.micDeviceId) {
+    (baseAudio as MediaTrackConstraints & { deviceId?: ConstrainDOMString }).deviceId = {
+      exact: prefs.micDeviceId,
+    } as ConstrainDOMString;
+  }
   try {
-    return await media.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-      video: false,
-    });
+    return await media.getUserMedia({ audio: baseAudio, video: false });
   } catch {
+    // Fall back to default mic if the pinned device is no longer available.
+    if (prefs.micDeviceId) {
+      try {
+        return await media.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+          video: false,
+        });
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
 };
 
 const mixAudioIntoCapture = async (capture: MediaStream): Promise<PreparedCapture> => {
   const media = navigator.mediaDevices;
+  const prefs = getClipPrefs();
+  // Drop loopback tracks if the user disabled desktop audio.
+  if (!prefs.includeDesktopAudio) {
+    capture.getAudioTracks().forEach((t) => {
+      t.stop();
+      capture.removeTrack(t);
+    });
+  }
   const mic = await getMicStream(media);
   const audioTracks = [...capture.getAudioTracks(), ...(mic?.getAudioTracks() ?? [])];
   if (audioTracks.length === 0) {
