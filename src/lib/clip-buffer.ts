@@ -41,15 +41,29 @@ const TIMESLICE_MS = 1000;
 const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
 
 
+const resolutionToHeight = (r: string): number | null => {
+  if (r === "source") return null;
+  const n = Number(r);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+const targetVideoConstraints = (): { width?: number; height?: number; fps: number } => {
+  const prefs = getClipPrefs();
+  const h = resolutionToHeight(prefs.resolution);
+  const w = h ? Math.round((h * 16) / 9) : undefined;
+  return { width: w, height: h ?? undefined, fps: prefs.framerate };
+};
+
 const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
   if (!media.getDisplayMedia) {
     throw new Error("Display capture is unavailable");
   }
-  const video = {
-    frameRate: { ideal: 60, max: 60 },
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-  } as MediaTrackConstraints;
+  const { width, height, fps } = targetVideoConstraints();
+  const video: MediaTrackConstraints = {
+    frameRate: { ideal: fps, max: fps },
+    ...(width ? { width: { ideal: width } } : {}),
+    ...(height ? { height: { ideal: height } } : {}),
+  };
   const audio = {
     systemAudio: "include",
     echoCancellation: false,
@@ -59,8 +73,6 @@ const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
   try {
     return await media.getDisplayMedia({ video, audio });
   } catch (err) {
-    // Some Windows/Linux machines reject loopback audio even when screen capture
-    // works. Fall back to video-only so mic capture can still be mixed in below.
     const audioError = err instanceof Error ? err.message : String(err);
     try {
       return await media.getDisplayMedia({ video, audio: false });
@@ -82,6 +94,7 @@ const getLegacyDesktopCapture = async (
     throw new Error(source?.error || "No screen source found");
   }
 
+  const { width, height, fps } = targetVideoConstraints();
   const constraints = (withAudio: boolean) => ({
     audio: withAudio
       ? ({ mandatory: { chromeMediaSource: "desktop" } } as unknown as MediaTrackConstraints)
@@ -90,7 +103,9 @@ const getLegacyDesktopCapture = async (
       mandatory: {
         chromeMediaSource: "desktop",
         chromeMediaSourceId: source.sourceId,
-        maxFrameRate: 60,
+        maxFrameRate: fps,
+        ...(width ? { maxWidth: width } : {}),
+        ...(height ? { maxHeight: height } : {}),
       },
     } as unknown as MediaTrackConstraints,
   });
