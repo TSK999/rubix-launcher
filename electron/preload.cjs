@@ -39,6 +39,19 @@ contextBridge.exposeInMainWorld("rubix", {
       ipcRenderer.on("clips:save-trigger", handler);
       return () => ipcRenderer.removeListener("clips:save-trigger", handler);
     },
+    ffmpeg: {
+      probe: () => ipcRenderer.invoke("clips:ffmpeg-probe"),
+      start: (opts) => ipcRenderer.invoke("clips:ffmpeg-start", opts),
+      stop: () => ipcRenderer.invoke("clips:ffmpeg-stop"),
+      status: () => ipcRenderer.invoke("clips:ffmpeg-status"),
+      save: (opts) => ipcRenderer.invoke("clips:ffmpeg-save", opts),
+      discard: (p) => ipcRenderer.invoke("clips:ffmpeg-discard", p),
+      onStatus: (cb) => {
+        const handler = (_evt, data) => cb(data);
+        ipcRenderer.on("clips:ffmpeg-status", handler);
+        return () => ipcRenderer.removeListener("clips:ffmpeg-status", handler);
+      },
+    },
   },
   hotkeys: {
     set: (map) => ipcRenderer.invoke("hotkeys:set", map),
