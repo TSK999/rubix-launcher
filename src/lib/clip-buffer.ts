@@ -180,7 +180,7 @@ class ClipBuffer {
       throw new Error("FFmpeg recorder is not active");
     }
     const res = await api.clips.ffmpeg.save({ seconds });
-    if (!res.ok) throw new Error(res.error);
+    if (!res.ok) throw new Error((res as { error: string }).error);
     const blob = new Blob([res.buffer], { type: res.mimeType || "video/mp4" });
     // Best-effort cleanup of the on-disk copy now that we have a Blob.
     void api.clips.ffmpeg.discard?.(res.path);
