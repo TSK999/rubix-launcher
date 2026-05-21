@@ -379,8 +379,8 @@ class ClipBuffer {
     }
     this.setStatus("starting");
 
-    // Prefer Electron's desktopCapturer source-id video capture path so the
-    // rolling buffer can start automatically after sign-in.
+    // Prefer Electron's display-media handler because it consistently returns
+    // a screen source, which is the reliable path for fullscreen games.
     let prepared: PreparedCapture;
     try {
       const capture = await getCaptureStream();
