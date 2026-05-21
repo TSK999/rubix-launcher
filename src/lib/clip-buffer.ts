@@ -26,7 +26,7 @@ export type ClipResult = {
 };
 
 type Listener = (s: ClipBufferStatus) => void;
-type BufferedChunk = { blob: Blob; startedAt: number; endedAt: number };
+type BufferedChunk = { data: Uint8Array; startedAt: number; endedAt: number };
 type PreparedCapture = {
   stream: MediaStream;
   ownedStreams: MediaStream[];
@@ -39,6 +39,103 @@ const TIMESLICE_MS = 1000;
 // Buffer enough seconds for the longest configurable clip length, with a
 // small safety margin so the last chunk is always available on save.
 const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
+const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75];
+
+const findBytes = (data: Uint8Array, needle: number[], start = 0): number => {
+  outer: for (let i = start; i <= data.length - needle.length; i += 1) {
+    for (let j = 0; j < needle.length; j += 1) {
+      if (data[i + j] !== needle[j]) continue outer;
+    }
+    return i;
+  }
+  return -1;
+};
+
+const readVint = (data: Uint8Array, offset: number, stripMarker: boolean) => {
+  const first = data[offset];
+  if (first === undefined || first === 0) return null;
+  let mask = 0x80;
+  let length = 1;
+  while (length <= 8 && (first & mask) === 0) {
+    mask >>= 1;
+    length += 1;
+  }
+  if (length > 8 || offset + length > data.length) return null;
+  let value = stripMarker ? first & (mask - 1) : first;
+  for (let i = 1; i < length; i += 1) value = value * 256 + data[offset + i];
+  return { length, value, next: offset + length };
+};
+
+const readUInt = (data: Uint8Array, offset: number, length: number) => {
+  let value = 0;
+  for (let i = 0; i < length; i += 1) value = value * 256 + (data[offset + i] ?? 0);
+  return value;
+};
+
+const writeUInt = (data: Uint8Array, offset: number, length: number, value: number) => {
+  let next = Math.max(0, Math.floor(value));
+  for (let i = length - 1; i >= 0; i -= 1) {
+    data[offset + i] = next & 0xff;
+    next = Math.floor(next / 256);
+  }
+};
+
+const forEachWebmClusterTimecode = (
+  data: Uint8Array,
+  cb: (value: number, valueOffset: number, valueLength: number) => void,
+) => {
+  let searchAt = 0;
+  while (searchAt < data.length) {
+    const clusterAt = findBytes(data, WEBM_CLUSTER_ID, searchAt);
+    if (clusterAt < 0) break;
+    const size = readVint(data, clusterAt + WEBM_CLUSTER_ID.length, true);
+    if (!size) break;
+    const contentStart = size.next;
+    const nextClusterAt = findBytes(data, WEBM_CLUSTER_ID, contentStart);
+    const declaredEnd = Number.isFinite(size.value) ? contentStart + size.value : data.length;
+    const contentEnd = Math.min(
+      declaredEnd > contentStart ? declaredEnd : data.length,
+      nextClusterAt > contentStart ? nextClusterAt : data.length,
+      data.length,
+    );
+
+    let pos = contentStart;
+    while (pos < contentEnd) {
+      const id = readVint(data, pos, false);
+      if (!id) break;
+      const elementSize = readVint(data, id.next, true);
+      if (!elementSize) break;
+      const valueOffset = elementSize.next;
+      const valueEnd = valueOffset + elementSize.value;
+      if (valueEnd > contentEnd) break;
+      if (id.value === 0xe7) {
+        cb(readUInt(data, valueOffset, elementSize.value), valueOffset, elementSize.value);
+        break;
+      }
+      pos = valueEnd;
+    }
+    searchAt = Math.max(contentEnd, clusterAt + WEBM_CLUSTER_ID.length);
+  }
+};
+
+const firstClusterTimecode = (chunks: BufferedChunk[]) => {
+  for (const chunk of chunks) {
+    let found: number | null = null;
+    forEachWebmClusterTimecode(chunk.data, (value) => {
+      if (found === null) found = value;
+    });
+    if (found !== null) return found;
+  }
+  return 0;
+};
+
+const normalizeClusterTimecodes = (data: Uint8Array, baseTimecode: number) => {
+  const copy = new Uint8Array(data);
+  forEachWebmClusterTimecode(copy, (value, valueOffset, valueLength) => {
+    writeUInt(copy, valueOffset, valueLength, Math.max(0, value - baseTimecode));
+  });
+  return copy;
+};
 
 
 const resolutionToHeight = (r: string): number | null => {
