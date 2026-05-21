@@ -127,6 +127,7 @@ const App = () => (
               </RequireRubixAuth>
             }
           />
+          <Route path="/clips" element={<ClipsFeed />} />
           <Route path="/clip/:slug" element={<ClipViewer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
