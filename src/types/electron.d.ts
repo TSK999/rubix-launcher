@@ -160,6 +160,11 @@ declare global {
           }>;
           error?: string;
         }>;
+        listAudioDevices: () => Promise<{
+          ok: boolean;
+          devices: Array<{ id: string; label: string }>;
+          error?: string;
+        }>;
         setPreferredDisplay: (displayId: string | null) => Promise<{ ok: boolean }>;
         onSaveTrigger: (
           cb: (data: { triggeredAt: number }) => void,
