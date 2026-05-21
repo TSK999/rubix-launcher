@@ -405,11 +405,16 @@ class ClipBuffer {
       videoBitsPerSecond: 6_000_000,
     });
     let chunkStartedAt = Date.now();
-    rec.ondataavailable = (e) => {
+    rec.ondataavailable = async (e) => {
       const endedAt = Date.now();
       if (!e.data || e.data.size === 0) return;
-      const chunk: BufferedChunk = { blob: e.data, startedAt: chunkStartedAt, endedAt };
+      const startedAt = chunkStartedAt;
       chunkStartedAt = endedAt;
+      const chunk: BufferedChunk = {
+        data: new Uint8Array(await e.data.arrayBuffer()),
+        startedAt,
+        endedAt,
+      };
       // The first chunk emitted by MediaRecorder carries the WebM init/header
       // segment. Without it, any later slice is an unplayable/corrupt file.
       // Keep it pinned and prepend on save.
@@ -481,9 +486,19 @@ class ClipBuffer {
     const slice = this.chunks.filter((chunk) => chunk.endedAt >= cutoff);
     const first = slice[0] ?? latest;
     const durationSeconds = Math.max(1, Math.round((latest.endedAt - first.startedAt) / 1000));
-    // Always prepend the init segment so the WebM container stays valid even
-    // after the original first chunk has aged out of the rolling buffer.
-    const parts = [this.initChunk.blob, ...slice.map((c) => c.blob)];
+    // Rebuild the saved clip from the original WebM header plus complete
+    // cluster-bearing chunks only. Long clips were inconsistent because the
+    // old path prepended the entire first one-second chunk (not just the init
+    // segment), which duplicated media data and produced invalid timestamps
+    // once the requested range crossed certain boundaries.
+    const headerEnd = Math.max(0, findBytes(this.initChunk.data, WEBM_CLUSTER_ID));
+    const header = this.initChunk.data.slice(0, headerEnd || this.initChunk.data.length);
+    const clusterChunks = slice.filter((c) => findBytes(c.data, WEBM_CLUSTER_ID) >= 0);
+    if (!header.length || !clusterChunks.length) {
+      throw new Error("Clip recorder is warming up — try again in a few seconds");
+    }
+    const baseTimecode = firstClusterTimecode(clusterChunks);
+    const parts: BlobPart[] = [header, ...clusterChunks.map((c) => normalizeClusterTimecodes(c.data, baseTimecode))];
     const blob = new Blob(parts, { type: this.mime });
     return {
       blob,
