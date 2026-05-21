@@ -392,8 +392,8 @@ class ClipBuffer {
 
     // Pick a supported codec.
     const candidates = prepared.hasAudio
-      ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
-      : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+      ? ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp9,opus", "video/webm"]
+      : ["video/webm;codecs=vp8", "video/webm;codecs=vp9", "video/webm"];
     this.mime =
       candidates.find((m) =>
         (window as any).MediaRecorder?.isTypeSupported?.(m),
@@ -402,7 +402,8 @@ class ClipBuffer {
     const rec = new MediaRecorder(stream, {
       mimeType: this.mime,
       videoBitsPerSecond: 6_000_000,
-    });
+      videoKeyFrameIntervalDuration: 1000,
+    } as MediaRecorderOptions);
     let chunkStartedAt = Date.now();
     rec.ondataavailable = async (e) => {
       const endedAt = Date.now();
@@ -479,6 +480,7 @@ class ClipBuffer {
         resolve();
       }
     });
+    await this.pendingChunkWrite.catch(() => undefined);
 
     if (this.chunks.length <= 0 || !this.initChunk) {
       throw new Error("Clip recorder is warming up — try again in a few seconds");
