@@ -151,20 +151,30 @@ function buildVideoInput(display, framerate) {
   };
 }
 
+// Browser-side deviceIds are 64-char hex hashes — useless to FFmpeg's dshow,
+// which wants the human-readable device name. Treat anything that looks like
+// a hash as "use default".
+function sanitizeDeviceLabel(v) {
+  if (!v || typeof v !== "string") return null;
+  const trimmed = v.trim();
+  if (!trimmed || trimmed === "default") return null;
+  if (/^[a-f0-9]{32,}$/i.test(trimmed)) return null;
+  return trimmed;
+}
+
 function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceLabel, micDeviceLabel }) {
   const args = [];
   let inputCount = 0;
+  const desktopDev = sanitizeDeviceLabel(desktopAudioDeviceLabel);
+  const micDev = sanitizeDeviceLabel(micDeviceLabel);
   if (process.platform === "win32") {
     if (includeDesktopAudio) {
-      // Prefer the user-selected output's "Stereo Mix" / loopback device name
-      // when supplied; otherwise let dshow pick the default loopback.
-      const dev = desktopAudioDeviceLabel || "virtual-audio-capturer";
-      args.push("-f", "dshow", "-i", `audio=${dev}`);
+      const dev = desktopDev || "virtual-audio-capturer";
+      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${dev}`);
       inputCount += 1;
     }
-    if (includeMic) {
-      const dev = micDeviceLabel || "default";
-      args.push("-f", "dshow", "-i", `audio=${dev}`);
+    if (includeMic && micDev) {
+      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${micDev}`);
       inputCount += 1;
     }
   } else if (process.platform === "darwin") {
@@ -178,7 +188,7 @@ function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceL
       inputCount += 1;
     }
     if (includeMic) {
-      args.push("-f", "pulse", "-i", micDeviceLabel || "default");
+      args.push("-f", "pulse", "-i", micDev || "default");
       inputCount += 1;
     }
   }
