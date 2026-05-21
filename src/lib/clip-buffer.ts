@@ -202,7 +202,7 @@ const getLegacyDesktopCapture = async (
   }
   const source = await api.clips.getSource();
   if (!source?.ok) {
-    throw new Error(source?.error || "No screen source found");
+    throw new Error(("error" in source ? source.error : "") || "No screen source found");
   }
   if (!source.sourceId) {
     throw new Error("No screen source found");
