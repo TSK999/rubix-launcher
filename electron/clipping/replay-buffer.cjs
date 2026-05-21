@@ -24,7 +24,7 @@ const fs = require("fs");
 const fsp = fs.promises;
 const log = require("electron-log");
 const { spawnFfmpeg } = require("./ffmpeg-manager.cjs");
-const { detectBestEncoder } = require("./encoder-detect.cjs");
+const { detectBestEncoder, CANDIDATES } = require("./encoder-detect.cjs");
 
 const SEGMENT_SECONDS = 2;
 const SEGMENT_PREFIX = "seg";
@@ -235,7 +235,7 @@ async function start(options = {}) {
     return { ok: false, error: lastError };
   }
   activeEncoder = options.forceSoftwareEncoder
-    ? { ...encoderInfo.selected, ...encoderInfo.tested.find((e) => e.name === "libx264"), ...require("./encoder-detect.cjs").CANDIDATES.find((e) => e.name === "libx264") }
+    ? CANDIDATES.find((e) => e.name === "libx264")
     : encoderInfo.selected;
 
   sessionDir = await ensureSessionDir();
