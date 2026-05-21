@@ -924,6 +924,33 @@ ipcMain.handle("clips:list-displays", async () => {
   }
 });
 
+ipcMain.handle("clips:list-audio-devices", async () => {
+  if (process.platform !== "win32") return { ok: true, devices: [] };
+  try {
+    const r = await ffmpegManager.runFfmpeg([
+      "-hide_banner",
+      "-list_devices", "true",
+      "-f", "dshow",
+      "-i", "dummy",
+    ], { timeoutMs: 6000 });
+    const text = `${r.stderr || ""}\n${r.stdout || ""}`;
+    const devices = [];
+    let inAudio = false;
+    for (const line of text.split(/\r?\n/)) {
+      if (/DirectShow audio devices/i.test(line)) { inAudio = true; continue; }
+      if (/DirectShow video devices/i.test(line)) { inAudio = false; continue; }
+      if (!inAudio || /Alternative name/i.test(line)) continue;
+      const m = line.match(/"([^"]+)"/);
+      if (m && !devices.some((d) => d.label === m[1])) {
+        devices.push({ id: m[1], label: m[1] });
+      }
+    }
+    return { ok: true, devices };
+  } catch (err) {
+    return { ok: false, devices: [], error: String(err?.message || err) };
+  }
+});
+
 ipcMain.handle("clips:set-preferred-display", async (_evt, id) => {
   preferredDisplayId = id ? String(id) : null;
   return { ok: true };
