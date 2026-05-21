@@ -26,7 +26,19 @@ export type ClipResult = {
 };
 
 type Listener = (s: ClipBufferStatus) => void;
-type BufferedChunk = { blob: Blob; startedAt: number; endedAt: number };
+type BufferedChunk = { data: Uint8Array; startedAt: number; endedAt: number };
+type ClipSourceResult =
+  | { ok: true; sourceId: string; displayId?: string; name?: string }
+  | { ok: false; error?: string };
+type RubixClipBridge = {
+  rubix?: {
+    isElectron?: boolean;
+    clips?: { getSource?: () => Promise<ClipSourceResult> };
+  };
+};
+type StableMediaRecorderOptions = MediaRecorderOptions & {
+  videoKeyFrameIntervalDuration?: number;
+};
 type PreparedCapture = {
   stream: MediaStream;
   ownedStreams: MediaStream[];
@@ -39,6 +51,105 @@ const TIMESLICE_MS = 1000;
 // Buffer enough seconds for the longest configurable clip length, with a
 // small safety margin so the last chunk is always available on save.
 const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
+const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75];
+
+const rubixBridge = () => (window as Window & RubixClipBridge).rubix;
+
+const findBytes = (data: Uint8Array, needle: number[], start = 0): number => {
+  outer: for (let i = start; i <= data.length - needle.length; i += 1) {
+    for (let j = 0; j < needle.length; j += 1) {
+      if (data[i + j] !== needle[j]) continue outer;
+    }
+    return i;
+  }
+  return -1;
+};
+
+const readVint = (data: Uint8Array, offset: number, stripMarker: boolean) => {
+  const first = data[offset];
+  if (first === undefined || first === 0) return null;
+  let mask = 0x80;
+  let length = 1;
+  while (length <= 8 && (first & mask) === 0) {
+    mask >>= 1;
+    length += 1;
+  }
+  if (length > 8 || offset + length > data.length) return null;
+  let value = stripMarker ? first & (mask - 1) : first;
+  for (let i = 1; i < length; i += 1) value = value * 256 + data[offset + i];
+  return { length, value, next: offset + length };
+};
+
+const readUInt = (data: Uint8Array, offset: number, length: number) => {
+  let value = 0;
+  for (let i = 0; i < length; i += 1) value = value * 256 + (data[offset + i] ?? 0);
+  return value;
+};
+
+const writeUInt = (data: Uint8Array, offset: number, length: number, value: number) => {
+  let next = Math.max(0, Math.floor(value));
+  for (let i = length - 1; i >= 0; i -= 1) {
+    data[offset + i] = next & 0xff;
+    next = Math.floor(next / 256);
+  }
+};
+
+const forEachWebmClusterTimecode = (
+  data: Uint8Array,
+  cb: (value: number, valueOffset: number, valueLength: number) => void,
+) => {
+  let searchAt = 0;
+  while (searchAt < data.length) {
+    const clusterAt = findBytes(data, WEBM_CLUSTER_ID, searchAt);
+    if (clusterAt < 0) break;
+    const size = readVint(data, clusterAt + WEBM_CLUSTER_ID.length, true);
+    if (!size) break;
+    const contentStart = size.next;
+    const nextClusterAt = findBytes(data, WEBM_CLUSTER_ID, contentStart);
+    const declaredEnd = Number.isFinite(size.value) ? contentStart + size.value : data.length;
+    const contentEnd = Math.min(
+      declaredEnd > contentStart ? declaredEnd : data.length,
+      nextClusterAt > contentStart ? nextClusterAt : data.length,
+      data.length,
+    );
+
+    let pos = contentStart;
+    while (pos < contentEnd) {
+      const id = readVint(data, pos, false);
+      if (!id) break;
+      const elementSize = readVint(data, id.next, true);
+      if (!elementSize) break;
+      const valueOffset = elementSize.next;
+      const valueEnd = valueOffset + elementSize.value;
+      if (valueEnd > contentEnd) break;
+      if (id.value === 0xe7) {
+        cb(readUInt(data, valueOffset, elementSize.value), valueOffset, elementSize.value);
+        break;
+      }
+      pos = valueEnd;
+    }
+    searchAt = Math.max(contentEnd, clusterAt + WEBM_CLUSTER_ID.length);
+  }
+};
+
+const firstClusterTimecode = (chunks: BufferedChunk[]) => {
+  for (const chunk of chunks) {
+    let found: number | null = null;
+    forEachWebmClusterTimecode(chunk.data, (value) => {
+      if (found === null) found = value;
+    });
+    if (found !== null) return found;
+  }
+  return 0;
+};
+
+const normalizeClusterTimecodes = (data: Uint8Array, baseTimecode: number) => {
+  const copy = new Uint8Array(data);
+  forEachWebmClusterTimecode(copy, (value, valueOffset, valueLength) => {
+    writeUInt(copy, valueOffset, valueLength, Math.max(0, value - baseTimecode));
+  });
+  return copy;
+};
 
 
 const resolutionToHeight = (r: string): number | null => {
@@ -85,13 +196,16 @@ const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
 const getLegacyDesktopCapture = async (
   media: MediaDevices & { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> },
 ): Promise<MediaStream> => {
-  const api = (window as any).rubix;
+  const api = rubixBridge();
   if (!api?.clips?.getSource) {
     throw new Error("Desktop source bridge is unavailable");
   }
   const source = await api.clips.getSource();
-  if (!source?.ok || !source.sourceId) {
-    throw new Error(source?.error || "No screen source found");
+  if (!source?.ok) {
+    throw new Error(("error" in source ? source.error : "") || "No screen source found");
+  }
+  if (!source.sourceId) {
+    throw new Error("No screen source found");
   }
 
   const { width, height, fps } = targetVideoConstraints();
@@ -117,7 +231,7 @@ const getLegacyDesktopCapture = async (
   }
 };
 
-const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream> => {
+const getCaptureStream = async (): Promise<MediaStream> => {
   const media = navigator.mediaDevices as MediaDevices & {
     getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   };
@@ -125,9 +239,7 @@ const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream
     throw new Error("Desktop capture is unavailable");
   }
 
-  const attempts = preferDisplayMedia
-    ? [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)]
-    : [() => getLegacyDesktopCapture(media), () => getDisplayCapture(media)];
+  const attempts = [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)];
 
   const errors: string[] = [];
   for (const attempt of attempts) {
@@ -187,7 +299,7 @@ const mixAudioIntoCapture = async (capture: MediaStream): Promise<PreparedCaptur
     return { stream: capture, ownedStreams: [capture], audioContext: null, audioNodes: [], hasAudio: false };
   }
 
-  const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+  const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextCtor) {
     return {
       stream: new MediaStream([...capture.getVideoTracks(), ...audioTracks]),
@@ -227,6 +339,8 @@ class ClipBuffer {
   private recorder: MediaRecorder | null = null;
   private chunks: BufferedChunk[] = [];
   private initChunk: BufferedChunk | null = null;
+  private pendingChunkWrite: Promise<void> = Promise.resolve();
+  private recordingSerial = 0;
   private mime = "video/webm;codecs=vp9";
   private width = 0;
   private height = 0;
@@ -260,17 +374,19 @@ class ClipBuffer {
       if (!options?.preferDisplayMedia && !options?.restart) return;
       this.stop();
     }
-    const api = (window as any).rubix;
+    const api = rubixBridge();
     if (!api?.isElectron) {
       throw new Error("Clip buffer only runs inside the desktop app");
     }
     this.setStatus("starting");
+    const serial = this.recordingSerial + 1;
+    this.recordingSerial = serial;
 
-    // Prefer Electron's desktopCapturer source-id video capture path so the
-    // rolling buffer can start automatically after sign-in.
+    // Prefer Electron's display-media handler because it consistently returns
+    // a screen source, which is the reliable path for fullscreen games.
     let prepared: PreparedCapture;
     try {
-      const capture = await getCaptureStream(Boolean(options?.preferDisplayMedia));
+      const capture = await getCaptureStream();
       prepared = await mixAudioIntoCapture(capture);
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
@@ -296,34 +412,43 @@ class ClipBuffer {
 
     // Pick a supported codec.
     const candidates = prepared.hasAudio
-      ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
-      : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+      ? ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp9,opus", "video/webm"]
+      : ["video/webm;codecs=vp8", "video/webm;codecs=vp9", "video/webm"];
     this.mime =
       candidates.find((m) =>
-        (window as any).MediaRecorder?.isTypeSupported?.(m),
+        window.MediaRecorder?.isTypeSupported?.(m),
       ) ?? "video/webm";
 
     const rec = new MediaRecorder(stream, {
       mimeType: this.mime,
       videoBitsPerSecond: 6_000_000,
-    });
+      videoKeyFrameIntervalDuration: 1000,
+    } as StableMediaRecorderOptions);
     let chunkStartedAt = Date.now();
-    rec.ondataavailable = (e) => {
+    rec.ondataavailable = async (e) => {
       const endedAt = Date.now();
       if (!e.data || e.data.size === 0) return;
-      const chunk: BufferedChunk = { blob: e.data, startedAt: chunkStartedAt, endedAt };
+      const startedAt = chunkStartedAt;
       chunkStartedAt = endedAt;
-      // The first chunk emitted by MediaRecorder carries the WebM init/header
-      // segment. Without it, any later slice is an unplayable/corrupt file.
-      // Keep it pinned and prepend on save.
-      if (!this.initChunk) {
-        this.initChunk = chunk;
-        return;
-      }
-      this.chunks.push(chunk);
-      if (this.chunks.length > MAX_CHUNKS) {
-        this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
-      }
+      this.pendingChunkWrite = this.pendingChunkWrite.catch(() => undefined).then(async () => {
+        const chunk: BufferedChunk = {
+          data: new Uint8Array(await e.data.arrayBuffer()),
+          startedAt,
+          endedAt,
+        };
+        if (serial !== this.recordingSerial) return;
+        // The first chunk emitted by MediaRecorder carries the WebM init/header
+        // segment. Without it, any later slice is an unplayable/corrupt file.
+        // Keep it pinned and prepend on save.
+        if (!this.initChunk) {
+          this.initChunk = chunk;
+          return;
+        }
+        this.chunks.push(chunk);
+        if (this.chunks.length > MAX_CHUNKS) {
+          this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
+        }
+      });
     };
     rec.onerror = () => this.setStatus("error");
     rec.start(TIMESLICE_MS);
@@ -349,6 +474,8 @@ class ClipBuffer {
     this.audioNodes = [];
     this.chunks = [];
     this.initChunk = null;
+    this.pendingChunkWrite = Promise.resolve();
+    this.recordingSerial += 1;
     this.setStatus("idle");
   }
 
@@ -375,6 +502,7 @@ class ClipBuffer {
         resolve();
       }
     });
+    await this.pendingChunkWrite.catch(() => undefined);
 
     if (this.chunks.length <= 0 || !this.initChunk) {
       throw new Error("Clip recorder is warming up — try again in a few seconds");
@@ -384,9 +512,19 @@ class ClipBuffer {
     const slice = this.chunks.filter((chunk) => chunk.endedAt >= cutoff);
     const first = slice[0] ?? latest;
     const durationSeconds = Math.max(1, Math.round((latest.endedAt - first.startedAt) / 1000));
-    // Always prepend the init segment so the WebM container stays valid even
-    // after the original first chunk has aged out of the rolling buffer.
-    const parts = [this.initChunk.blob, ...slice.map((c) => c.blob)];
+    // Rebuild the saved clip from the original WebM header plus complete
+    // cluster-bearing chunks only. Long clips were inconsistent because the
+    // old path prepended the entire first one-second chunk (not just the init
+    // segment), which duplicated media data and produced invalid timestamps
+    // once the requested range crossed certain boundaries.
+    const headerEnd = Math.max(0, findBytes(this.initChunk.data, WEBM_CLUSTER_ID));
+    const header = this.initChunk.data.slice(0, headerEnd || this.initChunk.data.length);
+    const clusterChunks = slice.filter((c) => findBytes(c.data, WEBM_CLUSTER_ID) >= 0);
+    if (!header.length || !clusterChunks.length) {
+      throw new Error("Clip recorder is warming up — try again in a few seconds");
+    }
+    const baseTimecode = firstClusterTimecode(clusterChunks);
+    const parts: BlobPart[] = [header, ...clusterChunks.map((c) => normalizeClusterTimecodes(c.data, baseTimecode))];
     const blob = new Blob(parts, { type: this.mime });
     return {
       blob,
