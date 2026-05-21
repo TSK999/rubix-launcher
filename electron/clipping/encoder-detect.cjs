@@ -36,16 +36,19 @@ async function listAvailableEncoders() {
 }
 
 async function testEncoder(name) {
-  // Try a 1-frame dummy encode to confirm the encoder actually initializes
-  // on this machine (GPU driver present, etc.). Output is discarded.
+  // Probe with a 320x240 source — above NVENC's minimum (145x49) and large
+  // enough for AMF/QSV to initialise. Explicit pix_fmt avoids auto-scaler
+  // surprises. 12s timeout because NVENC cold-start on a fresh driver can
+  // take 5-6s on first invocation.
   const args = [
     "-hide_banner", "-loglevel", "error",
-    "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.1",
-    "-frames:v", "1",
+    "-f", "lavfi", "-i", "color=c=black:s=320x240:r=30:d=0.2",
+    "-frames:v", "3",
+    "-pix_fmt", "yuv420p",
     "-c:v", name,
     "-f", "null", "-",
   ];
-  const { ok } = await runFfmpeg(args, { timeoutMs: 6000 });
+  const { ok } = await runFfmpeg(args, { timeoutMs: 12000 });
   return ok;
 }
 
