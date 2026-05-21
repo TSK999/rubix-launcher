@@ -287,20 +287,36 @@ async function start(options = {}) {
     return { ok: false, error: lastError };
   }
 
+  const startedAt = Date.now();
+  let stderrTail = "";
   proc.stderr.on("data", (d) => {
     const text = d.toString();
-    if (/error|failed|invalid/i.test(text)) log.warn("[ffmpeg]", text.trim());
+    stderrTail = (stderrTail + text).slice(-2000);
+    if (/error|failed|invalid|cannot/i.test(text)) log.warn("[ffmpeg]", text.trim());
   });
   proc.on("error", (err) => {
     log.error("[ffmpeg] error", err);
     setState(STATE.ERROR, String(err && err.message));
   });
-  proc.on("close", (code) => {
-    log.info("[ffmpeg] closed", code);
+  proc.on("close", async (code) => {
+    log.info("[ffmpeg] closed", code, "tail:", stderrTail.slice(-400));
     proc = null;
-    if (state !== STATE.IDLE) {
-      setState(STATE.ERROR, `ffmpeg exited (code ${code})`);
+    if (state === STATE.IDLE) return;
+    const ranFor = Date.now() - startedAt;
+    const hadAudio = audio.inputCount > 0;
+    // If we died fast with audio enabled, the audio device is almost certainly
+    // the cause — retry once with video only so the user still gets clips.
+    if (ranFor < 4000 && hadAudio && !options._noAudioRetry) {
+      log.warn("[ffmpeg] fast exit with audio — retrying video-only");
+      setState(STATE.STARTING, "Audio device failed — retrying video only");
+      setTimeout(() => {
+        start({ ...options, includeDesktopAudio: false, includeMic: false, _noAudioRetry: true })
+          .catch((err) => setState(STATE.ERROR, String(err && err.message)));
+      }, 250);
+      return;
     }
+    const tail = stderrTail.trim().split("\n").slice(-3).join(" | ").slice(0, 300);
+    setState(STATE.ERROR, `ffmpeg exited (code ${code})${tail ? `: ${tail}` : ""}`);
   });
 
   // Poll segment dir to update recentSegments.
