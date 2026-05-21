@@ -196,7 +196,7 @@ const getDisplayCapture = async (media: MediaDevices): Promise<MediaStream> => {
 const getLegacyDesktopCapture = async (
   media: MediaDevices & { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> },
 ): Promise<MediaStream> => {
-  const api = (window as any).rubix;
+  const api = rubixBridge();
   if (!api?.clips?.getSource) {
     throw new Error("Desktop source bridge is unavailable");
   }
@@ -296,7 +296,7 @@ const mixAudioIntoCapture = async (capture: MediaStream): Promise<PreparedCaptur
     return { stream: capture, ownedStreams: [capture], audioContext: null, audioNodes: [], hasAudio: false };
   }
 
-  const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+  const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextCtor) {
     return {
       stream: new MediaStream([...capture.getVideoTracks(), ...audioTracks]),
@@ -370,7 +370,7 @@ class ClipBuffer {
       if (!options?.preferDisplayMedia && !options?.restart) return;
       this.stop();
     }
-    const api = (window as any).rubix;
+    const api = rubixBridge();
     if (!api?.isElectron) {
       throw new Error("Clip buffer only runs inside the desktop app");
     }
@@ -410,14 +410,14 @@ class ClipBuffer {
       : ["video/webm;codecs=vp8", "video/webm;codecs=vp9", "video/webm"];
     this.mime =
       candidates.find((m) =>
-        (window as any).MediaRecorder?.isTypeSupported?.(m),
+        window.MediaRecorder?.isTypeSupported?.(m),
       ) ?? "video/webm";
 
     const rec = new MediaRecorder(stream, {
       mimeType: this.mime,
       videoBitsPerSecond: 6_000_000,
       videoKeyFrameIntervalDuration: 1000,
-    } as MediaRecorderOptions);
+    } as StableMediaRecorderOptions);
     let chunkStartedAt = Date.now();
     rec.ondataavailable = async (e) => {
       const endedAt = Date.now();
