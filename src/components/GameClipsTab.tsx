@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { Download, Film, Loader2, Radio, Trash2, Upload } from "lucide-react";
+import { Film, Loader2, Radio, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClipPlayer } from "@/components/ClipPlayer";
+import { ClipActionsMenu } from "@/components/clips/ClipActionsMenu";
+import { supabase } from "@/integrations/supabase/client";
 import {
   deleteClip,
   uploadClip,
@@ -10,6 +12,8 @@ import {
 } from "@/lib/game-clips";
 import type { Game } from "@/lib/game-types";
 import type { ClipBufferStatus } from "@/lib/clip-buffer";
+import type { SharedClip } from "@/lib/clip-share";
+import { shareLinkFor } from "@/lib/clip-share";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -51,6 +55,7 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [recorderStatus, setRecorderStatus] = useState<ClipBufferStatus>("idle");
+  const [sharedByLocalId, setSharedByLocalId] = useState<Map<string, SharedClip>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,13 +69,46 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
       const detail = (event as CustomEvent<{ status: ClipBufferStatus }>).detail;
       if (detail?.status) setRecorderStatus(detail.status);
     };
+    const onShared = () => {
+      // Refresh shared clip list when a new upload finishes
+      void loadSharedMap();
+    };
     window.addEventListener("rubix:clip-saved", onSaved);
     window.addEventListener("rubix:clips-status", onStatus);
+    window.addEventListener("rubix:shared-clip-ready", onShared);
     return () => {
       window.removeEventListener("rubix:clip-saved", onSaved);
       window.removeEventListener("rubix:clips-status", onStatus);
+      window.removeEventListener("rubix:shared-clip-ready", onShared);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, setClips]);
+
+  const loadSharedMap = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("shared_clips")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("game_key", game.id);
+    const list = (data as SharedClip[]) ?? [];
+    // Heuristic match: pair by title (caption) when possible, else by chronology.
+    const map = new Map<string, SharedClip>();
+    const localById = new Map(clips.map((c) => [c.id, c] as const));
+    const remaining = [...list];
+    for (const c of clips) {
+      const title = c.caption ?? "";
+      const idx = remaining.findIndex((s) => s.title === title);
+      if (idx >= 0) { map.set(c.id, remaining[idx]); remaining.splice(idx, 1); }
+    }
+    setSharedByLocalId(map);
+    void localById; // keep ref
+  };
+
+  useEffect(() => {
+    void loadSharedMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, game.id, clips.length]);
 
   const handleFiles = async (files: FileList | File[]) => {
     if (!userId) {
@@ -133,6 +171,22 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
     } catch {
       toast.error("Download failed");
     }
+  };
+
+  const onRename = async (id: string, newCaption: string) => {
+    setClips((prev) => prev.map((c) => (c.id === id ? { ...c, caption: newCaption } : c)));
+    try {
+      await supabase.from("game_clips_user").update({ caption: newCaption }).eq("id", id);
+    } catch {
+      toast.error("Could not rename");
+    }
+  };
+
+  const onDragStart = (e: DragEvent<HTMLDivElement>, c: GameClip) => {
+    const shared = sharedByLocalId.get(c.id);
+    if (!shared) return;
+    e.dataTransfer.setData("application/x-rubix-clip", shared.share_slug);
+    e.dataTransfer.setData("text/plain", shareLinkFor(shared.share_slug));
   };
 
   return (
@@ -209,41 +263,48 @@ export const GameClipsTab = ({ game, userId, clips, setClips }: Props) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {clips.map((c) => (
-            <div key={c.id} className="space-y-1.5">
-              <div className="group relative">
-                {c.url ? (
-                  <ClipPlayer src={c.url} className="aspect-video w-full" />
-                ) : (
-                  <div className="aspect-video w-full rounded-xl bg-secondary" />
-                )}
-                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={() => void onDownload(c)}
-                    className="h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur text-foreground hover:bg-background"
-                    aria-label="Download clip"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onDelete(c)}
-                    className="h-7 w-7 grid place-items-center rounded-full bg-background/70 backdrop-blur text-destructive hover:bg-background"
-                    aria-label="Delete clip"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+          {clips.map((c) => {
+            const shared = sharedByLocalId.get(c.id);
+            return (
+              <div
+                key={c.id}
+                className="space-y-1.5"
+                draggable={!!shared}
+                onDragStart={(e) => onDragStart(e, c)}
+              >
+                <div className="group relative">
+                  {c.url ? (
+                    <ClipPlayer src={c.url} className="aspect-video w-full" />
+                  ) : (
+                    <div className="aspect-video w-full rounded-xl bg-secondary" />
+                  )}
+                  {shared && (
+                    <span className="absolute top-1.5 left-1.5 z-10 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-medium px-2 py-0.5 backdrop-blur shadow">
+                      Shared · {shared.visibility}
+                    </span>
+                  )}
+                  <div className="absolute top-1.5 right-1.5 z-10 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
+                    <ClipActionsMenu
+                      clip={c}
+                      gameKey={game.id}
+                      gameTitle={game.title}
+                      sharedClip={shared}
+                      onShared={() => void loadSharedMap()}
+                      onRename={onRename}
+                      onDelete={() => onDelete(c)}
+                      onDownload={() => onDownload(c)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground/80 truncate">
+                    {c.caption || (c.duration_seconds ? `${c.duration_seconds}s clip` : "Clip")}
+                  </span>
+                  <span className="shrink-0 ml-2">{formatSize(c.size_bytes)}</span>
                 </div>
               </div>
-              <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
-                <span className="font-medium text-foreground/80">
-                  {c.duration_seconds ? `${c.duration_seconds}s` : "Clip"}
-                </span>
-                <span>{formatSize(c.size_bytes)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -266,9 +266,32 @@ export const MessageComposer = ({ conversationId, replyTo, onClearReply }: Props
   };
 
   // Drag & drop + paste --------------------------------------------
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    const slug = e.dataTransfer.getData("application/x-rubix-clip");
+    if (slug) {
+      try {
+        await sendMessage({
+          conversationId,
+          replyToId: replyTo?.id ?? null,
+          attachments: [{
+            storage_path: null,
+            external_url: `${window.location.origin}/clip/${slug}`,
+            kind: "video",
+            mime_type: "application/x-rubix-clip",
+            file_name: slug,
+            size_bytes: null,
+            width: null,
+            height: null,
+          }],
+        });
+        onClearReply();
+        return;
+      } catch {
+        toast.error("Failed to share clip");
+      }
+    }
     if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 

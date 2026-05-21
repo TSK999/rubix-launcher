@@ -91,6 +91,96 @@ export type Database = {
           },
         ]
       }
+      clip_comments: {
+        Row: {
+          clip_id: string
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          clip_id: string
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          clip_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clip_reactions: {
+        Row: {
+          clip_id: string
+          created_at: string
+          emoji: string
+          user_id: string
+        }
+        Insert: {
+          clip_id: string
+          created_at?: string
+          emoji: string
+          user_id: string
+        }
+        Update: {
+          clip_id?: string
+          created_at?: string
+          emoji?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clip_reports: {
+        Row: {
+          clip_id: string
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+        }
+        Insert: {
+          clip_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+        }
+        Update: {
+          clip_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+        }
+        Relationships: []
+      }
+      clip_views: {
+        Row: {
+          clip_id: string
+          created_at: string
+          user_id: string
+          viewed_on: string
+        }
+        Insert: {
+          clip_id: string
+          created_at?: string
+          user_id: string
+          viewed_on?: string
+        }
+        Update: {
+          clip_id?: string
+          created_at?: string
+          user_id?: string
+          viewed_on?: string
+        }
+        Relationships: []
+      }
       communities: {
         Row: {
           banner_url: string | null
@@ -989,6 +1079,78 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_clips: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          game_key: string | null
+          game_title: string | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          original_path: string | null
+          processing_status: string
+          share_count: number
+          share_slug: string
+          size_bytes: number | null
+          source_clip_id: string | null
+          stream_path: string | null
+          thumbnail_path: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          view_count: number
+          visibility: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          game_key?: string | null
+          game_title?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          original_path?: string | null
+          processing_status?: string
+          share_count?: number
+          share_slug?: string
+          size_bytes?: number | null
+          source_clip_id?: string | null
+          stream_path?: string | null
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+          view_count?: number
+          visibility?: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          game_key?: string | null
+          game_title?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          original_path?: string | null
+          processing_status?: string
+          share_count?: number
+          share_slug?: string
+          size_bytes?: number | null
+          source_clip_id?: string | null
+          stream_path?: string | null
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number
+          visibility?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       spotify_connections: {
         Row: {
           access_token: string
@@ -1194,6 +1356,7 @@ export type Database = {
         Args: { _icon_url?: string; _name: string }
         Returns: string
       }
+      gen_clip_slug: { Args: never; Returns: string }
       gen_invite_code: { Args: never; Returns: string }
       get_friend_presence: {
         Args: { _uids: string[] }
@@ -1248,6 +1411,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_clip_share: { Args: { _clip_id: string }; Returns: undefined }
+      increment_clip_view: { Args: { _clip_id: string }; Returns: undefined }
       is_community_admin: {
         Args: { _cid: string; _uid: string }
         Returns: boolean
@@ -1264,6 +1429,10 @@ export type Database = {
       join_community_by_code: { Args: { _code: string }; Returns: string }
       message_community: { Args: { _mid: string }; Returns: string }
       regenerate_invite_code: { Args: { _cid: string }; Returns: string }
+      shared_clip_viewable: {
+        Args: { _clip_id: string; _uid: string }
+        Returns: boolean
+      }
       user_owns_game: {
         Args: { _game: string; _user: string }
         Returns: boolean
