@@ -222,9 +222,7 @@ const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream
     throw new Error("Desktop capture is unavailable");
   }
 
-  const attempts = preferDisplayMedia
-    ? [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)]
-    : [() => getLegacyDesktopCapture(media), () => getDisplayCapture(media)];
+  const attempts = [() => getDisplayCapture(media), () => getLegacyDesktopCapture(media)];
 
   const errors: string[] = [];
   for (const attempt of attempts) {
@@ -324,6 +322,7 @@ class ClipBuffer {
   private recorder: MediaRecorder | null = null;
   private chunks: BufferedChunk[] = [];
   private initChunk: BufferedChunk | null = null;
+  private pendingChunkWrite: Promise<void> = Promise.resolve();
   private mime = "video/webm;codecs=vp9";
   private width = 0;
   private height = 0;
@@ -410,22 +409,24 @@ class ClipBuffer {
       if (!e.data || e.data.size === 0) return;
       const startedAt = chunkStartedAt;
       chunkStartedAt = endedAt;
-      const chunk: BufferedChunk = {
-        data: new Uint8Array(await e.data.arrayBuffer()),
-        startedAt,
-        endedAt,
-      };
-      // The first chunk emitted by MediaRecorder carries the WebM init/header
-      // segment. Without it, any later slice is an unplayable/corrupt file.
-      // Keep it pinned and prepend on save.
-      if (!this.initChunk) {
-        this.initChunk = chunk;
-        return;
-      }
-      this.chunks.push(chunk);
-      if (this.chunks.length > MAX_CHUNKS) {
-        this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
-      }
+      this.pendingChunkWrite = this.pendingChunkWrite.then(async () => {
+        const chunk: BufferedChunk = {
+          data: new Uint8Array(await e.data.arrayBuffer()),
+          startedAt,
+          endedAt,
+        };
+        // The first chunk emitted by MediaRecorder carries the WebM init/header
+        // segment. Without it, any later slice is an unplayable/corrupt file.
+        // Keep it pinned and prepend on save.
+        if (!this.initChunk) {
+          this.initChunk = chunk;
+          return;
+        }
+        this.chunks.push(chunk);
+        if (this.chunks.length > MAX_CHUNKS) {
+          this.chunks.splice(0, this.chunks.length - MAX_CHUNKS);
+        }
+      });
     };
     rec.onerror = () => this.setStatus("error");
     rec.start(TIMESLICE_MS);
