@@ -234,7 +234,9 @@ async function start(options = {}) {
     setState(STATE.ERROR, "Encoder detection failed: " + (err && err.message));
     return { ok: false, error: lastError };
   }
-  activeEncoder = encoderInfo.selected;
+  activeEncoder = options.forceSoftwareEncoder
+    ? { ...encoderInfo.selected, ...encoderInfo.tested.find((e) => e.name === "libx264"), ...require("./encoder-detect.cjs").CANDIDATES.find((e) => e.name === "libx264") }
+    : encoderInfo.selected;
 
   sessionDir = await ensureSessionDir();
   recentSegments = [];
@@ -290,6 +292,7 @@ async function start(options = {}) {
     "-segment_list_type", "m3u8",
     path.join(sessionDir, `${SEGMENT_PREFIX}_%03d.ts`),
   );
+  lastFfmpegArgs = args.slice();
 
   try {
     proc = spawnFfmpeg(args);
@@ -322,6 +325,15 @@ async function start(options = {}) {
       setState(STATE.STARTING, "Audio device failed — retrying video only");
       setTimeout(() => {
         start({ ...options, includeDesktopAudio: false, includeMic: false, _noAudioRetry: true })
+          .catch((err) => setState(STATE.ERROR, String(err && err.message)));
+      }, 250);
+      return;
+    }
+    if (ranFor < 4000 && shouldRetryWithSoftware(stderrTail, activeEncoder) && !options._softwareRetry) {
+      log.warn("[ffmpeg] fast encoder exit — retrying with libx264");
+      setState(STATE.STARTING, "Hardware encoder failed — retrying software encoder");
+      setTimeout(() => {
+        start({ ...options, forceSoftwareEncoder: true, _softwareRetry: true })
           .catch((err) => setState(STATE.ERROR, String(err && err.message)));
       }, 250);
       return;
