@@ -8,7 +8,7 @@
  *   3. QSV    (Intel)    — h264_qsv
  *   4. libx264 (software fallback, always present in a normal ffmpeg build)
  */
-const { runFfmpeg } = require("./ffmpeg-manager");
+const { runFfmpeg } = require("./ffmpeg-manager.cjs");
 
 const CANDIDATES = [
   { name: "h264_nvenc", label: "NVIDIA NVENC", kind: "gpu", vendor: "nvidia",
