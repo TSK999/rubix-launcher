@@ -55,6 +55,8 @@ export const ClipsSettingsPanel = () => {
   const [displays, setDisplays] = useState<Display[]>([]);
   const [mics, setMics] = useState<MicDevice[]>([]);
   const [outputs, setOutputs] = useState<AudioOut[]>([]);
+  const [backend, setBackend] = useState<ClipBackendInfo>(clipBuffer.getBackendInfo());
+  const [recStatus, setRecStatus] = useState<ClipBufferStatus>(clipBuffer.getStatus());
   const api = (window as any).rubix;
   const isElectron = !!api?.isElectron;
 
