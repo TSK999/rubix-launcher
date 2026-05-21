@@ -28,6 +28,19 @@ jobs:
       - name: Build web assets
         run: npm run build
 
+      - name: Download FFmpeg (Windows static build)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path resources/bin | Out-Null
+          $zip = "$env:RUNNER_TEMP\ffmpeg.zip"
+          Invoke-WebRequest -Uri "https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "$env:RUNNER_TEMP\ffmpeg" -Force
+          $bin = Get-ChildItem "$env:RUNNER_TEMP\ffmpeg" -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          Copy-Item $bin.FullName resources/bin/ffmpeg.exe -Force
+          $probe = Get-ChildItem "$env:RUNNER_TEMP\ffmpeg" -Recurse -Filter ffprobe.exe | Select-Object -First 1
+          Copy-Item $probe.FullName resources/bin/ffprobe.exe -Force
+          Get-Item resources/bin/ffmpeg.exe, resources/bin/ffprobe.exe | Format-Table Name, Length
+
       - name: Build & publish Windows installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
