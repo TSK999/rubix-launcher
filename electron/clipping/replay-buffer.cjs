@@ -23,8 +23,8 @@ const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const log = require("electron-log");
-const { spawnFfmpeg } = require("./ffmpeg-manager");
-const { detectBestEncoder } = require("./encoder-detect");
+const { spawnFfmpeg } = require("./ffmpeg-manager.cjs");
+const { detectBestEncoder } = require("./encoder-detect.cjs");
 
 const SEGMENT_SECONDS = 2;
 const SEGMENT_PREFIX = "seg";
