@@ -27,6 +27,18 @@ export type ClipResult = {
 
 type Listener = (s: ClipBufferStatus) => void;
 type BufferedChunk = { data: Uint8Array; startedAt: number; endedAt: number };
+type ClipSourceResult =
+  | { ok: true; sourceId: string; displayId?: string; name?: string }
+  | { ok: false; error?: string };
+type RubixClipBridge = {
+  rubix?: {
+    isElectron?: boolean;
+    clips?: { getSource?: () => Promise<ClipSourceResult> };
+  };
+};
+type StableMediaRecorderOptions = MediaRecorderOptions & {
+  videoKeyFrameIntervalDuration?: number;
+};
 type PreparedCapture = {
   stream: MediaStream;
   ownedStreams: MediaStream[];
@@ -40,6 +52,8 @@ const TIMESLICE_MS = 1000;
 // small safety margin so the last chunk is always available on save.
 const MAX_CHUNKS = CLIP_DURATION_MAX + 4;
 const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75];
+
+const rubixBridge = () => (window as Window & RubixClipBridge).rubix;
 
 const findBytes = (data: Uint8Array, needle: number[], start = 0): number => {
   outer: for (let i = start; i <= data.length - needle.length; i += 1) {
