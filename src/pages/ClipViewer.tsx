@@ -55,6 +55,35 @@ const ClipViewer = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [me, setMe] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const goFullscreen = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void v.requestFullscreen?.().catch(() => toast.error("Fullscreen blocked"));
+  };
+
+  const webShare = async () => {
+    if (!clip) return;
+    const url = shareLinkFor(clip.share_slug);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: clip.title, text: clip.game_title ?? undefined, url });
+        await trackClipShare(clip.id);
+        return;
+      } catch { /* user cancelled */ }
+    }
+    setShareOpen(true);
+  };
+
+  const shareTwitter = () => {
+    if (!clip) return;
+    const url = shareLinkFor(clip.share_slug);
+    const text = `${clip.title}${clip.game_title ? ` · ${clip.game_title}` : ""}`;
+    window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    void trackClipShare(clip.id);
+  };
 
   useEffect(() => {
     (async () => {
