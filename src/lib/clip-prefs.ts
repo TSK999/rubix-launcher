@@ -40,8 +40,10 @@ const DEFAULTS: ClipPrefs = {
   displayId: null,
   micDeviceId: null,
   desktopAudioDeviceId: null,
-  includeDesktopAudio: true,
-  includeMic: true,
+  // Off by default: Windows can't capture system audio without a loopback
+  // device (Stereo Mix / VB-Cable) installed. Recording would fail silently.
+  includeDesktopAudio: false,
+  includeMic: false,
   durationSeconds: CLIP_DURATION_DEFAULT,
   resolution: "1080",
   framerate: 60,
