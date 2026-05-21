@@ -172,9 +172,11 @@ function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceL
   const desktopDev = sanitizeDeviceLabel(desktopAudioDeviceLabel);
   const micDev = sanitizeDeviceLabel(micDeviceLabel);
   if (process.platform === "win32") {
-    if (includeDesktopAudio) {
-      const dev = desktopDev || "virtual-audio-capturer";
-      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${dev}`);
+    // Browser audiooutput IDs cannot be used by FFmpeg, and Windows has no
+    // built-in dshow desktop-loopback device. Only enable this if the user has
+    // explicitly selected a real dshow loopback label (Stereo Mix/VB-Cable/etc).
+    if (includeDesktopAudio && desktopDev) {
+      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${desktopDev}`);
       inputCount += 1;
     }
     if (includeMic && micDev) {
@@ -197,6 +199,11 @@ function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceL
     }
   }
   return { args, inputCount };
+}
+
+function shouldRetryWithSoftware(stderrTail, encoder) {
+  if (!encoder || encoder.name === "libx264") return false;
+  return /nvenc|amf|qsv|encoder|device|driver|hardware|initializ|unsupported|no capable devices/i.test(stderrTail || "");
 }
 
 function resolutionToHeight(r) {
