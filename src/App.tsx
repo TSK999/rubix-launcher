@@ -22,6 +22,8 @@ import DeveloperApply from "./pages/DeveloperApply.tsx";
 import DeveloperDashboard from "./pages/DeveloperDashboard.tsx";
 import GameForm from "./pages/GameForm.tsx";
 import AdminReview from "./pages/AdminReview.tsx";
+import ClipViewer from "./pages/ClipViewer.tsx";
+import { UploadDock } from "./components/clips/UploadDock";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
 import { UpdateNotifier } from "./components/UpdateNotifier";
@@ -124,9 +126,11 @@ const App = () => (
               </RequireRubixAuth>
             }
           />
+          <Route path="/clip/:slug" element={<ClipViewer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <UploadDock />
       </Router>
     </TooltipProvider>
     </ControllerModeProvider>
