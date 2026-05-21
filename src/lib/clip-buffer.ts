@@ -340,6 +340,7 @@ class ClipBuffer {
   private chunks: BufferedChunk[] = [];
   private initChunk: BufferedChunk | null = null;
   private pendingChunkWrite: Promise<void> = Promise.resolve();
+  private recordingSerial = 0;
   private mime = "video/webm;codecs=vp9";
   private width = 0;
   private height = 0;
@@ -378,6 +379,8 @@ class ClipBuffer {
       throw new Error("Clip buffer only runs inside the desktop app");
     }
     this.setStatus("starting");
+    const serial = this.recordingSerial + 1;
+    this.recordingSerial = serial;
 
     // Prefer Electron's display-media handler because it consistently returns
     // a screen source, which is the reliable path for fullscreen games.
@@ -433,6 +436,7 @@ class ClipBuffer {
           startedAt,
           endedAt,
         };
+        if (serial !== this.recordingSerial) return;
         // The first chunk emitted by MediaRecorder carries the WebM init/header
         // segment. Without it, any later slice is an unplayable/corrupt file.
         // Keep it pinned and prepend on save.
@@ -471,6 +475,7 @@ class ClipBuffer {
     this.chunks = [];
     this.initChunk = null;
     this.pendingChunkWrite = Promise.resolve();
+    this.recordingSerial += 1;
     this.setStatus("idle");
   }
 
