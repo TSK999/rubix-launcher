@@ -24,7 +24,7 @@ const fs = require("fs");
 const fsp = fs.promises;
 const log = require("electron-log");
 const { spawnFfmpeg } = require("./ffmpeg-manager.cjs");
-const { detectBestEncoder } = require("./encoder-detect.cjs");
+const { detectBestEncoder, CANDIDATES } = require("./encoder-detect.cjs");
 
 const SEGMENT_SECONDS = 2;
 const SEGMENT_PREFIX = "seg";
@@ -39,6 +39,7 @@ const listeners = new Set();
 let proc = null;
 let state = STATE.IDLE;
 let lastError = "";
+let lastFfmpegArgs = [];
 let activeEncoder = null;
 let sessionDir = null;
 let recentSegments = [];
@@ -59,6 +60,7 @@ function getStatus() {
       ? { name: activeEncoder.name, label: activeEncoder.label, kind: activeEncoder.kind }
       : null,
     error: lastError,
+    args: lastFfmpegArgs,
     segments: recentSegments.length,
     sessionDir,
   };
@@ -107,9 +109,11 @@ function pickDisplay(displayId) {
 
 function buildVideoInput(display, framerate) {
   const { x, y, width, height } = display.bounds;
-  const scale = display.scaleFactor || 1;
-  const w = Math.round(width * scale);
-  const h = Math.round(height * scale);
+  // gdigrab uses Windows virtual-screen coordinates in logical pixels. Using
+  // device-scaled dimensions here can overshoot the desktop on 125/150% DPI or
+  // mixed-scale multi-monitor setups, which makes FFmpeg exit immediately.
+  const w = Math.round(width);
+  const h = Math.round(height);
 
   if (process.platform === "win32") {
     return {
@@ -168,9 +172,11 @@ function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceL
   const desktopDev = sanitizeDeviceLabel(desktopAudioDeviceLabel);
   const micDev = sanitizeDeviceLabel(micDeviceLabel);
   if (process.platform === "win32") {
-    if (includeDesktopAudio) {
-      const dev = desktopDev || "virtual-audio-capturer";
-      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${dev}`);
+    // Browser audiooutput IDs cannot be used by FFmpeg, and Windows has no
+    // built-in dshow desktop-loopback device. Only enable this if the user has
+    // explicitly selected a real dshow loopback label (Stereo Mix/VB-Cable/etc).
+    if (includeDesktopAudio && desktopDev) {
+      args.push("-f", "dshow", "-rtbufsize", "256M", "-i", `audio=${desktopDev}`);
       inputCount += 1;
     }
     if (includeMic && micDev) {
@@ -193,6 +199,11 @@ function buildAudioInputs({ includeDesktopAudio, includeMic, desktopAudioDeviceL
     }
   }
   return { args, inputCount };
+}
+
+function shouldRetryWithSoftware(stderrTail, encoder) {
+  if (!encoder || encoder.name === "libx264") return false;
+  return /nvenc|amf|qsv|encoder|device|driver|hardware|initializ|unsupported|no capable devices/i.test(stderrTail || "");
 }
 
 function resolutionToHeight(r) {
@@ -223,7 +234,9 @@ async function start(options = {}) {
     setState(STATE.ERROR, "Encoder detection failed: " + (err && err.message));
     return { ok: false, error: lastError };
   }
-  activeEncoder = encoderInfo.selected;
+  activeEncoder = options.forceSoftwareEncoder
+    ? CANDIDATES.find((e) => e.name === "libx264")
+    : encoderInfo.selected;
 
   sessionDir = await ensureSessionDir();
   recentSegments = [];
@@ -279,6 +292,7 @@ async function start(options = {}) {
     "-segment_list_type", "m3u8",
     path.join(sessionDir, `${SEGMENT_PREFIX}_%03d.ts`),
   );
+  lastFfmpegArgs = args.slice();
 
   try {
     proc = spawnFfmpeg(args);
@@ -311,6 +325,15 @@ async function start(options = {}) {
       setState(STATE.STARTING, "Audio device failed — retrying video only");
       setTimeout(() => {
         start({ ...options, includeDesktopAudio: false, includeMic: false, _noAudioRetry: true })
+          .catch((err) => setState(STATE.ERROR, String(err && err.message)));
+      }, 250);
+      return;
+    }
+    if (ranFor < 4000 && shouldRetryWithSoftware(stderrTail, activeEncoder) && !options._softwareRetry) {
+      log.warn("[ffmpeg] fast encoder exit — retrying with libx264");
+      setState(STATE.STARTING, "Hardware encoder failed — retrying software encoder");
+      setTimeout(() => {
+        start({ ...options, forceSoftwareEncoder: true, _softwareRetry: true })
           .catch((err) => setState(STATE.ERROR, String(err && err.message)));
       }, 250);
       return;

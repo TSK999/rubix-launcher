@@ -73,6 +73,7 @@ export type ClipsFfmpegStatus = {
   state: "idle" | "starting" | "recording" | "error";
   encoder: { name: string; label: string; kind: string } | null;
   error: string;
+  args?: string[];
   segments: number;
   sessionDir: string | null;
 };
@@ -157,6 +158,11 @@ declare global {
             isPrimary: boolean;
             isCursor: boolean;
           }>;
+          error?: string;
+        }>;
+        listAudioDevices: () => Promise<{
+          ok: boolean;
+          devices: Array<{ id: string; label: string }>;
           error?: string;
         }>;
         setPreferredDisplay: (displayId: string | null) => Promise<{ ok: boolean }>;

@@ -57,9 +57,22 @@ const read = (): ClipPrefs => {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw) as Partial<ClipPrefs>;
+    // v1.3.3 and older could persist browser deviceId hashes / default audio
+    // toggles that FFmpeg cannot use. Do not let stale prefs keep crashing the
+    // recorder after the app updates.
+    const validMic = parsed.micDeviceId && !/^[a-f0-9]{32,}$/i.test(parsed.micDeviceId)
+      ? parsed.micDeviceId
+      : null;
+    const validDesktop = parsed.desktopAudioDeviceId && !/^[a-f0-9]{32,}$/i.test(parsed.desktopAudioDeviceId)
+      ? parsed.desktopAudioDeviceId
+      : null;
     return {
       ...DEFAULTS,
       ...parsed,
+      micDeviceId: validMic,
+      desktopAudioDeviceId: validDesktop,
+      includeMic: Boolean(parsed.includeMic && validMic),
+      includeDesktopAudio: Boolean(parsed.includeDesktopAudio && validDesktop),
       durationSeconds: clamp(
         parsed.durationSeconds ?? CLIP_DURATION_DEFAULT,
         CLIP_DURATION_MIN,

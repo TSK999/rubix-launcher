@@ -35,7 +35,16 @@ type Display = {
 
 type AudioOut = { deviceId: string; label: string };
 
-const listAudioOutputs = async (): Promise<AudioOut[]> => {
+const listFfmpegAudioDevices = async (): Promise<AudioOut[]> => {
+  const api = (window as any).rubix;
+  if (api?.isElectron && api.clips?.listAudioDevices) {
+    const r = await api.clips.listAudioDevices();
+    if (r?.ok) return r.devices.map((d: { id: string; label: string }) => ({ deviceId: d.id, label: d.label }));
+  }
+  return [];
+};
+
+const listBrowserAudioOutputs = async (): Promise<AudioOut[]> => {
   if (!navigator.mediaDevices?.enumerateDevices) return [];
   try {
     // Trigger a mic permission prompt so output labels populate too.
@@ -77,8 +86,15 @@ export const ClipsSettingsPanel = () => {
         if (r?.ok) setDisplays(r.displays);
       });
     }
-    void listMicDevicesWithPermission().then(setMics);
-    void listAudioOutputs().then(setOutputs);
+    if (isElectron) {
+      void listFfmpegAudioDevices().then((devices) => {
+        setMics(devices);
+        setOutputs(devices);
+      });
+    } else {
+      void listMicDevicesWithPermission().then(setMics);
+      void listBrowserAudioOutputs().then(setOutputs);
+    }
   }, [isElectron, api]);
 
   const update = (patch: Partial<ClipPrefs>) => setClipPrefs(patch);

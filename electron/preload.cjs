@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld("rubix", {
     setTarget: (target) => ipcRenderer.invoke("clips:set-target", target),
     getSource: () => ipcRenderer.invoke("clips:get-source"),
     listDisplays: () => ipcRenderer.invoke("clips:list-displays"),
+    listAudioDevices: () => ipcRenderer.invoke("clips:list-audio-devices"),
     setPreferredDisplay: (displayId) =>
       ipcRenderer.invoke("clips:set-preferred-display", displayId),
     onSaveTrigger: (cb) => {
