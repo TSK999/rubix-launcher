@@ -69,6 +69,14 @@ export type UpdaterStatus =
   | { status: "downloaded"; payload: { version: string; releaseName: string; releaseNotes: string; releaseDate: string } }
   | { status: "error"; payload: { message: string } };
 
+export type ClipsFfmpegStatus = {
+  state: "idle" | "starting" | "recording" | "error";
+  encoder: { name: string; label: string; kind: string } | null;
+  error: string;
+  segments: number;
+  sessionDir: string | null;
+};
+
 declare global {
   interface Window {
     rubix?: {
