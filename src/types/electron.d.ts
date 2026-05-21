@@ -73,6 +73,7 @@ export type ClipsFfmpegStatus = {
   state: "idle" | "starting" | "recording" | "error";
   encoder: { name: string; label: string; kind: string } | null;
   error: string;
+  args?: string[];
   segments: number;
   sessionDir: string | null;
 };
