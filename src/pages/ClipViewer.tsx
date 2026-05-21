@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,9 +6,11 @@ import {
   Download,
   Flag,
   Loader2,
+  Maximize,
   MessageCircle,
   Send,
   Share2,
+  Twitter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
