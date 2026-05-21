@@ -87,11 +87,16 @@ function probe(timeoutMs = 4000) {
 
 function spawnFfmpeg(args, opts = {}) {
   log.info("[ffmpeg] spawn", ffmpegPath(), args.join(" "));
-  return spawn(ffmpegPath(), args, {
+  const child = spawn(ffmpegPath(), args, {
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
     ...opts,
   });
+  // FFmpeg may exit before we can send `q` during stop/retry. Without this,
+  // an async EPIPE on stdin can bubble as an unhandled stream error and take
+  // down the Electron main process.
+  child.stdin?.on("error", () => {});
+  return child;
 }
 
 function runFfmpeg(args, { timeoutMs = 10000 } = {}) {
