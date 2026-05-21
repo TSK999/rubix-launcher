@@ -35,6 +35,15 @@ type Props = {
 };
 
 const AttachmentView = ({ a }: { a: Attachment }) => {
+  // Rubix clip embed
+  if (a.kind === ("clip" as Attachment["kind"]) || a.mime_type === "application/x-rubix-clip") {
+    const slug = a.file_name || (a.external_url ? a.external_url.split("/clip/").pop()?.split("?")[0] ?? "" : "");
+    if (slug) {
+      // Lazy import to avoid circular deps
+      const { ClipMessageCard } = require("@/components/clips/ClipMessageCard");
+      return <ClipMessageCard slug={slug} />;
+    }
+  }
   const [url, setUrl] = useState<string | null>(a.external_url ?? null);
   useEffect(() => {
     if (!a.external_url && a.storage_path) {
