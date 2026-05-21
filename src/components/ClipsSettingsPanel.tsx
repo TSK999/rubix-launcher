@@ -62,8 +62,12 @@ export const ClipsSettingsPanel = () => {
 
   useEffect(() => {
     const off = onClipPrefsChange(setPrefs);
+    const offBackend = clipBuffer.subscribeBackend(setBackend);
+    const offStatus = clipBuffer.subscribe(setRecStatus);
     return () => {
       off();
+      offBackend();
+      offStatus();
     };
   }, []);
 
