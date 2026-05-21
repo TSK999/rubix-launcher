@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Mic, Monitor, Volume2, Clock, Film, MonitorPlay, Gauge } from "lucide-react";
+import { Mic, Monitor, Volume2, Clock, Film, MonitorPlay, Gauge, Cpu, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { clipBuffer, type ClipBackendInfo, type ClipBufferStatus } from "@/lib/clip-buffer";
 import {
   Select,
   SelectContent,
