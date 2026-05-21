@@ -201,8 +201,11 @@ const getLegacyDesktopCapture = async (
     throw new Error("Desktop source bridge is unavailable");
   }
   const source = await api.clips.getSource();
-  if (!source?.ok || !source.sourceId) {
+  if (!source?.ok) {
     throw new Error(source?.error || "No screen source found");
+  }
+  if (!source.sourceId) {
+    throw new Error("No screen source found");
   }
 
   const { width, height, fps } = targetVideoConstraints();
