@@ -4,6 +4,10 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
+const ffmpegManager = require("./clipping/ffmpeg-manager.cjs");
+const encoderDetect = require("./clipping/encoder-detect.cjs");
+const replayBuffer = require("./clipping/replay-buffer.cjs");
+const clipExport = require("./clipping/clip-export.cjs");
 
 // Keep desktop capture available for the recorder on Chromium/Electron builds
 // that still honor the legacy chromeMediaSource path. Modern builds use the
@@ -949,7 +953,72 @@ ipcMain.handle("clips:get-source", async () => {
   }
 });
 
+
+// ---------- FFmpeg-powered replay buffer ----------
+// Owns the recording pipeline end-to-end so the renderer never has to touch
+// MediaRecorder for clipping. The renderer just calls start/stop/save and
+// receives the finished MP4 as an ArrayBuffer it can upload.
+
+replayBuffer.subscribe((snap) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("clips:ffmpeg-status", snap);
+  }
+});
+
+ipcMain.handle("clips:ffmpeg-probe", async () => {
+  const [ff, enc] = await Promise.all([
+    ffmpegManager.probe(),
+    encoderDetect.detectBestEncoder().catch((err) => ({
+      selected: null,
+      tested: [],
+      error: String(err?.message || err),
+    })),
+  ]);
+  return { ok: true, ffmpeg: ff, encoders: enc };
+});
+
+ipcMain.handle("clips:ffmpeg-start", async (_evt, options) => {
+  try {
+    const merged = {
+      ...(options || {}),
+      displayId: options?.displayId || preferredDisplayId || null,
+    };
+    return await replayBuffer.start(merged);
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("clips:ffmpeg-stop", async () => {
+  try { return await replayBuffer.stop(); }
+  catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
+ipcMain.handle("clips:ffmpeg-status", async () => replayBuffer.getStatus());
+
+ipcMain.handle("clips:ffmpeg-save", async (_evt, options) => {
+  try {
+    const result = await replayBuffer.saveClip(options || {});
+    const buffer = await clipExport.readClipBuffer(result.path);
+    return {
+      ok: true,
+      buffer,
+      mimeType: result.mimeType,
+      durationSeconds: result.durationSeconds,
+      path: result.path,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
+ipcMain.handle("clips:ffmpeg-discard", async (_evt, p) => {
+  if (typeof p === "string") await clipExport.deleteClip(p);
+  return { ok: true };
+});
+
 const DEFAULT_HOTKEYS = {
+
   screenshot: "F12",
   clip: "F9",
   toggleMute: "F7",

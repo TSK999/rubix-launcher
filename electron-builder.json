@@ -11,6 +11,13 @@
     "build/**/*",
     "package.json"
   ],
+  "extraResources": [
+    {
+      "from": "resources/bin",
+      "to": "bin",
+      "filter": ["**/*"]
+    }
+  ],
   "publish": [
     {
       "provider": "github",

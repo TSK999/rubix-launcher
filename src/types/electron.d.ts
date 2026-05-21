@@ -69,6 +69,14 @@ export type UpdaterStatus =
   | { status: "downloaded"; payload: { version: string; releaseName: string; releaseNotes: string; releaseDate: string } }
   | { status: "error"; payload: { message: string } };
 
+export type ClipsFfmpegStatus = {
+  state: "idle" | "starting" | "recording" | "error";
+  encoder: { name: string; label: string; kind: string } | null;
+  error: string;
+  segments: number;
+  sessionDir: string | null;
+};
+
 declare global {
   interface Window {
     rubix?: {
@@ -155,6 +163,31 @@ declare global {
         onSaveTrigger: (
           cb: (data: { triggeredAt: number }) => void,
         ) => () => void;
+        ffmpeg: {
+          probe: () => Promise<{
+            ok: boolean;
+            ffmpeg: { ok: boolean; path: string; version?: string; error?: string };
+            encoders: {
+              selected: { name: string; label: string; kind: string; vendor: string } | null;
+              tested: Array<{ name: string; label: string; kind: string; ok: boolean; reason?: string }>;
+              error?: string;
+            };
+          }>;
+          start: (opts: Record<string, unknown>) => Promise<{
+            ok: boolean;
+            encoder?: { name: string; label: string; kind: string } | null;
+            error?: string;
+            alreadyRunning?: boolean;
+          }>;
+          stop: () => Promise<{ ok: boolean; error?: string }>;
+          status: () => Promise<ClipsFfmpegStatus>;
+          save: (opts: { seconds?: number }) => Promise<
+            | { ok: true; buffer: ArrayBuffer; mimeType: string; durationSeconds: number; path: string }
+            | { ok: false; error: string }
+          >;
+          discard: (path: string) => Promise<{ ok: boolean }>;
+          onStatus: (cb: (s: ClipsFfmpegStatus) => void) => () => void;
+        };
       };
       hotkeys: {
         set: (map: Record<string, string>) => Promise<{

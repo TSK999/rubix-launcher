@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Mic, Monitor, Volume2, Clock, Film, MonitorPlay, Gauge } from "lucide-react";
+import { Mic, Monitor, Volume2, Clock, Film, MonitorPlay, Gauge, Cpu, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { clipBuffer, type ClipBackendInfo, type ClipBufferStatus } from "@/lib/clip-buffer";
 import {
   Select,
   SelectContent,
@@ -54,13 +55,19 @@ export const ClipsSettingsPanel = () => {
   const [displays, setDisplays] = useState<Display[]>([]);
   const [mics, setMics] = useState<MicDevice[]>([]);
   const [outputs, setOutputs] = useState<AudioOut[]>([]);
+  const [backend, setBackend] = useState<ClipBackendInfo>(clipBuffer.getBackendInfo());
+  const [recStatus, setRecStatus] = useState<ClipBufferStatus>(clipBuffer.getStatus());
   const api = (window as any).rubix;
   const isElectron = !!api?.isElectron;
 
   useEffect(() => {
     const off = onClipPrefsChange(setPrefs);
+    const offBackend = clipBuffer.subscribeBackend(setBackend);
+    const offStatus = clipBuffer.subscribe(setRecStatus);
     return () => {
       off();
+      offBackend();
+      offStatus();
     };
   }, []);
 
@@ -76,8 +83,58 @@ export const ClipsSettingsPanel = () => {
 
   const update = (patch: Partial<ClipPrefs>) => setClipPrefs(patch);
 
+  const statusDot =
+    recStatus === "recording" ? "bg-emerald-500" :
+    recStatus === "starting" ? "bg-amber-400 animate-pulse" :
+    recStatus === "error" ? "bg-red-500" : "bg-muted-foreground/50";
+
   return (
     <div className="space-y-3">
+      {isElectron && (
+        <div className="rounded-2xl rubix-glass rubix-card-hi p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Cpu className="h-4 w-4 text-primary" />
+              Recorder
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className={`h-2 w-2 rounded-full ${statusDot}`} />
+              {recStatus}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Backend: <span className="font-medium text-foreground">
+              {backend.backend === "ffmpeg" ? "FFmpeg (replay buffer)" :
+                backend.backend === "mediarecorder" ? "MediaRecorder (fallback)" : "Unavailable"}
+            </span>
+            {backend.encoder && (
+              <> · Encoder: <span className="font-medium text-foreground">{backend.encoder.label}</span></>
+            )}
+          </div>
+          {!backend.ffmpegAvailable && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>
+                FFmpeg not found in <code>resources/bin/</code> or on PATH.
+                {backend.ffmpegError ? ` (${backend.ffmpegError})` : ""}
+              </span>
+            </div>
+          )}
+          {backend.ffmpegAvailable && backend.encoderWarning && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{backend.encoderWarning}</span>
+            </div>
+          )}
+          {backend.ffmpegAvailable && !backend.encoderWarning && backend.encoder && (
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+              Hardware encoding active — low CPU recording.
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="rounded-2xl rubix-glass rubix-card-hi p-4">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Monitor className="h-4 w-4 text-primary" />
