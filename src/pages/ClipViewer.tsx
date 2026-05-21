@@ -262,27 +262,41 @@ const ClipViewer = () => {
         <Button variant="ghost" size="sm" onClick={() => void copyLink()} className="rounded-xl">
           <Copy className="h-3.5 w-3.5 mr-1.5" />Copy
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => setShareOpen(true)} className="rounded-xl">
+        <Button variant="ghost" size="sm" onClick={() => void webShare()} className="rounded-xl">
           <Share2 className="h-3.5 w-3.5 mr-1.5" />Share
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => void downloadClip()} className="rounded-xl">
+        <Button variant="ghost" size="sm" onClick={shareTwitter} className="rounded-xl" aria-label="Share to X">
+          <Twitter className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => void downloadClip()} className="rounded-xl" aria-label="Download">
           <Download className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)} className="rounded-xl text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={() => setReportOpen(true)} className="rounded-xl text-muted-foreground" aria-label="Report">
           <Flag className="h-3.5 w-3.5" />
         </Button>
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_320px]">
         <section className="space-y-4">
-          <div className="relative overflow-hidden rounded-2xl border border-border/60 shadow-2xl bg-black">
+          <div className="relative group overflow-hidden rounded-2xl border border-border/60 shadow-2xl bg-black">
             <video
+              ref={videoRef}
               src={stream}
               poster={thumb || undefined}
               controls
               autoPlay
               className="aspect-video w-full"
+              onDoubleClick={goFullscreen}
             />
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={goFullscreen}
+              className="absolute top-3 right-3 h-9 w-9 rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur bg-background/60"
+              aria-label="Fullscreen"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Reactions */}
