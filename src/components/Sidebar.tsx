@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2 } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
@@ -125,6 +125,17 @@ export const Sidebar = ({
       <SpotifyNowPlaying userId={userId} />
 
       <MessagesPanel />
+
+      <div className="px-3 pb-3">
+        <button
+          onClick={() => navigate("/clips")}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors group"
+        >
+          <Film className="h-4 w-4 group-hover:text-primary transition-colors" />
+          <span className="flex-1 text-left">Clips Feed</span>
+          <span className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">New</span>
+        </button>
+      </div>
 
       <RubixFriendsPanel userId={userId} />
 
