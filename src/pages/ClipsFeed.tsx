@@ -155,9 +155,6 @@ const ClipsFeed = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--glow-primary)]">
-              <Film className="h-4 w-4 text-primary-foreground" />
-            </div>
             <div>
               <h1 className="text-lg font-bold leading-none tracking-tight">RUBIX Clips</h1>
               <p className="text-[11px] text-muted-foreground mt-1">Plays from the community</p>
