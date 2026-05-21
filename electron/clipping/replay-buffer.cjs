@@ -39,6 +39,7 @@ const listeners = new Set();
 let proc = null;
 let state = STATE.IDLE;
 let lastError = "";
+let lastFfmpegArgs = [];
 let activeEncoder = null;
 let sessionDir = null;
 let recentSegments = [];
@@ -59,6 +60,7 @@ function getStatus() {
       ? { name: activeEncoder.name, label: activeEncoder.label, kind: activeEncoder.kind }
       : null,
     error: lastError,
+    args: lastFfmpegArgs,
     segments: recentSegments.length,
     sessionDir,
   };
@@ -107,9 +109,11 @@ function pickDisplay(displayId) {
 
 function buildVideoInput(display, framerate) {
   const { x, y, width, height } = display.bounds;
-  const scale = display.scaleFactor || 1;
-  const w = Math.round(width * scale);
-  const h = Math.round(height * scale);
+  // gdigrab uses Windows virtual-screen coordinates in logical pixels. Using
+  // device-scaled dimensions here can overshoot the desktop on 125/150% DPI or
+  // mixed-scale multi-monitor setups, which makes FFmpeg exit immediately.
+  const w = Math.round(width);
+  const h = Math.round(height);
 
   if (process.platform === "win32") {
     return {
