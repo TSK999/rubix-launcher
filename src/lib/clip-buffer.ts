@@ -214,7 +214,7 @@ const getLegacyDesktopCapture = async (
   }
 };
 
-const getCaptureStream = async (preferDisplayMedia = false): Promise<MediaStream> => {
+const getCaptureStream = async (): Promise<MediaStream> => {
   const media = navigator.mediaDevices as MediaDevices & {
     getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   };
@@ -366,7 +366,7 @@ class ClipBuffer {
     // rolling buffer can start automatically after sign-in.
     let prepared: PreparedCapture;
     try {
-      const capture = await getCaptureStream(Boolean(options?.preferDisplayMedia));
+      const capture = await getCaptureStream();
       prepared = await mixAudioIntoCapture(capture);
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
@@ -409,7 +409,7 @@ class ClipBuffer {
       if (!e.data || e.data.size === 0) return;
       const startedAt = chunkStartedAt;
       chunkStartedAt = endedAt;
-      this.pendingChunkWrite = this.pendingChunkWrite.then(async () => {
+      this.pendingChunkWrite = this.pendingChunkWrite.catch(() => undefined).then(async () => {
         const chunk: BufferedChunk = {
           data: new Uint8Array(await e.data.arrayBuffer()),
           startedAt,
@@ -452,6 +452,7 @@ class ClipBuffer {
     this.audioNodes = [];
     this.chunks = [];
     this.initChunk = null;
+    this.pendingChunkWrite = Promise.resolve();
     this.setStatus("idle");
   }
 
