@@ -1413,6 +1413,10 @@ export type Database = {
       }
       increment_clip_share: { Args: { _clip_id: string }; Returns: undefined }
       increment_clip_view: { Args: { _clip_id: string }; Returns: undefined }
+      is_call_member: {
+        Args: { _call_id: string; _uid: string }
+        Returns: boolean
+      }
       is_community_admin: {
         Args: { _cid: string; _uid: string }
         Returns: boolean
