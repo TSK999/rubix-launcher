@@ -142,6 +142,8 @@ Deno.serve(async (req) => {
     }
 
     // ---------- PUBLIC PROFILE LOOKUP ----------
+    // Only returns profiles whose privacy = 'public'. Friends-only / private
+    // profiles must be fetched via an authenticated client that respects RLS.
     if (path === "/profile" && req.method === "GET") {
       const username = url.searchParams.get("username");
       if (!username) return json({ error: "username required" }, 400);
@@ -149,11 +151,13 @@ Deno.serve(async (req) => {
         .from("profiles")
         .select(PROFILE_COLS)
         .ilike("username", username)
+        .eq("privacy", "public")
         .maybeSingle();
       if (error) return json({ error: error.message }, 400);
       if (!data) return json({ error: "not found" }, 404);
       return json({ profile: data });
     }
+
 
     return json(
       {

@@ -124,14 +124,17 @@ Deno.serve(async (req) => {
     const { userId, client } = auth;
 
     // ──────────────── Profiles ────────────────
+    // Use the user-scoped client so the profiles RLS policy (which honors the
+    // privacy field + friend/community visibility) is enforced.
     if (path === "/profiles/search" && req.method === "GET") {
       const q = (url.searchParams.get("q") ?? "").trim();
       const limit = Math.min(Number(url.searchParams.get("limit") ?? 10), 50);
       if (!q) return json({ profiles: [] });
-      const { data, error } = await admin()
+      const safe = q.replace(/[%,()]/g, "");
+      const { data, error } = await client
         .from("profiles")
         .select(PROFILE_COLS)
-        .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+        .or(`username.ilike.%${safe}%,display_name.ilike.%${safe}%`)
         .limit(limit);
       if (error) return json({ error: error.message }, 400);
       return json({ profiles: (data ?? []).filter((p) => p.user_id !== userId) });
@@ -141,13 +144,14 @@ Deno.serve(async (req) => {
       const idsParam = url.searchParams.get("ids") ?? "";
       const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
       if (ids.length === 0) return json({ profiles: [] });
-      const { data, error } = await admin()
+      const { data, error } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", ids);
       if (error) return json({ error: error.message }, 400);
       return json({ profiles: data ?? [] });
     }
+
 
     // ──────────────── Conversations list ────────────────
     if (path === "/conversations" && req.method === "GET") {
@@ -939,6 +943,26 @@ Deno.serve(async (req) => {
       try {
         const u = new URL(target);
         if (!["http:", "https:"].includes(u.protocol)) throw new Error("bad protocol");
+
+        // SSRF guard: reject loopback, link-local, private, and cloud-metadata hosts
+        const host = u.hostname.toLowerCase();
+        const BLOCKED_HOSTS = new Set([
+          "localhost", "metadata.google.internal", "metadata.goog",
+        ]);
+        if (BLOCKED_HOSTS.has(host)) throw new Error("blocked host");
+        const BLOCKED_IP = /^(127\.|10\.|192\.168\.|169\.254\.|0\.|::1$|fc|fd|fe80:|fe[89ab]:)/i;
+        const BLOCKED_172 = /^172\.(1[6-9]|2\d|3[01])\./;
+        const isIpish = /^[0-9a-f:.]+$/i.test(host);
+        if (isIpish && (BLOCKED_IP.test(host) || BLOCKED_172.test(host))) {
+          throw new Error("blocked address");
+        }
+        try {
+          const ips = await Deno.resolveDns(host, "A").catch(() => [] as string[]);
+          if (ips.some((ip) => BLOCKED_IP.test(ip) || BLOCKED_172.test(ip))) {
+            throw new Error("blocked address");
+          }
+        } catch (_) { /* DNS not permitted in sandbox is ok */ }
+
         const ctl = new AbortController();
         const tmo = setTimeout(() => ctl.abort(), 5000);
         const res = await fetch(u.toString(), {
@@ -950,6 +974,7 @@ Deno.serve(async (req) => {
           },
         });
         clearTimeout(tmo);
+
         const html = (await res.text()).slice(0, 200_000);
         const pick = (re: RegExp) => {
           const m = html.match(re);
