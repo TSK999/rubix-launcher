@@ -19,15 +19,65 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Require authenticated caller
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userSb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: u, error: aerr } = await userSb.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (aerr || !u?.user) return json({ error: "Unauthorized" }, 401);
+    const callerId = u.user.id;
+
     const body = await req.json().catch(() => ({}));
-    const userIds: string[] = Array.isArray(body.user_ids) ? body.user_ids : [];
-    if (userIds.length === 0) {
+    const requested: string[] = Array.isArray(body.user_ids) ? body.user_ids : [];
+    if (requested.length === 0) {
       return json({ tracks: {} });
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Restrict to: self, accepted Rubix friends, or community co-members
+    const others = requested.filter((id) => id !== callerId);
+    let allowed = new Set<string>([callerId]);
+    if (others.length > 0) {
+      const { data: friends } = await admin
+        .from("rubix_friendships")
+        .select("user_a, user_b")
+        .eq("status", "accepted")
+        .or(`user_a.eq.${callerId},user_b.eq.${callerId}`);
+      for (const f of friends ?? []) {
+        const otherId = f.user_a === callerId ? f.user_b : f.user_a;
+        if (others.includes(otherId)) allowed.add(otherId);
+      }
+
+      const remaining = others.filter((id) => !allowed.has(id));
+      if (remaining.length > 0) {
+        const { data: myComms } = await admin
+          .from("community_members")
+          .select("community_id")
+          .eq("user_id", callerId);
+        const cids = (myComms ?? []).map((m: { community_id: string }) => m.community_id);
+        if (cids.length > 0) {
+          const { data: coMembers } = await admin
+            .from("community_members")
+            .select("user_id")
+            .in("community_id", cids)
+            .in("user_id", remaining);
+          for (const m of coMembers ?? []) allowed.add(m.user_id);
+        }
+      }
+    }
+    const userIds = requested.filter((id) => allowed.has(id));
+    if (userIds.length === 0) return json({ tracks: {} });
+
     const { data: conns, error } = await admin
+
       .from("spotify_connections")
       .select("user_id, access_token, refresh_token, expires_at")
       .in("user_id", userIds);
