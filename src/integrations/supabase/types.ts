@@ -1358,6 +1358,7 @@ export type Database = {
       }
       gen_clip_slug: { Args: never; Returns: string }
       gen_invite_code: { Args: never; Returns: string }
+      get_community_invite_code: { Args: { _cid: string }; Returns: string }
       get_friend_presence: {
         Args: { _uids: string[] }
         Returns: {
