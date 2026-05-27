@@ -6,6 +6,8 @@
 //  - IPlayerService/GetRecentlyPlayedGames/v1 (may be private)
 //  - IPlayerService/GetOwnedGames/v1 (for total games count, may be private)
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -14,12 +16,31 @@ const corsHeaders = {
 
 const STEAM_ID_RE = /^\d{17}$/;
 
+const requireAuth = async (req: Request) => {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return false;
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const { data, error } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+  return !error && !!data?.user;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!(await requireAuth(req))) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
+
     const STEAM_API_KEY = Deno.env.get("STEAM_API_KEY");
     if (!STEAM_API_KEY) {
       return new Response(
