@@ -7,11 +7,25 @@
 //
 // Requires STEAM_API_KEY secret.
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+const requireAuth = async (req: Request) => {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return false;
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const { data, error } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+  return !error && !!data?.user;
+};
+
 
 const STEAM_ID_RE = /^\d{17}$/;
 
