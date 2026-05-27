@@ -63,7 +63,15 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!(await requireAuth(req))) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
+
     const STEAM_API_KEY = Deno.env.get("STEAM_API_KEY");
     if (!STEAM_API_KEY) {
       return new Response(
