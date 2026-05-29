@@ -250,12 +250,23 @@ const GameForm = () => {
       toast.error("Provide a file or external URL");
       return;
     }
+    if (file && !newBuild.executable_path.trim()) {
+      toast.error("Specify the executable", {
+        description: "Enter the path inside the archive that launches the game (e.g. MyGame.exe).",
+      });
+      return;
+    }
+    setUploadingBuild(true);
     let file_path: string | null = null;
     let file_size: number | null = null;
     if (file) {
-      const path = `${user.id}/${game.id}/build-${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("game-builds").upload(path, file);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${game.id}/build-${Date.now()}-${safeName}`;
+      const { error } = await supabase.storage
+        .from("game-builds")
+        .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
       if (error) {
+        setUploadingBuild(false);
         toast.error("Build upload failed", { description: error.message });
         return;
       }
@@ -271,15 +282,17 @@ const GameForm = () => {
         file_path,
         file_size,
         external_url: newBuild.external_url || null,
+        executable_path: newBuild.executable_path.trim() || null,
       })
       .select()
       .single();
+    setUploadingBuild(false);
     if (error) {
       toast.error("Couldn't add build", { description: error.message });
       return;
     }
     setBuilds((prev) => [data, ...prev]);
-    setNewBuild({ platform: "windows", version: "1.0.0", external_url: "" });
+    setNewBuild({ platform: "windows", version: "1.0.0", external_url: "", executable_path: "" });
     if (buildFileRef.current) buildFileRef.current.value = "";
     toast.success("Build added");
   };
