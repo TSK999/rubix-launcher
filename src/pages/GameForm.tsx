@@ -45,7 +45,8 @@ const GameForm = () => {
     { type: "recommended", os: "", cpu: "", gpu: "", ram_gb: "", storage_gb: "" },
   ]);
   const [builds, setBuilds] = useState<any[]>([]);
-  const [newBuild, setNewBuild] = useState({ platform: "windows", version: "1.0.0", external_url: "" });
+  const [newBuild, setNewBuild] = useState({ platform: "windows", version: "1.0.0", external_url: "", executable_path: "" });
+  const [uploadingBuild, setUploadingBuild] = useState(false);
   const buildFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const screenshotFileRef = useRef<HTMLInputElement>(null);
