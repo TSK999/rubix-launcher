@@ -164,6 +164,22 @@ const Library = () => {
       };
       writeHistory(next);
       setHistory(next);
+
+      const game = games.find((g) => g.id === gameId);
+      if (game) {
+        addToLauncherLibrary({
+          id: game.id,
+          title: game.title,
+          cover_url: game.cover_url,
+          executable_path: build.executable_path,
+          download_url: build.external_url,
+        });
+        toast.success("Added to your launcher library", {
+          description: build.executable_path
+            ? `Launches: ${build.executable_path}`
+            : "Open the Library tab to launch the game.",
+        });
+      }
     } else {
       toast.error("No download source");
     }
