@@ -5,11 +5,15 @@ import { useRubixAuth } from "./useRubixAuth";
 export type AppRole = "user" | "developer" | "admin";
 
 export const useUserRoles = () => {
-  const { user } = useRubixAuth();
+  const { user, loading: authLoading } = useRubixAuth();
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
     if (!user) {
       setRoles([]);
       setLoading(false);
@@ -29,11 +33,11 @@ export const useUserRoles = () => {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, authLoading]);
 
   return {
     roles,
-    loading,
+    loading: loading || authLoading,
     isAdmin: roles.includes("admin"),
     isDeveloper: roles.includes("developer") || roles.includes("admin"),
   };
