@@ -544,9 +544,16 @@ const GameForm = () => {
                 >
                   <Badge variant="outline">{b.platform}</Badge>
                   <span className="text-sm">v{b.version}</span>
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {b.file_path ? `📦 ${b.file_path.split("/").pop()}` : b.external_url}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {b.file_path ? `📦 ${b.file_path.split("/").pop()}` : b.external_url}
+                    </p>
+                    {b.executable_path && (
+                      <p className="text-[11px] text-muted-foreground/80 truncate">
+                        ▶ {b.executable_path}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -583,12 +590,25 @@ const GameForm = () => {
               </div>
               <Input ref={buildFileRef} type="file" />
               <Input
+                placeholder="Executable inside archive (e.g. MyGame/MyGame.exe)"
+                value={newBuild.executable_path}
+                onChange={(e) => setNewBuild({ ...newBuild, executable_path: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Required when uploading a file — tells the launcher which file to run after install.
+              </p>
+              <Input
                 placeholder="…or external URL (itch.io, GitHub release, etc.)"
                 value={newBuild.external_url}
                 onChange={(e) => setNewBuild({ ...newBuild, external_url: e.target.value })}
               />
-              <Button onClick={handleAddBuild} disabled={!game} className="rounded-xl">
-                <Plus className="h-3.5 w-3.5 mr-1.5" /> Add build
+              <Button onClick={handleAddBuild} disabled={!game || uploadingBuild} className="rounded-xl">
+                {uploadingBuild ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {uploadingBuild ? "Uploading…" : "Add build"}
               </Button>
             </div>
           </Card>
