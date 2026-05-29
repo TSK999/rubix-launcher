@@ -551,6 +551,7 @@ export type Database = {
       game_builds: {
         Row: {
           created_at: string
+          executable_path: string | null
           external_url: string | null
           file_path: string | null
           file_size: number | null
@@ -561,6 +562,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          executable_path?: string | null
           external_url?: string | null
           file_path?: string | null
           file_size?: number | null
@@ -571,6 +573,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          executable_path?: string | null
           external_url?: string | null
           file_path?: string | null
           file_size?: number | null

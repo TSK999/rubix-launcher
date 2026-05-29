@@ -16,6 +16,36 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { STORAGE_KEY as LAUNCHER_KEY, type Game as LauncherGame } from "@/lib/game-types";
+
+const addToLauncherLibrary = (g: {
+  id: string;
+  title: string;
+  cover_url: string | null;
+  executable_path?: string | null;
+  download_url?: string | null;
+}) => {
+  try {
+    const raw = localStorage.getItem(LAUNCHER_KEY);
+    const list: LauncherGame[] = raw ? JSON.parse(raw) : [];
+    const storeKey = `rubix-store:${g.id}`;
+    const existingIdx = list.findIndex((x) => x.id === storeKey);
+    const entry: LauncherGame = {
+      id: storeKey,
+      title: g.title,
+      cover: g.cover_url ?? undefined,
+      path: g.executable_path || g.download_url || undefined,
+      developer: "RUBIX Store",
+      addedAt: existingIdx >= 0 ? list[existingIdx].addedAt : Date.now(),
+    };
+    if (existingIdx >= 0) list[existingIdx] = { ...list[existingIdx], ...entry };
+    else list.unshift(entry);
+    localStorage.setItem(LAUNCHER_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent("rubix:launcher-games-updated"));
+  } catch {
+    /* non-fatal */
+  }
+};
 
 type LibraryGame = {
   id: string;
@@ -134,6 +164,22 @@ const Library = () => {
       };
       writeHistory(next);
       setHistory(next);
+
+      const game = games.find((g) => g.id === gameId);
+      if (game) {
+        addToLauncherLibrary({
+          id: game.id,
+          title: game.title,
+          cover_url: game.cover_url,
+          executable_path: build.executable_path,
+          download_url: build.external_url,
+        });
+        toast.success("Added to your launcher library", {
+          description: build.executable_path
+            ? `Launches: ${build.executable_path}`
+            : "Open the Library tab to launch the game.",
+        });
+      }
     } else {
       toast.error("No download source");
     }

@@ -45,7 +45,8 @@ const GameForm = () => {
     { type: "recommended", os: "", cpu: "", gpu: "", ram_gb: "", storage_gb: "" },
   ]);
   const [builds, setBuilds] = useState<any[]>([]);
-  const [newBuild, setNewBuild] = useState({ platform: "windows", version: "1.0.0", external_url: "" });
+  const [newBuild, setNewBuild] = useState({ platform: "windows", version: "1.0.0", external_url: "", executable_path: "" });
+  const [uploadingBuild, setUploadingBuild] = useState(false);
   const buildFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const screenshotFileRef = useRef<HTMLInputElement>(null);
@@ -249,12 +250,23 @@ const GameForm = () => {
       toast.error("Provide a file or external URL");
       return;
     }
+    if (file && !newBuild.executable_path.trim()) {
+      toast.error("Specify the executable", {
+        description: "Enter the path inside the archive that launches the game (e.g. MyGame.exe).",
+      });
+      return;
+    }
+    setUploadingBuild(true);
     let file_path: string | null = null;
     let file_size: number | null = null;
     if (file) {
-      const path = `${user.id}/${game.id}/build-${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("game-builds").upload(path, file);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${game.id}/build-${Date.now()}-${safeName}`;
+      const { error } = await supabase.storage
+        .from("game-builds")
+        .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
       if (error) {
+        setUploadingBuild(false);
         toast.error("Build upload failed", { description: error.message });
         return;
       }
@@ -270,15 +282,17 @@ const GameForm = () => {
         file_path,
         file_size,
         external_url: newBuild.external_url || null,
+        executable_path: newBuild.executable_path.trim() || null,
       })
       .select()
       .single();
+    setUploadingBuild(false);
     if (error) {
       toast.error("Couldn't add build", { description: error.message });
       return;
     }
     setBuilds((prev) => [data, ...prev]);
-    setNewBuild({ platform: "windows", version: "1.0.0", external_url: "" });
+    setNewBuild({ platform: "windows", version: "1.0.0", external_url: "", executable_path: "" });
     if (buildFileRef.current) buildFileRef.current.value = "";
     toast.success("Build added");
   };
@@ -530,9 +544,16 @@ const GameForm = () => {
                 >
                   <Badge variant="outline">{b.platform}</Badge>
                   <span className="text-sm">v{b.version}</span>
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {b.file_path ? `📦 ${b.file_path.split("/").pop()}` : b.external_url}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {b.file_path ? `📦 ${b.file_path.split("/").pop()}` : b.external_url}
+                    </p>
+                    {b.executable_path && (
+                      <p className="text-[11px] text-muted-foreground/80 truncate">
+                        ▶ {b.executable_path}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -569,12 +590,25 @@ const GameForm = () => {
               </div>
               <Input ref={buildFileRef} type="file" />
               <Input
+                placeholder="Executable inside archive (e.g. MyGame/MyGame.exe)"
+                value={newBuild.executable_path}
+                onChange={(e) => setNewBuild({ ...newBuild, executable_path: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Required when uploading a file — tells the launcher which file to run after install.
+              </p>
+              <Input
                 placeholder="…or external URL (itch.io, GitHub release, etc.)"
                 value={newBuild.external_url}
                 onChange={(e) => setNewBuild({ ...newBuild, external_url: e.target.value })}
               />
-              <Button onClick={handleAddBuild} disabled={!game} className="rounded-xl">
-                <Plus className="h-3.5 w-3.5 mr-1.5" /> Add build
+              <Button onClick={handleAddBuild} disabled={!game || uploadingBuild} className="rounded-xl">
+                {uploadingBuild ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {uploadingBuild ? "Uploading…" : "Add build"}
               </Button>
             </div>
           </Card>

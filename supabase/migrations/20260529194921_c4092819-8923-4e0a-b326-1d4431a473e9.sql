@@ -1,0 +1,1 @@
+ALTER TABLE public.game_builds ADD COLUMN IF NOT EXISTS executable_path text;
