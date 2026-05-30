@@ -121,11 +121,10 @@ const Store = () => {
               RUBIX Store
             </div>
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight max-w-3xl leading-[1.05]">
-              Discover games <span className="bg-clip-text text-transparent bg-[image:var(--gradient-primary)]">crafted by indie devs</span>.
+              Discover games <span className="bg-clip-text text-transparent bg-[image:var(--gradient-primary)]">crafted by Everyone</span>.
             </h1>
             <p className="text-muted-foreground mt-4 max-w-2xl text-lg">
-              Hand-picked releases, fair pricing, instant downloads. Built for
-              players, powered by creators.
+              ​
             </p>
 
             {featured && (
