@@ -22,6 +22,7 @@ type StoreGame = {
   title: string;
   slug: string;
   cover_url: string | null;
+  cover_horizontal_url: string | null;
   price_cents: number;
   age_rating: string;
   created_at: string;
@@ -41,7 +42,7 @@ const Store = () => {
     document.title = "RUBIX Store — Discover games";
     supabase
       .from("games")
-      .select("id, title, slug, cover_url, price_cents, age_rating, created_at, description")
+      .select("id, title, slug, cover_url, cover_horizontal_url, price_cents, age_rating, created_at, description")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -100,12 +101,12 @@ const Store = () => {
       <main className="flex-1 overflow-y-auto">
         {/* Hero */}
         <section className="relative overflow-hidden border-b border-border">
-          {featured?.cover_url && (
+          {(featured?.cover_horizontal_url || featured?.cover_url) && (
             <div
               aria-hidden
               className="absolute inset-0 opacity-40 blur-2xl scale-110"
               style={{
-                backgroundImage: `url(${featured.cover_url})`,
+                backgroundImage: `url(${featured.cover_horizontal_url || featured.cover_url})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
@@ -209,9 +210,9 @@ const Store = () => {
                     className="snap-start shrink-0 w-[280px] group"
                   >
                     <div className="relative aspect-video rounded-2xl overflow-hidden bg-secondary border border-border group-hover:border-primary/60 transition-all">
-                      {g.cover_url ? (
+                      {(g.cover_horizontal_url || g.cover_url) ? (
                         <img
-                          src={g.cover_url}
+                          src={g.cover_horizontal_url || g.cover_url || ""}
                           alt={g.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy"
