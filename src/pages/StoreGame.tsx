@@ -139,7 +139,7 @@ const StoreGame = () => {
   const rec = reqs.find((r) => r.type === "recommended");
   const hasReqs = !!(min || rec);
 
-  const heroImage = screenshots[0]?.url || game?.cover_url || null;
+  const heroImage = (game as any)?.cover_horizontal_url || screenshots[0]?.url || game?.cover_url || null;
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
