@@ -209,9 +209,11 @@ const GameForm = () => {
       return;
     }
     const { data: pub } = supabase.storage.from("game-media").getPublicUrl(path);
-    const column = orientation === "horizontal" ? "cover_horizontal_url" : "cover_url";
-    await supabase.from("games").update({ [column]: pub.publicUrl }).eq("id", game.id);
-    setGame({ ...game, [column]: pub.publicUrl });
+    const patch = orientation === "horizontal"
+      ? { cover_horizontal_url: pub.publicUrl }
+      : { cover_url: pub.publicUrl };
+    await supabase.from("games").update(patch).eq("id", game.id);
+    setGame({ ...game, ...patch });
     toast.success(orientation === "horizontal" ? "Horizontal poster updated" : "Vertical poster updated");
   };
 
