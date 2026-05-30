@@ -49,6 +49,7 @@ const GameForm = () => {
   const [uploadingBuild, setUploadingBuild] = useState(false);
   const buildFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
+  const coverHorizontalFileRef = useRef<HTMLInputElement>(null);
   const screenshotFileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -194,22 +195,24 @@ const GameForm = () => {
     }
   };
 
-  const handleCoverUpload = async (file: File) => {
+  const handleCoverUpload = async (file: File, orientation: "vertical" | "horizontal" = "vertical") => {
     if (!user || !game) {
       toast.error("Save the game first to upload a cover.");
       return;
     }
     const ext = file.name.split(".").pop();
-    const path = `${user.id}/${game.id}/cover-${Date.now()}.${ext}`;
+    const tag = orientation === "horizontal" ? "cover-h" : "cover";
+    const path = `${user.id}/${game.id}/${tag}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("game-media").upload(path, file, { upsert: true });
     if (error) {
       toast.error("Upload failed", { description: error.message });
       return;
     }
     const { data: pub } = supabase.storage.from("game-media").getPublicUrl(path);
-    await supabase.from("games").update({ cover_url: pub.publicUrl }).eq("id", game.id);
-    setGame({ ...game, cover_url: pub.publicUrl });
-    toast.success("Cover updated");
+    const column = orientation === "horizontal" ? "cover_horizontal_url" : "cover_url";
+    await supabase.from("games").update({ [column]: pub.publicUrl }).eq("id", game.id);
+    setGame({ ...game, [column]: pub.publicUrl });
+    toast.success(orientation === "horizontal" ? "Horizontal poster updated" : "Vertical poster updated");
   };
 
   const handleScreenshotUpload = async (files: FileList) => {
@@ -406,8 +409,9 @@ const GameForm = () => {
             </div>
           </Card>
 
-          <Card className="p-6 rounded-2xl border-border bg-card/40 space-y-4">
+          <Card className="p-6 rounded-2xl border-border bg-card/40 space-y-6">
             <h2 className="text-lg font-semibold">Cover & screenshots</h2>
+
             <div className="flex items-start gap-4">
               <div className="h-40 w-32 rounded-xl bg-secondary overflow-hidden shrink-0">
                 {game?.cover_url && (
@@ -415,6 +419,7 @@ const GameForm = () => {
                 )}
               </div>
               <div className="space-y-2">
+                <Label className="text-sm">Vertical poster</Label>
                 <Button
                   variant="outline"
                   size="sm"
@@ -422,17 +427,47 @@ const GameForm = () => {
                   onClick={() => coverFileRef.current?.click()}
                   disabled={!game}
                 >
-                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload cover
+                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload vertical poster
                 </Button>
                 <input
                   ref={coverFileRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0])}
+                  onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0], "vertical")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {!game ? "Save draft first to upload media." : "PNG/JPG, recommended 600×800."}
+                  {!game ? "Save draft first to upload media." : "PNG/JPG, recommended 600×800 (3:4)."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="h-32 w-56 rounded-xl bg-secondary overflow-hidden shrink-0">
+                {game?.cover_horizontal_url && (
+                  <img src={game.cover_horizontal_url} alt="" className="w-full h-full object-cover" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Horizontal poster</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => coverHorizontalFileRef.current?.click()}
+                  disabled={!game}
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload horizontal poster
+                </Button>
+                <input
+                  ref={coverHorizontalFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0], "horizontal")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {!game ? "Save draft first to upload media." : "PNG/JPG, recommended 1920×1080 (16:9). Used for the store hero."}
                 </p>
               </div>
             </div>
