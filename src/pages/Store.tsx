@@ -210,9 +210,9 @@ const Store = () => {
                     className="snap-start shrink-0 w-[280px] group"
                   >
                     <div className="relative aspect-video rounded-2xl overflow-hidden bg-secondary border border-border group-hover:border-primary/60 transition-all">
-                      {g.cover_url ? (
+                      {(g.cover_horizontal_url || g.cover_url) ? (
                         <img
-                          src={g.cover_url}
+                          src={g.cover_horizontal_url || g.cover_url || ""}
                           alt={g.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy"
