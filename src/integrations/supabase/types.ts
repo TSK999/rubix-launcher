@@ -785,6 +785,7 @@ export type Database = {
       games: {
         Row: {
           age_rating: string
+          cover_horizontal_url: string | null
           cover_url: string | null
           created_at: string
           description: string
@@ -799,6 +800,7 @@ export type Database = {
         }
         Insert: {
           age_rating?: string
+          cover_horizontal_url?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string
@@ -813,6 +815,7 @@ export type Database = {
         }
         Update: {
           age_rating?: string
+          cover_horizontal_url?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string
