@@ -52,7 +52,6 @@ export const Sidebar = ({
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
-    { to: "/passport", label: "Passport", icon: BookMarked, show: true, badge: "New" },
     { to: "/developer", label: "Developer", icon: Code2, show: isDeveloper },
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
@@ -127,7 +126,7 @@ export const Sidebar = ({
 
       <MessagesPanel />
 
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-3 space-y-1">
         <button
           onClick={() => navigate("/clips")}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors group"
@@ -136,6 +135,21 @@ export const Sidebar = ({
           <span className="flex-1 text-left">Clips Feed</span>
           <span className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">New</span>
         </button>
+        <Link
+          to="/passport"
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all",
+            isActive("/passport")
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+          )}
+        >
+          <BookMarked className={cn("h-4 w-4 shrink-0", isActive("/passport") && "text-primary")} />
+          <span className="flex-1">Passport</span>
+          <span className="text-[9px] uppercase tracking-wider text-primary/90 font-bold px-1.5 py-0.5 rounded-full bg-primary/15">
+            New
+          </span>
+        </Link>
       </div>
 
       <RubixFriendsPanel userId={userId} />
