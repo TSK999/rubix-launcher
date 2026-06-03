@@ -24,6 +24,7 @@ import GameForm from "./pages/GameForm.tsx";
 import AdminReview from "./pages/AdminReview.tsx";
 import ClipViewer from "./pages/ClipViewer.tsx";
 import ClipsFeed from "./pages/ClipsFeed.tsx";
+import Passport from "./pages/Passport.tsx";
 import { UploadDock } from "./components/clips/UploadDock";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
@@ -129,6 +130,14 @@ const App = () => (
           />
           <Route path="/clips" element={<ClipsFeed />} />
           <Route path="/clip/:slug" element={<ClipViewer />} />
+          <Route
+            path="/passport"
+            element={
+              <RequireRubixAuth>
+                <Passport />
+              </RequireRubixAuth>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

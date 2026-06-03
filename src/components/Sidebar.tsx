@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film, BookMarked } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
@@ -48,10 +48,11 @@ export const Sidebar = ({
   const steamId = profile?.steam_id ?? null;
   const userId = profile?.user_id ?? null;
 
-  const navItems: { to: string; label: string; icon: typeof Library; show: boolean }[] = [
+  const navItems: { to: string; label: string; icon: typeof Library; show: boolean; badge?: string }[] = [
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
+    { to: "/passport", label: "Passport", icon: BookMarked, show: true, badge: "New" },
     { to: "/developer", label: "Developer", icon: Code2, show: isDeveloper },
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
@@ -146,7 +147,7 @@ export const Sidebar = ({
           Navigate
         </p>
         <div className="space-y-0.5 rounded-2xl bg-secondary/20 p-1.5 border border-border/50">
-          {navItems.filter((i) => i.show).map(({ to, label, icon: Icon }) => {
+          {navItems.filter((i) => i.show).map(({ to, label, icon: Icon, badge }) => {
             const active = isActive(to);
             return (
               <Link
@@ -164,6 +165,11 @@ export const Sidebar = ({
                 )}
                 <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "")} />
                 <span className="flex-1">{label}</span>
+                {badge && (
+                  <span className="text-[9px] uppercase tracking-wider text-primary/90 font-bold px-1.5 py-0.5 rounded-full bg-primary/15">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}
