@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Game } from "@/lib/game-types";
+import { STORAGE_KEY, getGameSource, type Game } from "@/lib/game-types";
 
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 
@@ -18,7 +18,8 @@ export type PassportStamp = {
     | "games_owned"
     | "friends_added"
     | "signup"
-    | "manual";
+    | "manual"
+    | "source_games";
   criteria_value: number;
   game_key: string | null;
   sort_order: number;
@@ -147,6 +148,31 @@ const getEarnedCodes = async (userId: string): Promise<Set<string>> => {
   return set;
 };
 
+export type LauncherSourceCounts = Record<string, number> & { total: number };
+
+export const readLauncherLibrary = (): {
+  total: number;
+  bySource: Record<string, number>;
+  sourcesPresent: Set<string>;
+} => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const list: Game[] = raw ? JSON.parse(raw) : [];
+    const bySource: Record<string, number> = {};
+    list.forEach((g) => {
+      const src = getGameSource(g);
+      bySource[src] = (bySource[src] ?? 0) + 1;
+    });
+    return {
+      total: list.length,
+      bySource,
+      sourcesPresent: new Set(Object.keys(bySource)),
+    };
+  } catch {
+    return { total: 0, bySource: {}, sourcesPresent: new Set() };
+  }
+};
+
 export const evaluateStamps = async (ctx: EvalContext) => {
   const { userId, gameKey } = ctx;
   const [catalog, earnedKeys, playtimes] = await Promise.all([
@@ -155,6 +181,10 @@ export const evaluateStamps = async (ctx: EvalContext) => {
     fetchPlaytime(userId),
   ]);
 
+  const launcher = readLauncherLibrary();
+
+  // Total owned = launcher library size (Steam + Epic + EA + Xbox + Riot + other)
+  // plus any RUBIX store orders. This way every imported game counts.
   let ownedCount = ctx.ownedGamesCount;
   if (ownedCount === undefined) {
     const { count } = await supabase
@@ -162,7 +192,7 @@ export const evaluateStamps = async (ctx: EvalContext) => {
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("status", "completed");
-    ownedCount = count ?? 0;
+    ownedCount = (count ?? 0) + launcher.total;
   }
 
   let friendsCount = ctx.friendsCount;
@@ -177,15 +207,26 @@ export const evaluateStamps = async (ctx: EvalContext) => {
   const playMap = new Map(playtimes.map((p) => [p.game_key, p]));
   const winners: PassportStamp[] = [];
 
-  for (const s of catalog) {
-    const effectiveKey = s.game_key ?? gameKey ?? null;
+  // Distinct non-"other" launcher sources connected
+  const launcherSources = new Set(
+    Object.keys(launcher.bySource).filter((s) => s !== "other"),
+  );
 
+  for (const s of catalog) {
     const isPerGameCriterion =
       s.criteria_type === "first_launch" ||
       s.criteria_type === "playtime_hours" ||
       s.criteria_type === "launches_count";
 
+    // For source_games stamps, game_key holds the source name, not a game id
+    const isSourceCriterion = s.criteria_type === "source_games";
+
+    const effectiveKey = isSourceCriterion
+      ? s.game_key
+      : (s.game_key ?? gameKey ?? null);
+
     if (isPerGameCriterion && !effectiveKey) continue;
+    if (isSourceCriterion && !s.game_key) continue;
 
     const lookupKey = `${s.code}|${effectiveKey ?? ""}`;
     if (earnedKeys.has(lookupKey)) continue;
@@ -214,7 +255,20 @@ export const evaluateStamps = async (ctx: EvalContext) => {
       case "friends_added":
         won = friendsCount >= s.criteria_value;
         break;
+      case "source_games": {
+        const src = s.game_key ?? "";
+        won = (launcher.bySource[src] ?? 0) >= s.criteria_value;
+        break;
+      }
       case "manual":
+        // Cross-platform auto-awards based on distinct launchers
+        if (s.code === "cross_platform") {
+          won = launcherSources.size >= s.criteria_value;
+        } else if (s.code === "one_launcher") {
+          // Requires all 5 supported launchers
+          const required = ["steam", "epic", "ea", "xbox", "riot"];
+          won = required.every((r) => launcherSources.has(r));
+        }
         break;
     }
 
@@ -223,6 +277,7 @@ export const evaluateStamps = async (ctx: EvalContext) => {
 
   await awardStamps(userId, winners, gameKey ?? null);
 };
+
 
 const accumulatePlaytime = async (
   userId: string,
