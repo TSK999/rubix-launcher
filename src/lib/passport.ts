@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Game } from "@/lib/game-types";
+import { STORAGE_KEY, getGameSource, type Game } from "@/lib/game-types";
 
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 
