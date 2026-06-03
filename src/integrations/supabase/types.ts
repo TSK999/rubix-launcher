@@ -992,6 +992,48 @@ export type Database = {
           },
         ]
       }
+      passport_stamps: {
+        Row: {
+          code: string
+          created_at: string
+          criteria_type: string
+          criteria_value: number
+          description: string
+          game_key: string | null
+          icon_emoji: string
+          id: string
+          name: string
+          rarity: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          criteria_type: string
+          criteria_value?: number
+          description: string
+          game_key?: string | null
+          icon_emoji?: string
+          id?: string
+          name: string
+          rarity?: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          criteria_type?: string
+          criteria_value?: number
+          description?: string
+          game_key?: string | null
+          icon_emoji?: string
+          id?: string
+          name?: string
+          rarity?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1224,6 +1266,77 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_game_playtime: {
+        Row: {
+          first_launched_at: string
+          game_key: string
+          id: string
+          last_launched_at: string
+          launch_count: number
+          longest_session_seconds: number
+          title_snapshot: string | null
+          total_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          first_launched_at?: string
+          game_key: string
+          id?: string
+          last_launched_at?: string
+          launch_count?: number
+          longest_session_seconds?: number
+          title_snapshot?: string | null
+          total_seconds?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          first_launched_at?: string
+          game_key?: string
+          id?: string
+          last_launched_at?: string
+          launch_count?: number
+          longest_session_seconds?: number
+          title_snapshot?: string | null
+          total_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_passport_stamps: {
+        Row: {
+          earned_at: string
+          game_key: string | null
+          id: string
+          stamp_id: string
+          user_id: string
+        }
+        Insert: {
+          earned_at?: string
+          game_key?: string | null
+          id?: string
+          stamp_id: string
+          user_id: string
+        }
+        Update: {
+          earned_at?: string
+          game_key?: string | null
+          id?: string
+          stamp_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_passport_stamps_stamp_id_fkey"
+            columns: ["stamp_id"]
+            isOneToOne: false
+            referencedRelation: "passport_stamps"
             referencedColumns: ["id"]
           },
         ]
