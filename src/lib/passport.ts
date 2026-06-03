@@ -18,7 +18,8 @@ export type PassportStamp = {
     | "games_owned"
     | "friends_added"
     | "signup"
-    | "manual";
+    | "manual"
+    | "source_games";
   criteria_value: number;
   game_key: string | null;
   sort_order: number;
