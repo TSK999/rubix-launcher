@@ -52,7 +52,6 @@ export const Sidebar = ({
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
-    { to: "/passport", label: "Passport", icon: BookMarked, show: true, badge: "New" },
     { to: "/developer", label: "Developer", icon: Code2, show: isDeveloper },
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
