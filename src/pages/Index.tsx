@@ -4,6 +4,7 @@ import { useControllerMode } from "@/hooks/useControllerMode";
 import { useNavigate } from "react-router-dom";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -249,6 +250,16 @@ const Index = () => {
           : x
       )
     );
+    // Passport: record launch + evaluate stamp eligibility (non-blocking)
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { recordGameLaunch } = await import("@/lib/passport");
+        void recordGameLaunch(user.id, g);
+      }
+    } catch {
+      /* non-fatal */
+    }
 
     // Epic Games — use dedicated launcher URI in desktop app
     if (window.rubix?.isElectron && g.epicAppName && g.epicCatalogNamespace && g.epicCatalogItemId) {
