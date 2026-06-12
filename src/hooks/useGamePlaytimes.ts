@@ -7,10 +7,58 @@ import {
   type GamePlaytime,
 } from "@/lib/passport";
 
-/**
- * Returns a map of game_key -> GamePlaytime for the current user.
- * Refreshes on the rubix:playtime-updated window event.
- */
+type Store = {
+  userId: string;
+  map: Map<string, GamePlaytime>;
+  listeners: Set<(m: Map<string, GamePlaytime>) => void>;
+  channel: ReturnType<typeof supabase.channel> | null;
+  onUpdate: () => void;
+};
+
+let store: Store | null = null;
+
+const loadInto = async (s: Store) => {
+  const rows = await fetchPlaytime(s.userId);
+  s.map = new Map(rows.map((r) => [r.game_key, r]));
+  s.listeners.forEach((cb) => cb(s.map));
+};
+
+const ensureStore = (userId: string): Store => {
+  if (store && store.userId === userId) return store;
+  if (store) teardownStore();
+  const s: Store = {
+    userId,
+    map: new Map(),
+    listeners: new Set(),
+    channel: null,
+    onUpdate: () => void loadInto(s),
+  };
+  s.channel = supabase
+    .channel(`playtime:${userId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "user_game_playtime",
+        filter: `user_id=eq.${userId}`,
+      },
+      () => void loadInto(s),
+    )
+    .subscribe();
+  window.addEventListener(PLAYTIME_UPDATED_EVENT, s.onUpdate);
+  store = s;
+  void loadInto(s);
+  return s;
+};
+
+const teardownStore = () => {
+  if (!store) return;
+  window.removeEventListener(PLAYTIME_UPDATED_EVENT, store.onUpdate);
+  if (store.channel) void supabase.removeChannel(store.channel);
+  store = null;
+};
+
 export const useGamePlaytimes = () => {
   const { user } = useRubixAuth();
   const [map, setMap] = useState<Map<string, GamePlaytime>>(new Map());
@@ -20,35 +68,13 @@ export const useGamePlaytimes = () => {
       setMap(new Map());
       return;
     }
-    let cancelled = false;
-    const load = async () => {
-      const rows = await fetchPlaytime(user.id);
-      if (cancelled) return;
-      setMap(new Map(rows.map((r) => [r.game_key, r])));
-    };
-    void load();
-
-    const onUpdate = () => void load();
-    window.addEventListener(PLAYTIME_UPDATED_EVENT, onUpdate);
-
-    const channel = supabase
-      .channel(`playtime:${user.id}:${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_game_playtime",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => void load(),
-      )
-      .subscribe();
-
+    const s = ensureStore(user.id);
+    setMap(s.map);
+    const cb = (m: Map<string, GamePlaytime>) => setMap(new Map(m));
+    s.listeners.add(cb);
     return () => {
-      cancelled = true;
-      window.removeEventListener(PLAYTIME_UPDATED_EVENT, onUpdate);
-      void supabase.removeChannel(channel);
+      s.listeners.delete(cb);
+      if (s.listeners.size === 0 && store === s) teardownStore();
     };
   }, [user]);
 
