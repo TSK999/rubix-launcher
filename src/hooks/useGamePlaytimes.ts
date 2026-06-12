@@ -32,7 +32,7 @@ export const useGamePlaytimes = () => {
     window.addEventListener(PLAYTIME_UPDATED_EVENT, onUpdate);
 
     const channel = supabase
-      .channel(`playtime:${user.id}`)
+      .channel(`playtime:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
