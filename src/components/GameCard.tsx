@@ -34,6 +34,8 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: game.id,
   });
+  const playtimes = useGamePlaytimes();
+  const playtime = playtimes.get(game.id);
 
   const style = {
     transform: CSS.Transform.toString(transform),
