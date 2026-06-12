@@ -90,7 +90,11 @@ export const fetchPlaytime = async (userId: string): Promise<GamePlaytime[]> => 
 };
 
 const SESSION_KEY = "rubix:passport-session";
-type LocalSession = { gameKey: string; startedAt: number } | null;
+type LocalSession = {
+  gameKey: string;
+  startedAt: number;
+  lastFlushAt: number;
+} | null;
 
 const readSession = (): LocalSession => {
   try {
@@ -103,6 +107,15 @@ const readSession = (): LocalSession => {
 const writeSession = (s: LocalSession) => {
   if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
   else localStorage.removeItem(SESSION_KEY);
+};
+
+export const PLAYTIME_UPDATED_EVENT = "rubix:playtime-updated";
+const emitPlaytimeUpdated = () => {
+  try {
+    window.dispatchEvent(new CustomEvent(PLAYTIME_UPDATED_EVENT));
+  } catch {
+    /* SSR-safe */
+  }
 };
 
 const showStampToast = (s: PassportStamp) => {
@@ -283,7 +296,9 @@ const accumulatePlaytime = async (
   userId: string,
   gameKey: string,
   seconds: number,
+  sessionSeconds: number,
 ) => {
+  if (seconds <= 0) return;
   const { data: existing } = await supabase
     .from("user_game_playtime")
     .select("id, total_seconds, longest_session_seconds")
@@ -297,26 +312,72 @@ const accumulatePlaytime = async (
         total_seconds: (existing.total_seconds ?? 0) + seconds,
         longest_session_seconds: Math.max(
           existing.longest_session_seconds ?? 0,
-          seconds,
+          sessionSeconds,
         ),
       })
       .eq("id", existing.id);
+    emitPlaytimeUpdated();
   }
   await evaluateStamps({ userId, gameKey });
 };
 
-export const recordGameLaunch = async (userId: string, g: Game) => {
-  const prior = readSession();
-  if (prior) {
-    const elapsed = Math.min(
-      Math.max(0, Math.floor((Date.now() - prior.startedAt) / 1000)),
-      6 * 3600,
-    );
-    if (elapsed > 30) {
-      await accumulatePlaytime(userId, prior.gameKey, elapsed);
+/** Flush elapsed time since the last flush of the current session. */
+export const flushCurrentSession = async (userId: string) => {
+  const s = readSession();
+  if (!s) return;
+  const now = Date.now();
+  const delta = Math.min(
+    Math.max(0, Math.floor((now - s.lastFlushAt) / 1000)),
+    6 * 3600,
+  );
+  const sessionTotal = Math.min(
+    Math.max(0, Math.floor((now - s.startedAt) / 1000)),
+    12 * 3600,
+  );
+  if (delta < 30) return;
+  await accumulatePlaytime(userId, s.gameKey, delta, sessionTotal);
+  writeSession({ ...s, lastFlushAt: now });
+};
+
+/** Explicitly end the current session, flushing remaining time. */
+export const endCurrentSession = async (userId: string) => {
+  const s = readSession();
+  if (!s) return;
+  await flushCurrentSession(userId);
+  writeSession(null);
+};
+
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatUserId: string | null = null;
+
+/** Start a heartbeat that flushes the active session every minute. */
+export const startPlaytimeHeartbeat = (userId: string) => {
+  heartbeatUserId = userId;
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(() => {
+    if (heartbeatUserId) void flushCurrentSession(heartbeatUserId);
+  }, 60_000);
+  const onUnload = () => {
+    if (heartbeatUserId) void flushCurrentSession(heartbeatUserId);
+  };
+  window.addEventListener("beforeunload", onUnload);
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && heartbeatUserId) {
+      void flushCurrentSession(heartbeatUserId);
     }
+  });
+};
+
+export const recordGameLaunch = async (userId: string, g: Game) => {
+  // Flush any prior session before starting a new one
+  await flushCurrentSession(userId);
+  const prior = readSession();
+  if (prior && prior.gameKey !== g.id) {
+    writeSession(null);
   }
-  writeSession({ gameKey: g.id, startedAt: Date.now() });
+
+  const now = Date.now();
+  writeSession({ gameKey: g.id, startedAt: now, lastFlushAt: now });
 
   const { data: existing } = await supabase
     .from("user_game_playtime")
@@ -343,9 +404,13 @@ export const recordGameLaunch = async (userId: string, g: Game) => {
     });
   }
 
+  emitPlaytimeUpdated();
+  startPlaytimeHeartbeat(userId);
   void evaluateStamps({ userId, gameKey: g.id });
 };
 
 export const sweepStampsOnLogin = async (userId: string) => {
+  startPlaytimeHeartbeat(userId);
+  void flushCurrentSession(userId);
   void evaluateStamps({ userId });
 };

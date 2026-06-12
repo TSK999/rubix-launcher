@@ -1,10 +1,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Gamepad2, GripVertical, Heart, Play } from "lucide-react";
+import { Clock, Gamepad2, GripVertical, Heart, Play } from "lucide-react";
 import { getGameSource, type Game } from "@/lib/game-types";
 import { Button } from "@/components/ui/button";
 import { StoreIcon } from "@/components/StoreIcon";
 import { cn } from "@/lib/utils";
+import { formatPlaytime, useGamePlaytimes } from "@/hooks/useGamePlaytimes";
 
 const SOURCE_LABEL: Record<"steam" | "epic" | "ea" | "xbox" | "riot", string> = {
   steam: "Steam",
@@ -33,6 +34,8 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: game.id,
   });
+  const playtimes = useGamePlaytimes();
+  const playtime = playtimes.get(game.id);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -93,13 +96,25 @@ export const GameCard = ({ game, onOpen, onLaunch, onToggleFavorite }: Props) =>
             </span>
           );
         })()}
+        {playtime && playtime.total_seconds > 0 && (
+          <span className="absolute top-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-background/80 text-foreground backdrop-blur-sm border border-border/60">
+            <Clock className="h-3 w-3 text-primary" />
+            {formatPlaytime(playtime.total_seconds)}
+          </span>
+        )}
       </div>
 
       <div className="p-4 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="font-semibold truncate">{game.title}</h3>
-          {game.genre && (
+          {game.genre ? (
             <p className="text-xs text-muted-foreground truncate mt-0.5">{game.genre}</p>
+          ) : null}
+          {playtime && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {formatPlaytime(playtime.total_seconds)} played · {playtime.launch_count} launch
+              {playtime.launch_count === 1 ? "" : "es"}
+            </p>
           )}
         </div>
         <button
