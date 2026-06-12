@@ -90,7 +90,11 @@ export const fetchPlaytime = async (userId: string): Promise<GamePlaytime[]> => 
 };
 
 const SESSION_KEY = "rubix:passport-session";
-type LocalSession = { gameKey: string; startedAt: number } | null;
+type LocalSession = {
+  gameKey: string;
+  startedAt: number;
+  lastFlushAt: number;
+} | null;
 
 const readSession = (): LocalSession => {
   try {
@@ -103,6 +107,15 @@ const readSession = (): LocalSession => {
 const writeSession = (s: LocalSession) => {
   if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
   else localStorage.removeItem(SESSION_KEY);
+};
+
+export const PLAYTIME_UPDATED_EVENT = "rubix:playtime-updated";
+const emitPlaytimeUpdated = () => {
+  try {
+    window.dispatchEvent(new CustomEvent(PLAYTIME_UPDATED_EVENT));
+  } catch {
+    /* SSR-safe */
+  }
 };
 
 const showStampToast = (s: PassportStamp) => {
