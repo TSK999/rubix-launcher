@@ -1,10 +1,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Gamepad2, GripVertical, Heart, Play } from "lucide-react";
+import { Clock, Gamepad2, GripVertical, Heart, Play } from "lucide-react";
 import { getGameSource, type Game } from "@/lib/game-types";
 import { Button } from "@/components/ui/button";
 import { StoreIcon } from "@/components/StoreIcon";
 import { cn } from "@/lib/utils";
+import { formatPlaytime, useGamePlaytimes } from "@/hooks/useGamePlaytimes";
 
 const SOURCE_LABEL: Record<"steam" | "epic" | "ea" | "xbox" | "riot", string> = {
   steam: "Steam",
