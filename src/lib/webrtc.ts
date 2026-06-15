@@ -78,7 +78,14 @@ export class CallManager {
     }
     this.events.onLocalStream(this.localStream);
 
-    this.channel = supabase.channel(`call-${this.callId}-${this.peerId}`, {
+    // Defensively remove any lingering channel with the same name (e.g. from a
+    // previous failed call) before subscribing — re-using a half-torn-down
+    // channel triggers "cannot add postgres_changes callbacks after subscribe()".
+    const channelName = `call-${this.callId}`;
+    supabase.getChannels()
+      .filter((c) => c.topic === `realtime:${channelName}`)
+      .forEach((c) => { void supabase.removeChannel(c); });
+    this.channel = supabase.channel(channelName, {
       config: { broadcast: { self: false, ack: false } },
     });
 
