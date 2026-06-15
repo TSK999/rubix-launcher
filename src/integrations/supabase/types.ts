@@ -249,6 +249,101 @@ export type Database = {
           },
         ]
       }
+      community_event_rsvps: {
+        Row: {
+          created_at: string
+          event_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "community_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_events: {
+        Row: {
+          channel_id: string | null
+          community_id: string
+          created_at: string
+          creator_id: string
+          description: string | null
+          ends_at: string | null
+          game_cover: string | null
+          game_title: string | null
+          id: string
+          max_attendees: number | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id?: string | null
+          community_id: string
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          ends_at?: string | null
+          game_cover?: string | null
+          game_title?: string | null
+          id?: string
+          max_attendees?: number | null
+          starts_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string | null
+          community_id?: string
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          ends_at?: string | null
+          game_cover?: string | null
+          game_title?: string | null
+          id?: string
+          max_attendees?: number | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_members: {
         Row: {
           community_id: string
@@ -1561,6 +1656,7 @@ export type Database = {
         Args: { _icon_url?: string; _name: string }
         Returns: string
       }
+      event_community: { Args: { _eid: string }; Returns: string }
       gen_clip_slug: { Args: never; Returns: string }
       gen_invite_code: { Args: never; Returns: string }
       get_community_invite_code: { Args: { _cid: string }; Returns: string }
