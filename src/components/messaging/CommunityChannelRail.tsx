@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Hash, Loader2, Plus, Settings, Volume2 } from "lucide-react";
+import { Calendar, Hash, Loader2, Plus, Settings, Volume2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
 import { PARTICIPANT_STALE_MS } from "@/lib/calls";
 import { CommunitySettingsDialog } from "./CommunitySettingsDialog";
+import { CommunityEventsDialog } from "@/components/events/CommunityEventsDialog";
 import { toast } from "sonner";
 
 type Props = {
@@ -43,6 +44,7 @@ export const CommunityChannelRail = ({
   const [creating, setCreating] = useState<"text" | "voice" | null>(null);
   const [newName, setNewName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const [occupantsByChannel, setOccupantsByChannel] = useState<Map<string, Occupant[]>>(new Map());
 
   const refresh = async () => {
