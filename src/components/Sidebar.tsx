@@ -12,6 +12,7 @@ import { useRubixAuth } from "@/hooks/useRubixAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import rubixIcon from "@/assets/rubix-friends-icon.png";
 import { StatusPicker } from "@/components/presence/StatusPicker";
+import { LfgPanel } from "@/components/lfg/LfgPanel";
 import type { GameSource } from "@/lib/game-types";
 import { useState } from "react";
 
@@ -153,6 +154,8 @@ export const Sidebar = ({
       </div>
 
       <RubixFriendsPanel userId={userId} />
+
+      <LfgPanel userId={userId} />
 
       <SteamFriendsPanel steamId={steamId} />
 
