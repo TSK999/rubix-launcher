@@ -86,9 +86,18 @@ export class CallManager {
       void this.handleSignal(payload as SignalPayload);
     });
 
-    await new Promise<void>((resolve) => {
-      this.channel!.subscribe((status) => {
-        if (status === "SUBSCRIBED") resolve();
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        reject(new Error("Call signaling timed out — check your connection"));
+      }, 10000);
+      this.channel!.subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          window.clearTimeout(timeout);
+          resolve();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          window.clearTimeout(timeout);
+          reject(err ?? new Error(`Call signaling failed: ${status}`));
+        }
       });
     });
 
