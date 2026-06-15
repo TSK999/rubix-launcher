@@ -78,7 +78,14 @@ export class CallManager {
     }
     this.events.onLocalStream(this.localStream);
 
-    this.channel = supabase.channel(`call-${this.callId}`, {
+    // Defensively remove any lingering channel with the same name (e.g. from a
+    // previous failed call) before subscribing — re-using a half-torn-down
+    // channel triggers "cannot add postgres_changes callbacks after subscribe()".
+    const channelName = `call-${this.callId}`;
+    supabase.getChannels()
+      .filter((c) => c.topic === `realtime:${channelName}`)
+      .forEach((c) => { void supabase.removeChannel(c); });
+    this.channel = supabase.channel(channelName, {
       config: { broadcast: { self: false, ack: false } },
     });
 
@@ -86,9 +93,18 @@ export class CallManager {
       void this.handleSignal(payload as SignalPayload);
     });
 
-    await new Promise<void>((resolve) => {
-      this.channel!.subscribe((status) => {
-        if (status === "SUBSCRIBED") resolve();
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        reject(new Error("Call signaling timed out — check your connection"));
+      }, 10000);
+      this.channel!.subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          window.clearTimeout(timeout);
+          resolve();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          window.clearTimeout(timeout);
+          reject(err ?? new Error(`Call signaling failed: ${status}`));
+        }
       });
     });
 
