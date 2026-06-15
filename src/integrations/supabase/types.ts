@@ -830,6 +830,88 @@ export type Database = {
         }
         Relationships: []
       }
+      lfg_participants: {
+        Row: {
+          joined_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lfg_participants_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "lfg_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lfg_posts: {
+        Row: {
+          community_id: string | null
+          created_at: string
+          expires_at: string
+          game_cover: string | null
+          game_title: string
+          host_id: string
+          id: string
+          mic_required: boolean
+          mode: string
+          notes: string | null
+          slots_total: number
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          community_id?: string | null
+          created_at?: string
+          expires_at?: string
+          game_cover?: string | null
+          game_title: string
+          host_id: string
+          id?: string
+          mic_required?: boolean
+          mode?: string
+          notes?: string | null
+          slots_total?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          community_id?: string | null
+          created_at?: string
+          expires_at?: string
+          game_cover?: string | null
+          game_title?: string
+          host_id?: string
+          id?: string
+          mic_required?: boolean
+          mode?: string
+          notes?: string | null
+          slots_total?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lfg_posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_attachments: {
         Row: {
           created_at: string
@@ -1466,6 +1548,10 @@ export type Database = {
     }
     Functions: {
       are_rubix_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_view_lfg_post: {
+        Args: { _post_id: string; _uid: string }
+        Returns: boolean
+      }
       channel_community: { Args: { _chid: string }; Returns: string }
       community_role_of: {
         Args: { _cid: string; _uid: string }
