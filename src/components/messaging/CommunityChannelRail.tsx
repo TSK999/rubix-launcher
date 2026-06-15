@@ -175,13 +175,22 @@ export const CommunityChannelRail = ({
   return (
     <>
       <div className="flex flex-col h-full w-full">
-        <button
-          onClick={() => setSettingsOpen(true)}
-          className="px-4 py-3 border-b border-border flex items-center justify-between hover:bg-secondary/30 text-left"
-        >
-          <span className="text-sm font-bold truncate">{community?.name ?? "…"}</span>
-          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
+        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="flex-1 flex items-center justify-between hover:opacity-80 text-left min-w-0"
+          >
+            <span className="text-sm font-bold truncate">{community?.name ?? "…"}</span>
+            <Settings className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
+          </button>
+          <button
+            onClick={() => setEventsOpen(true)}
+            className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors"
+            title="Community events"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+          </button>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
