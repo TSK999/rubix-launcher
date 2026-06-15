@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Hash, Loader2, Plus, Settings, Volume2 } from "lucide-react";
+import { Calendar, Hash, Loader2, Plus, Settings, Volume2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
 import { fetchProfiles, type ProfileLite } from "@/lib/messaging";
 import { PARTICIPANT_STALE_MS } from "@/lib/calls";
 import { CommunitySettingsDialog } from "./CommunitySettingsDialog";
+import { CommunityEventsDialog } from "@/components/events/CommunityEventsDialog";
 import { toast } from "sonner";
 
 type Props = {
@@ -43,6 +44,7 @@ export const CommunityChannelRail = ({
   const [creating, setCreating] = useState<"text" | "voice" | null>(null);
   const [newName, setNewName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const [occupantsByChannel, setOccupantsByChannel] = useState<Map<string, Occupant[]>>(new Map());
 
   const refresh = async () => {
@@ -173,13 +175,22 @@ export const CommunityChannelRail = ({
   return (
     <>
       <div className="flex flex-col h-full w-full">
-        <button
-          onClick={() => setSettingsOpen(true)}
-          className="px-4 py-3 border-b border-border flex items-center justify-between hover:bg-secondary/30 text-left"
-        >
-          <span className="text-sm font-bold truncate">{community?.name ?? "…"}</span>
-          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
+        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="flex-1 flex items-center justify-between hover:opacity-80 text-left min-w-0"
+          >
+            <span className="text-sm font-bold truncate">{community?.name ?? "…"}</span>
+            <Settings className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
+          </button>
+          <button
+            onClick={() => setEventsOpen(true)}
+            className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors"
+            title="Community events"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+          </button>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -277,6 +288,13 @@ export const CommunityChannelRail = ({
         isOwner={isOwner}
         onDeleted={onLeftOrDeleted}
         onLeft={onLeftOrDeleted}
+      />
+      <CommunityEventsDialog
+        open={eventsOpen}
+        onOpenChange={setEventsOpen}
+        communityId={communityId}
+        meId={meId}
+        isAdmin={isAdmin}
       />
     </>
   );
