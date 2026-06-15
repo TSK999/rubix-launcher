@@ -289,6 +289,13 @@ export const CommunityChannelRail = ({
         onDeleted={onLeftOrDeleted}
         onLeft={onLeftOrDeleted}
       />
+      <CommunityEventsDialog
+        open={eventsOpen}
+        onOpenChange={setEventsOpen}
+        communityId={communityId}
+        meId={meId}
+        isAdmin={isAdmin}
+      />
     </>
   );
 };
