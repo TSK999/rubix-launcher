@@ -636,6 +636,19 @@ const GameModBrowser = ({
           <Button type="submit">Search</Button>
         </form>
 
+        <Select value={sort} onValueChange={(v) => { setPage(1); setSort(v as typeof sort); }}>
+          <SelectTrigger className="w-[180px]">
+            <ArrowDownWideNarrow className="mr-1 h-4 w-4" />
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="popular">Most popular</SelectItem>
+            <SelectItem value="downloads">Most downloads</SelectItem>
+            <SelectItem value="updated">Recently updated</SelectItem>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+          </SelectContent>
+        </Select>
+
         {gameVersions.length > 0 && (
           <Select value={gameVersion} onValueChange={setGameVersion}>
             <SelectTrigger className="w-[180px]">
@@ -651,6 +664,20 @@ const GameModBrowser = ({
             </SelectContent>
           </Select>
         )}
+      </div>
+
+      <div className="mb-6">
+        <ModpackManager
+          gameSlug={`${game.provider}-${game.apiGameKey}`}
+          gameTitle={game.title}
+          installedMods={Object.entries(installed).map(([modId, v]) => ({
+            mod_source: game.provider,
+            mod_id: modId,
+            mod_name: modId,
+            version: v.version,
+            enabled: true,
+          }))}
+        />
       </div>
 
       {error && (
