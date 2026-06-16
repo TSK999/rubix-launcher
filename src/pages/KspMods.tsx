@@ -501,6 +501,7 @@ const GameModBrowser = ({
       game: game.apiGameKey,
       page: String(page),
       count: "30",
+      sort,
     };
     if (committedQuery) params.query = committedQuery;
     callFn(params)
@@ -524,7 +525,7 @@ const GameModBrowser = ({
     return () => {
       cancelled = true;
     };
-  }, [game.provider, game.apiGameKey, page, committedQuery]);
+  }, [game.provider, game.apiGameKey, page, committedQuery, sort]);
 
   useEffect(() => {
     if (selectedId === null) {
