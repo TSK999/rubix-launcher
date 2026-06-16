@@ -148,7 +148,17 @@ const KspMods = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar
+        collection="all"
+        onCollection={() => {}}
+        genres={[]}
+        selectedGenre={null}
+        onGenre={() => {}}
+        counts={{ all: 0, favorites: 0, recent: 0 }}
+        selectedSource={null}
+        onSource={() => {}}
+        sourceCounts={{ steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 }}
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <header className="mb-6 flex flex-col gap-2">
