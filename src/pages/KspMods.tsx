@@ -668,7 +668,7 @@ const GameModBrowser = ({
 
       <div className="mb-6">
         <ModpackManager
-          gameSlug={`${game.provider}-${game.apiGameKey}`}
+          gameSlug={game.apiGameKey}
           gameTitle={game.title}
           installedMods={Object.entries(installed).map(([modId, v]) => ({
             mod_source: game.provider,
