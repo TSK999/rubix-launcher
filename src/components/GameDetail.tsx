@@ -12,6 +12,8 @@ import { useGameUserData } from "@/hooks/useGameUserData";
 import { GameNotesTab } from "@/components/GameNotesTab";
 import { GameScreenshotsTab } from "@/components/GameScreenshotsTab";
 import { GameClipsTab } from "@/components/GameClipsTab";
+import { GameModsTab } from "@/components/mods/GameModsTab";
+import { findModGameForLauncherGame } from "@/lib/mod-games";
 
 type Props = {
   game: Game | null;
