@@ -408,6 +408,7 @@ const GameModBrowser = ({
   const [detail, setDetail] = useState<ModDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [gameVersion, setGameVersion] = useState<string>("any");
+  const [sort, setSort] = useState<"popular" | "downloads" | "updated" | "name">("popular");
 
   const isElectron = typeof window !== "undefined" && window.rubix?.isElectron === true;
   const [installDir, setInstallDir] = useState<string | null>(null);
