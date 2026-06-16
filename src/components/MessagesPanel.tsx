@@ -55,19 +55,17 @@ export const MessagesPanel = () => {
   if (!meId) return null;
 
   return (
-    <div className="p-3 border-t border-border">
-      <button
-        onClick={() => navigate("/messages")}
-        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-      >
-        <MessageSquare className="h-4 w-4" />
-        <span className="flex-1 text-left">Rubix Messaging</span>
-        {unread > 0 && (
-          <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
-            {unread > 99 ? "99+" : unread}
-          </span>
-        )}
-      </button>
-    </div>
+    <button
+      onClick={() => navigate("/messages")}
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+    >
+      <MessageSquare className="h-4 w-4" />
+      <span className="flex-1 text-left">Rubix Messaging</span>
+      {unread > 0 && (
+        <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </button>
   );
 };
