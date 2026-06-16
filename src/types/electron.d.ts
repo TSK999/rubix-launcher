@@ -208,6 +208,7 @@ declare global {
         pickFolder: (
           gameKey: string,
           title?: string,
+          mode?: "ksp" | "root",
         ) => Promise<{ ok: boolean; gameDataDir?: string; canceled?: boolean; error?: string }>;
         getFolder: (
           gameKey: string,
@@ -223,6 +224,7 @@ declare global {
               modName: string;
               version: string;
               versionId: number;
+              installSubdir?: string;
               installedAt: string;
               files: string[];
             }
@@ -235,6 +237,8 @@ declare global {
           version: string;
           versionId: number;
           downloadUrl: string;
+          stripHint?: "GameData" | "";
+          installSubdir?: string;
         }) => Promise<{ ok: boolean; files?: number; error?: string }>;
         uninstall: (
           gameKey: string,

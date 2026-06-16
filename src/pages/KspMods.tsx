@@ -42,19 +42,32 @@ import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
 
 // ---------- Supported games registry ----------
-// Add more entries here as new mod providers are wired up.
+type Provider = "spacedock" | "thunderstore" | "modio";
+
 type SupportedGame = {
-  id: string;            // route-style id e.g. "ksp1"
+  id: string;
   title: string;
   blurb: string;
-  provider: "spacedock"; // future: "nexus" | "thunderstore" | "github"
+  provider: Provider;
   providerLabel: string;
-  apiGameKey: "ksp1" | "ksp2"; // value passed to the edge function
-  cover: string;         // hero image URL
+  // Provider-specific game key:
+  // - spacedock: "ksp1" | "ksp2"
+  // - thunderstore: community slug (e.g. "lethal-company")
+  // - modio: numeric game id as string
+  apiGameKey: string;
+  cover: string;
   status: "live" | "coming-soon";
+  // Install behavior (Electron):
+  pickerMode: "ksp" | "root";
+  folderLabel: string;          // e.g. "GameData folder" or "Game install folder"
+  stripHint?: "GameData" | "";  // zip strip mode
+  // Subfolder under chosen folder where the mod zip should be extracted.
+  // Supports {name} and {author} placeholders (Thunderstore uses author-mod).
+  installSubdir?: string;
 };
 
 const SUPPORTED_GAMES: SupportedGame[] = [
+  // ---- SpaceDock ----
   {
     id: "ksp1",
     title: "Kerbal Space Program",
@@ -64,6 +77,9 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     apiGameKey: "ksp1",
     cover: ksp1Cover.url,
     status: "live",
+    pickerMode: "ksp",
+    folderLabel: "GameData folder",
+    stripHint: "GameData",
   },
   {
     id: "ksp2",
@@ -74,12 +90,116 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     apiGameKey: "ksp2",
     cover: ksp2Cover.url,
     status: "live",
+    pickerMode: "ksp",
+    folderLabel: "GameData folder",
+    stripHint: "GameData",
+  },
+  // ---- Thunderstore (BepInEx-style) ----
+  // Install into <gameRoot>/BepInEx/plugins/<owner-name>/
+  {
+    id: "lethal-company",
+    title: "Lethal Company",
+    blurb: "Co-op horror by Zeekerss. Massive Thunderstore modding scene.",
+    provider: "thunderstore",
+    providerLabel: "Thunderstore",
+    apiGameKey: "lethal-company",
+    cover: "https://gamebanana.com/img/ss/games/65543c10c8b6e.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "BepInEx/plugins/{author}-{name}",
+  },
+  {
+    id: "valheim",
+    title: "Valheim",
+    blurb: "Viking survival. BepInEx plugins via Thunderstore.",
+    provider: "thunderstore",
+    providerLabel: "Thunderstore",
+    apiGameKey: "valheim",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "BepInEx/plugins/{author}-{name}",
+  },
+  {
+    id: "risk-of-rain-2",
+    title: "Risk of Rain 2",
+    blurb: "Roguelike shooter. Huge BepInEx mod ecosystem.",
+    provider: "thunderstore",
+    providerLabel: "Thunderstore",
+    apiGameKey: "risk-of-rain-2",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/632360/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "BepInEx/plugins/{author}-{name}",
+  },
+  {
+    id: "content-warning",
+    title: "Content Warning",
+    blurb: "Make spooky videos with friends. Active Thunderstore catalog.",
+    provider: "thunderstore",
+    providerLabel: "Thunderstore",
+    apiGameKey: "content-warning",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/2881650/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "BepInEx/plugins/{author}-{name}",
+  },
+  {
+    id: "bonelab",
+    title: "BONELAB",
+    blurb: "Stress Level Zero's VR sandbox. Mods via MelonLoader / Thunderstore.",
+    provider: "thunderstore",
+    providerLabel: "Thunderstore",
+    apiGameKey: "bonelab",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/1592190/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "Mods/{author}-{name}",
+  },
+  // ---- Mod.io (requires MODIO_API_KEY) ----
+  {
+    id: "mordhau",
+    title: "MORDHAU",
+    blurb: "Medieval melee combat. Mods served via Mod.io.",
+    provider: "modio",
+    providerLabel: "Mod.io",
+    apiGameKey: "4",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/629760/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "Mordhau/Content/Mods/{name}",
+  },
+  {
+    id: "skater-xl",
+    title: "Skater XL",
+    blurb: "Skateboarding sim. Community gear & maps via Mod.io.",
+    provider: "modio",
+    providerLabel: "Mod.io",
+    apiGameKey: "159",
+    cover: "https://cdn.akamai.steamstatic.com/steam/apps/962730/header.jpg",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: "Mods/{name}",
   },
 ];
 
-// ---------- API types ----------
+// ---------- Normalized API types ----------
 type ModSummary = {
-  id: number;
+  id: string | number;
   name: string;
   short_description: string;
   author: string;
@@ -89,7 +209,7 @@ type ModSummary = {
   license: string;
   website: string | null;
   source_code: string | null;
-  url: string;
+  url: string; // absolute URL
   versions: ModVersion[];
 };
 
@@ -98,7 +218,7 @@ type ModVersion = {
   game_version: string;
   id: number;
   created: string;
-  download_path: string;
+  download_path: string; // absolute URL
   changelog?: string;
   downloads?: number;
 };
@@ -114,7 +234,7 @@ type BrowseResponse = {
 };
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
-const ENDPOINT = `https://${PROJECT_ID}.supabase.co/functions/v1/ksp-mods`;
+const ENDPOINT = `https://${PROJECT_ID}.supabase.co/functions/v1/mods-api`;
 
 async function callFn(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
@@ -124,11 +244,22 @@ async function callFn(params: Record<string, string>) {
   };
   if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
   const res = await fetch(`${ENDPOINT}?${qs}`, { headers });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Request failed: ${res.status} ${txt}`);
+  }
   return res.json();
 }
 
-// ---------- Sidebar boilerplate shared by both views ----------
+function expandSubdir(template: string | undefined, mod: { name: string; author: string }) {
+  if (!template) return undefined;
+  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9._-]+/g, "_");
+  return template
+    .replace(/\{name\}/g, sanitize(mod.name))
+    .replace(/\{author\}/g, sanitize(mod.author || "Unknown"));
+}
+
+// ---------- Sidebar boilerplate ----------
 const sidebarProps = {
   collection: "all" as const,
   onCollection: () => {},
@@ -142,53 +273,78 @@ const sidebarProps = {
 };
 
 // ---------- Game picker ----------
-const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => (
-  <div className="mx-auto max-w-6xl px-6 py-10">
-    <header className="mb-8 flex flex-col gap-2">
-      <div className="flex items-center gap-3">
-        <Package className="h-7 w-7 text-primary" />
-        <h1 className="text-3xl font-bold tracking-tight">Mod Manager</h1>
-        <Badge variant="secondary">Beta</Badge>
-      </div>
-      <p className="max-w-2xl text-sm text-muted-foreground">
-        Browse, search and download mods for your favourite games. Pick a game to get started —
-        more games are being added.
-      </p>
-    </header>
+const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
+  const grouped = useMemo(() => {
+    const by: Record<Provider, SupportedGame[]> = {
+      spacedock: [],
+      thunderstore: [],
+      modio: [],
+    };
+    SUPPORTED_GAMES.forEach((g) => by[g.provider].push(g));
+    return by;
+  }, []);
 
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {SUPPORTED_GAMES.map((g) => (
-        <Card
-          key={g.id}
-          className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-          onClick={() => onPick(g)}
-        >
-          <div
-            className="relative h-36 w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${g.cover})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+  const sections: { provider: Provider; label: string; items: SupportedGame[] }[] = [
+    { provider: "spacedock", label: "SpaceDock (KSP)", items: grouped.spacedock },
+    { provider: "thunderstore", label: "Thunderstore (BepInEx games)", items: grouped.thunderstore },
+    { provider: "modio", label: "Mod.io", items: grouped.modio },
+  ];
+
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-10">
+      <header className="mb-8 flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <Package className="h-7 w-7 text-primary" />
+          <h1 className="text-3xl font-bold tracking-tight">Mod Manager</h1>
+          <Badge variant="secondary">Beta</Badge>
+        </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Browse, search and install mods for your favourite games. One-click installs work in the
+          RUBIX desktop app; the browser opens the mod page on the source site.
+        </p>
+      </header>
+
+      {sections.map((section) => (
+        <section key={section.provider} className="mb-10">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            {section.label}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {section.items.map((g) => (
+              <Card
+                key={g.id}
+                className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+                onClick={() => onPick(g)}
+              >
+                <div
+                  className="relative h-36 w-full bg-cover bg-center"
+                  style={{ backgroundImage: `url(${g.cover})` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                </div>
+                <div className="p-4">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="font-semibold leading-tight">{g.title}</h3>
+                    <Badge variant="outline" className="text-[10px]">
+                      {g.providerLabel}
+                    </Badge>
+                  </div>
+                  <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
+                </div>
+              </Card>
+            ))}
           </div>
-          <div className="p-4">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="font-semibold leading-tight">{g.title}</h3>
-              <Badge variant="outline" className="text-[10px]">
-                {g.providerLabel}
-              </Badge>
-            </div>
-            <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
-          </div>
-        </Card>
+        </section>
       ))}
 
       <Card className="flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center text-muted-foreground">
         <Sparkles className="h-6 w-6" />
         <p className="text-sm font-medium">More games coming soon</p>
-        <p className="text-xs">Nexus, Thunderstore and Steam Workshop integrations are next.</p>
+        <p className="text-xs">Nexus Mods and CurseForge integrations are next.</p>
       </Card>
     </div>
-  </div>
-);
+  );
+};
 
 // ---------- Mod browser for a single game ----------
 const GameModBrowser = ({
@@ -203,20 +359,22 @@ const GameModBrowser = ({
   const [page, setPage] = useState(1);
   const [data, setData] = useState<BrowseResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ModDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [gameVersion, setGameVersion] = useState<string>("any");
 
-  // Electron install state
   const isElectron = typeof window !== "undefined" && window.rubix?.isElectron === true;
-  const [gameDataDir, setGameDataDir] = useState<string | null>(null);
+  const [installDir, setInstallDir] = useState<string | null>(null);
   const [installed, setInstalled] = useState<Record<string, { version: string; versionId: number }>>({});
   const [installingId, setInstallingId] = useState<number | null>(null);
 
+  const storageKey = `${game.provider}-${game.apiGameKey}`;
+
   const refreshInstalled = async () => {
     if (!isElectron || !window.rubix?.mods) return;
-    const res = await window.rubix.mods.listInstalled(game.apiGameKey);
+    const res = await window.rubix.mods.listInstalled(storageKey);
     if (res.ok) {
       const next: Record<string, { version: string; versionId: number }> = {};
       for (const [k, v] of Object.entries(res.installed)) {
@@ -232,7 +390,7 @@ const GameModBrowser = ({
     setQuery("");
     setGameVersion("any");
     if (isElectron && window.rubix?.mods) {
-      window.rubix.mods.getFolder(game.apiGameKey).then((r) => setGameDataDir(r.gameDataDir));
+      window.rubix.mods.getFolder(storageKey).then((r) => setInstallDir(r.gameDataDir));
       refreshInstalled();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,27 +398,33 @@ const GameModBrowser = ({
 
   const pickFolder = async () => {
     if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.pickFolder(game.apiGameKey, `Select ${game.title} GameData folder`);
+    const r = await window.rubix.mods.pickFolder(
+      storageKey,
+      `Select ${game.title} ${game.folderLabel}`,
+      game.pickerMode,
+    );
     if (r.ok && r.gameDataDir) {
-      setGameDataDir(r.gameDataDir);
-      toast.success("GameData folder set", { description: r.gameDataDir });
+      setInstallDir(r.gameDataDir);
+      toast.success(`${game.folderLabel} set`, { description: r.gameDataDir });
     }
   };
 
   const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
     if (!window.rubix?.mods) return;
-    if (!gameDataDir) {
-      toast.error("Pick your GameData folder first");
+    if (!installDir) {
+      toast.error(`Pick your ${game.folderLabel} first`);
       return;
     }
     setInstallingId(v.id);
     const r = await window.rubix.mods.install({
-      gameKey: game.apiGameKey,
+      gameKey: storageKey,
       modId: String(mod.id),
       modName: mod.name,
       version: v.friendly_version,
       versionId: v.id,
-      downloadUrl: `https://spacedock.info${v.download_path}`,
+      downloadUrl: v.download_path,
+      stripHint: game.stripHint,
+      installSubdir: expandSubdir(game.installSubdir, { name: mod.name, author: mod.author }),
     });
     setInstallingId(null);
     if (r.ok) {
@@ -273,7 +437,7 @@ const GameModBrowser = ({
 
   const uninstallMod = async (mod: ModDetail | ModSummary) => {
     if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.uninstall(game.apiGameKey, String(mod.id));
+    const r = await window.rubix.mods.uninstall(storageKey, String(mod.id));
     if (r.ok) {
       toast.success(`Uninstalled ${mod.name}`, { description: `${r.removed} files removed` });
       refreshInstalled();
@@ -285,7 +449,9 @@ const GameModBrowser = ({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     const params: Record<string, string> = {
+      provider: game.provider,
       action: "browse",
       game: game.apiGameKey,
       page: String(page),
@@ -295,18 +461,25 @@ const GameModBrowser = ({
     callFn(params)
       .then((j) => {
         if (cancelled) return;
-        if (Array.isArray(j)) {
+        if (j?.error) {
+          setError(String(j.error));
+          setData({ total: 0, count: 0, pages: 1, page: 1, result: [] });
+        } else if (Array.isArray(j)) {
           setData({ total: j.length, count: j.length, pages: 1, page: 1, result: j });
         } else {
           setData(j as BrowseResponse);
         }
       })
-      .catch(() => setData({ total: 0, count: 0, pages: 1, page: 1, result: [] }))
+      .catch((e) => {
+        if (cancelled) return;
+        setError(String(e?.message ?? e));
+        setData({ total: 0, count: 0, pages: 1, page: 1, result: [] });
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [game.apiGameKey, page, committedQuery]);
+  }, [game.provider, game.apiGameKey, page, committedQuery]);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -314,11 +487,16 @@ const GameModBrowser = ({
       return;
     }
     setDetailLoading(true);
-    callFn({ action: "mod", id: String(selectedId) })
+    callFn({
+      provider: game.provider,
+      action: "mod",
+      game: game.apiGameKey,
+      id: String(selectedId),
+    })
       .then((j) => setDetail(j as ModDetail))
       .catch(() => setDetail(null))
       .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+  }, [selectedId, game.provider, game.apiGameKey]);
 
   const gameVersions = useMemo(() => {
     const set = new Set<string>();
@@ -358,24 +536,24 @@ const GameModBrowser = ({
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card/50 p-3">
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {gameDataDir ? (
+              {installDir ? (
                 <>
-                  GameData:{" "}
-                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{gameDataDir}</code>
+                  {game.folderLabel}:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{installDir}</code>
                 </>
               ) : (
-                <span className="text-muted-foreground">No GameData folder set.</span>
+                <span className="text-muted-foreground">No {game.folderLabel} set.</span>
               )}
             </span>
             <div className="ml-auto flex gap-2">
               <Button size="sm" variant="outline" onClick={pickFolder}>
-                {gameDataDir ? "Change folder" : "Choose folder"}
+                {installDir ? "Change folder" : "Choose folder"}
               </Button>
-              {gameDataDir && (
+              {installDir && (
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => window.rubix?.mods?.openFolder(game.apiGameKey)}
+                  onClick={() => window.rubix?.mods?.openFolder(storageKey)}
                 >
                   Open
                 </Button>
@@ -385,7 +563,8 @@ const GameModBrowser = ({
         ) : (
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click install is available in the RUBIX desktop app. In the browser, downloads open
-            on {game.providerLabel} and you'll need to unzip into <code>GameData/</code> yourself.
+            on {game.providerLabel} and you'll need to extract the archive into your{" "}
+            <code>{game.folderLabel}</code> yourself.
           </div>
         )}
       </header>
@@ -411,20 +590,34 @@ const GameModBrowser = ({
           <Button type="submit">Search</Button>
         </form>
 
-        <Select value={gameVersion} onValueChange={setGameVersion}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Game version" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="any">Any version</SelectItem>
-            {gameVersions.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {gameVersions.length > 0 && (
+          <Select value={gameVersion} onValueChange={setGameVersion}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Game version" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any version</SelectItem>
+              {gameVersions.map((v) => (
+                <SelectItem key={v} value={v}>
+                  {v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
+
+      {error && (
+        <Card className="mb-4 border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <p className="font-medium">Couldn't load mods</p>
+          <p className="text-xs opacity-80">{error}</p>
+          {game.provider === "modio" && /MODIO_API_KEY/.test(error) && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Mod.io needs a free API key. Ask RUBIX to add the <code>MODIO_API_KEY</code> secret.
+            </p>
+          )}
+        </Card>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -442,9 +635,9 @@ const GameModBrowser = ({
             const latest = mod.versions?.[0];
             return (
               <Card
-                key={mod.id}
+                key={String(mod.id)}
                 className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-                onClick={() => setSelectedId(mod.id)}
+                onClick={() => setSelectedId(String(mod.id))}
               >
                 <div
                   className="h-28 w-full bg-muted bg-cover bg-center"
@@ -458,7 +651,7 @@ const GameModBrowser = ({
                   <div className="mb-1 flex items-start justify-between gap-2">
                     <h3 className="font-semibold leading-tight">{mod.name}</h3>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      {latest && (
+                      {latest?.game_version && (
                         <Badge variant="outline" className="text-xs">
                           v{latest.game_version}
                         </Badge>
@@ -488,7 +681,7 @@ const GameModBrowser = ({
         </div>
       )}
 
-      {data && data.pages > 1 && !committedQuery && (
+      {data && data.pages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-3">
           <Button
             variant="outline"
@@ -526,9 +719,11 @@ const GameModBrowser = ({
                   <span className="flex items-center gap-1">
                     <User className="h-3 w-3" /> {detail.author}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Tag className="h-3 w-3" /> {detail.license}
-                  </span>
+                  {detail.license && (
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-3 w-3" /> {detail.license}
+                    </span>
+                  )}
                   <span className="flex items-center gap-1">
                     <Download className="h-3 w-3" /> {detail.downloads.toLocaleString()}
                   </span>
@@ -562,7 +757,7 @@ const GameModBrowser = ({
                   </Button>
                 )}
                 <Button asChild variant="outline" size="sm">
-                  <a href={`https://spacedock.info${detail.url}`} target="_blank" rel="noreferrer">
+                  <a href={detail.url} target="_blank" rel="noreferrer">
                     <ExternalLink className="mr-1 h-3 w-3" /> {game.providerLabel} page
                   </a>
                 </Button>
@@ -590,7 +785,8 @@ const GameModBrowser = ({
                             )}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
+                            {v.game_version ? `Game v${v.game_version} · ` : ""}
+                            {v.created ? new Date(v.created).toLocaleDateString() : ""}
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -608,7 +804,7 @@ const GameModBrowser = ({
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  disabled={isBusy || !gameDataDir}
+                                  disabled={isBusy || !installDir}
                                   onClick={() => installVersion(detail, v)}
                                 >
                                   {isBusy ? (
@@ -622,11 +818,7 @@ const GameModBrowser = ({
                             </>
                           ) : (
                             <Button asChild size="sm" variant="secondary">
-                              <a
-                                href={`https://spacedock.info${v.download_path}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
+                              <a href={v.download_path} target="_blank" rel="noreferrer">
                                 <Download className="mr-1 h-3 w-3" /> Download
                               </a>
                             </Button>

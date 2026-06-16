@@ -75,8 +75,8 @@ contextBridge.exposeInMainWorld("rubix", {
       return () => ipcRenderer.removeListener("updater:status", handler);
     },
   mods: {
-    pickFolder: (gameKey, title) =>
-      ipcRenderer.invoke("mods:pick-folder", { gameKey, title }),
+    pickFolder: (gameKey, title, mode) =>
+      ipcRenderer.invoke("mods:pick-folder", { gameKey, title, mode }),
     getFolder: (gameKey) => ipcRenderer.invoke("mods:get-folder", { gameKey }),
     listInstalled: (gameKey) =>
       ipcRenderer.invoke("mods:list-installed", { gameKey }),
