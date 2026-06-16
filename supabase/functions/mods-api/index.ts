@@ -268,8 +268,28 @@ function modioToSummary(m: any): ModSummary {
   };
 }
 
-async function modioBrowse(gameId: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+const modioGameIdCache = new Map<string, string>();
+async function resolveModioGameId(game: string): Promise<string> {
+  if (/^\d+$/.test(game)) return game;
+  const cached = modioGameIdCache.get(game);
+  if (cached) return cached;
   if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
+  const r = await fetch(
+    `https://api.mod.io/v1/games?api_key=${MODIO_KEY}&name_id=${encodeURIComponent(game)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!r.ok) throw new Error(`mod.io game lookup HTTP ${r.status}`);
+  const j: any = await r.json();
+  const id = j?.data?.[0]?.id;
+  if (!id) throw new Error(`mod.io game not found: ${game}`);
+  const out = String(id);
+  modioGameIdCache.set(game, out);
+  return out;
+}
+
+async function modioBrowse(gameKey: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+  if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
+  const gameId = await resolveModioGameId(gameKey);
   const offset = (page - 1) * count;
   const params = new URLSearchParams({
     api_key: MODIO_KEY,
@@ -278,7 +298,7 @@ async function modioBrowse(gameId: string, q: string | null, page: number, count
     _sort: "-downloads",
   });
   if (q) params.set("_q", q);
-  const r = await fetch(`https://api.mod.io/v1/games/${encodeURIComponent(gameId)}/mods?${params}`, {
+  const r = await fetch(`https://api.mod.io/v1/games/${gameId}/mods?${params}`, {
     headers: { Accept: "application/json" },
   });
   if (!r.ok) throw new Error(`mod.io HTTP ${r.status}`);
@@ -293,10 +313,11 @@ async function modioBrowse(gameId: string, q: string | null, page: number, count
   };
 }
 
-async function modioMod(gameId: string, id: string): Promise<ModDetail | null> {
+async function modioMod(gameKey: string, id: string): Promise<ModDetail | null> {
   if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
+  const gameId = await resolveModioGameId(gameKey);
   const r = await fetch(
-    `https://api.mod.io/v1/games/${encodeURIComponent(gameId)}/mods/${encodeURIComponent(id)}?api_key=${MODIO_KEY}`,
+    `https://api.mod.io/v1/games/${gameId}/mods/${encodeURIComponent(id)}?api_key=${MODIO_KEY}`,
     { headers: { Accept: "application/json" } },
   );
   if (!r.ok) return null;
@@ -304,6 +325,7 @@ async function modioMod(gameId: string, id: string): Promise<ModDetail | null> {
   const s = modioToSummary(m);
   return { ...s, description: m.description_plaintext ?? m.summary ?? "" };
 }
+
 
 // ---------- HTTP entrypoint ----------
 Deno.serve(async (req) => {
