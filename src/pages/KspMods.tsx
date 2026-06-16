@@ -187,7 +187,7 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     blurb: "Skateboarding sim. Community gear & maps via Mod.io.",
     provider: "modio",
     providerLabel: "Mod.io",
-    apiGameKey: "159",
+    apiGameKey: "skater-xl",
     cover: "https://cdn.akamai.steamstatic.com/steam/apps/962730/header.jpg",
     status: "live",
     pickerMode: "root",
