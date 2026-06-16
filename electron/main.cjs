@@ -1148,9 +1148,12 @@ function downloadFollow(url, dest, maxRedirects = 6) {
   });
 }
 
-// Some KSP mod zips ship a top-level GameData/ folder; others ship the mod
-// folder directly. Return the path *inside* the zip that should map to GameData/.
-function detectZipRoot(zip) {
+// Detect strip prefix inside the zip. `hint` overrides auto-detection:
+//   "GameData" — require/strip a GameData/ top-level folder (KSP)
+//   ""         — extract zip as-is
+//   undefined  — auto: strip GameData/ if present, else as-is
+function detectZipRoot(zip, hint) {
+  if (hint === "") return "";
   const entries = zip.getEntries();
   const topLevel = new Set();
   for (const e of entries) {
@@ -1158,8 +1161,9 @@ function detectZipRoot(zip) {
     if (!p) continue;
     topLevel.add(p.split("/")[0]);
   }
-  if (topLevel.has("GameData")) return "GameData/";
-  return ""; // extract entries as-is into GameData/
+  if (hint && topLevel.has(hint)) return `${hint}/`;
+  if (!hint && topLevel.has("GameData")) return "GameData/";
+  return "";
 }
 
 function safeJoin(base, rel) {
@@ -1171,17 +1175,17 @@ function safeJoin(base, rel) {
   return target;
 }
 
-ipcMain.handle("mods:pick-folder", async (_evt, { gameKey, title }) => {
+ipcMain.handle("mods:pick-folder", async (_evt, { gameKey, title, mode }) => {
   if (!mainWindow) return { ok: false, error: "No window" };
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: title || `Select ${gameKey} GameData folder`,
+    title: title || `Select ${gameKey} folder`,
     properties: ["openDirectory"],
   });
   if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
   const chosen = result.filePaths[0];
-  // Accept either GameData itself or the game root containing GameData
   let gameDataDir = chosen;
-  if (path.basename(chosen).toLowerCase() !== "gamedata") {
+  // KSP convenience: accept either GameData itself or the game root containing GameData
+  if (mode === "ksp" && path.basename(chosen).toLowerCase() !== "gamedata") {
     const candidate = path.join(chosen, "GameData");
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
       gameDataDir = candidate;
@@ -1204,29 +1208,44 @@ ipcMain.handle("mods:list-installed", async (_evt, { gameKey }) => {
 
 ipcMain.handle("mods:install", async (_evt, payload) => {
   try {
-    const { gameKey, modId, modName, version, versionId, downloadUrl } = payload || {};
+    const {
+      gameKey,
+      modId,
+      modName,
+      version,
+      versionId,
+      downloadUrl,
+      stripHint,      // "GameData" | "" | undefined (auto)
+      installSubdir,  // optional subdir relative to picked folder
+    } = payload || {};
     if (!gameKey || !modId || !downloadUrl) {
       return { ok: false, error: "Missing parameters" };
     }
     const cfg = readJson(configPath(), {});
-    const gameDataDir = cfg[gameKey]?.gameDataDir;
-    if (!gameDataDir || !fs.existsSync(gameDataDir)) {
-      return { ok: false, error: "GameData folder not set. Choose it first." };
+    const baseDir = cfg[gameKey]?.gameDataDir;
+    if (!baseDir || !fs.existsSync(baseDir)) {
+      return { ok: false, error: "Install folder not set. Choose it first." };
     }
+    const targetDir = installSubdir ? path.join(baseDir, installSubdir) : baseDir;
+    fs.mkdirSync(targetDir, { recursive: true });
 
     // If already installed, uninstall the previous version first
     const manifest = readJson(manifestPath(gameKey), {});
     if (manifest[modId]?.files?.length) {
+      const prevBase = manifest[modId].installSubdir
+        ? path.join(baseDir, manifest[modId].installSubdir)
+        : baseDir;
       for (const rel of manifest[modId].files) {
-        try { fs.rmSync(path.join(gameDataDir, rel), { force: true }); } catch {}
+        try { fs.rmSync(path.join(prevBase, rel), { force: true }); } catch {}
       }
     }
 
-    const tmp = path.join(app.getPath("temp"), `rubix-mod-${modId}-${Date.now()}.zip`);
+    const safeId = String(modId).replace(/[^a-z0-9]/gi, "_");
+    const tmp = path.join(app.getPath("temp"), `rubix-mod-${safeId}-${Date.now()}.zip`);
     await downloadFollow(downloadUrl, tmp);
 
     const zip = new AdmZip(tmp);
-    const strip = detectZipRoot(zip);
+    const strip = detectZipRoot(zip, stripHint);
     const written = [];
     for (const entry of zip.getEntries()) {
       const norm = entry.entryName.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -1234,10 +1253,10 @@ ipcMain.handle("mods:install", async (_evt, payload) => {
       if (strip && !norm.startsWith(strip)) continue;
       const rel = strip ? norm.slice(strip.length) : norm;
       if (!rel || rel.endsWith("/")) {
-        if (rel) fs.mkdirSync(safeJoin(gameDataDir, rel), { recursive: true });
+        if (rel) fs.mkdirSync(safeJoin(targetDir, rel), { recursive: true });
         continue;
       }
-      const dest = safeJoin(gameDataDir, rel);
+      const dest = safeJoin(targetDir, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.writeFileSync(dest, entry.getData());
       written.push(rel);
@@ -1249,6 +1268,7 @@ ipcMain.handle("mods:install", async (_evt, payload) => {
       modName,
       version,
       versionId,
+      installSubdir: installSubdir || "",
       installedAt: new Date().toISOString(),
       files: written,
     };
@@ -1263,20 +1283,24 @@ ipcMain.handle("mods:install", async (_evt, payload) => {
 ipcMain.handle("mods:uninstall", async (_evt, { gameKey, modId }) => {
   try {
     const cfg = readJson(configPath(), {});
-    const gameDataDir = cfg[gameKey]?.gameDataDir;
-    if (!gameDataDir) return { ok: false, error: "GameData folder not set" };
+    const baseDir = cfg[gameKey]?.gameDataDir;
+    if (!baseDir) return { ok: false, error: "Install folder not set" };
     const manifest = readJson(manifestPath(gameKey), {});
     const entry = manifest[modId];
     if (!entry) return { ok: true, removed: 0 };
+    const targetDir = entry.installSubdir
+      ? path.join(baseDir, entry.installSubdir)
+      : baseDir;
 
     const dirs = new Set();
     let removed = 0;
     for (const rel of entry.files || []) {
-      const full = path.join(gameDataDir, rel);
+      const full = path.join(targetDir, rel);
       try { fs.rmSync(full, { force: true }); removed++; } catch {}
       let d = path.dirname(full);
-      const root = path.resolve(gameDataDir);
+      const root = path.resolve(targetDir);
       while (d.startsWith(root) && d !== root) { dirs.add(d); d = path.dirname(d); }
+      if (entry.installSubdir) dirs.add(root);
     }
     // Prune now-empty dirs (deepest first)
     const sorted = [...dirs].sort((a, b) => b.length - a.length);
