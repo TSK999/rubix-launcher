@@ -279,6 +279,8 @@ const sidebarProps = {
 
 // ---------- Game picker ----------
 const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
+  const [search, setSearch] = useState("");
+
   const grouped = useMemo(() => {
     const by: Record<Provider, SupportedGame[]> = {
       spacedock: [],
@@ -289,11 +291,24 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
     return by;
   }, []);
 
+  const filterGames = (items: SupportedGame[]) => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase().trim();
+    return items.filter(
+      (g) =>
+        g.title.toLowerCase().includes(q) ||
+        g.blurb.toLowerCase().includes(q) ||
+        g.providerLabel.toLowerCase().includes(q)
+    );
+  };
+
   const sections: { provider: Provider; label: string; items: SupportedGame[] }[] = [
-    { provider: "spacedock", label: "SpaceDock (KSP)", items: grouped.spacedock },
-    { provider: "thunderstore", label: "Thunderstore (BepInEx games)", items: grouped.thunderstore },
-    { provider: "modio", label: "Mod.io", items: grouped.modio },
+    { provider: "spacedock", label: "SpaceDock (KSP)", items: filterGames(grouped.spacedock) },
+    { provider: "thunderstore", label: "Thunderstore (BepInEx games)", items: filterGames(grouped.thunderstore) },
+    { provider: "modio", label: "Mod.io", items: filterGames(grouped.modio) },
   ];
+
+  const totalFiltered = sections.reduce((sum, s) => sum + s.items.length, 0);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -309,38 +324,61 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
         </p>
       </header>
 
-      {sections.map((section) => (
-        <section key={section.provider} className="mb-10">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            {section.label}
-          </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {section.items.map((g) => (
-              <Card
-                key={g.id}
-                className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-                onClick={() => onPick(g)}
-              >
-                <div
-                  className="relative h-36 w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${g.cover})` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                </div>
-                <div className="p-4">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <h3 className="font-semibold leading-tight">{g.title}</h3>
-                    <Badge variant="outline" className="text-[10px]">
-                      {g.providerLabel}
-                    </Badge>
-                  </div>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ))}
+      <div className="mb-8">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search games by title, description, or provider..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {totalFiltered === 0 && (
+        <Card className="flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center text-muted-foreground">
+          <Search className="h-6 w-6" />
+          <p className="text-sm font-medium">No games found</p>
+          <p className="text-xs">Try a different search term.</p>
+        </Card>
+      )}
+
+      {sections.map(
+        (section) =>
+          section.items.length > 0 && (
+            <section key={section.provider} className="mb-10">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                {section.label}
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {section.items.map((g) => (
+                  <Card
+                    key={g.id}
+                    className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+                    onClick={() => onPick(g)}
+                  >
+                    <div
+                      className="relative h-36 w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url(${g.cover})` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                    </div>
+                    <div className="p-4">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <h3 className="font-semibold leading-tight">{g.title}</h3>
+                        <Badge variant="outline" className="text-[10px]">
+                          {g.providerLabel}
+                        </Badge>
+                      </div>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )
+      )}
 
       <Card className="flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center text-muted-foreground">
         <Sparkles className="h-6 w-6" />
