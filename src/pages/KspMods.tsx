@@ -35,8 +35,10 @@ import {
   CheckCircle2,
   Trash2,
   Loader2,
+  ArrowDownWideNarrow,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ModpackManager } from "@/components/mods/ModpackManager";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
