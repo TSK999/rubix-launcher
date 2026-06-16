@@ -173,7 +173,7 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     blurb: "Medieval melee combat. Mods served via Mod.io.",
     provider: "modio",
     providerLabel: "Mod.io",
-    apiGameKey: "4",
+    apiGameKey: "mordhau",
     cover: "https://cdn.akamai.steamstatic.com/steam/apps/629760/header.jpg",
     status: "live",
     pickerMode: "root",
