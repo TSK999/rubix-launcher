@@ -144,15 +144,19 @@ function tsListingToSummary(r: any, community: string): ModSummary {
   };
 }
 
-async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   // Cyberstorm caps page_size at 20 — fan out pages to honour the requested count
   const PAGE_SIZE = 20;
   const need = Math.min(count, 60);
   const startIdx = (page - 1) * need;
   const firstPage = Math.floor(startIdx / PAGE_SIZE) + 1;
   const offsetInFirst = startIdx % PAGE_SIZE;
+  const ordering =
+    sort === "downloads" ? "most-downloaded" :
+    sort === "updated" ? "newest" :
+    sort === "name" ? "name" : "top-rated";
   const params = new URLSearchParams({
-    ordering: "most-downloaded",
+    ordering,
     deprecated: "False",
     nsfw: "False",
     page_size: String(PAGE_SIZE),
