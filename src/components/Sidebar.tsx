@@ -160,32 +160,36 @@ export const Sidebar = ({
         </div>
       </nav>
 
-      <MessagesPanel />
-
-      <div className="px-3 pb-3 space-y-1">
-        <button
-          onClick={() => navigate("/clips")}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors group"
-        >
-          <Film className="h-4 w-4 group-hover:text-primary transition-colors" />
-          <span className="flex-1 text-left">Clips Feed</span>
-          <span className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">New</span>
-        </button>
-        <Link
-          to="/passport"
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all",
-            isActive("/passport")
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-          )}
-        >
-          <BookMarked className={cn("h-4 w-4 shrink-0", isActive("/passport") && "text-primary")} />
-          <span className="flex-1">Passport</span>
-          <span className="text-[9px] uppercase tracking-wider text-primary/90 font-bold px-1.5 py-0.5 rounded-full bg-primary/15">
-            New
-          </span>
-        </Link>
+      <div className="p-3 space-y-1 border-t border-border">
+        <p className="px-3 pt-2 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          Social
+        </p>
+        <div className="space-y-0.5 rounded-2xl bg-secondary/20 p-1.5 border border-border/50">
+          <MessagesPanel />
+          <button
+            onClick={() => navigate("/clips")}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors group"
+          >
+            <Film className="h-4 w-4 group-hover:text-primary transition-colors" />
+            <span className="flex-1 text-left">Clips Feed</span>
+            <span className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">New</span>
+          </button>
+          <Link
+            to="/passport"
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all",
+              isActive("/passport")
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            )}
+          >
+            <BookMarked className={cn("h-4 w-4 shrink-0", isActive("/passport") && "text-primary")} />
+            <span className="flex-1">Passport</span>
+            <span className="text-[9px] uppercase tracking-wider text-primary/90 font-bold px-1.5 py-0.5 rounded-full bg-primary/15">
+              New
+            </span>
+          </Link>
+        </div>
       </div>
 
       <RubixFriendsPanel userId={userId} />
