@@ -35,8 +35,10 @@ import {
   CheckCircle2,
   Trash2,
   Loader2,
+  ArrowDownWideNarrow,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ModpackManager } from "@/components/mods/ModpackManager";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
@@ -406,6 +408,7 @@ const GameModBrowser = ({
   const [detail, setDetail] = useState<ModDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [gameVersion, setGameVersion] = useState<string>("any");
+  const [sort, setSort] = useState<"popular" | "downloads" | "updated" | "name">("popular");
 
   const isElectron = typeof window !== "undefined" && window.rubix?.isElectron === true;
   const [installDir, setInstallDir] = useState<string | null>(null);
@@ -498,6 +501,7 @@ const GameModBrowser = ({
       game: game.apiGameKey,
       page: String(page),
       count: "30",
+      sort,
     };
     if (committedQuery) params.query = committedQuery;
     callFn(params)
@@ -521,7 +525,7 @@ const GameModBrowser = ({
     return () => {
       cancelled = true;
     };
-  }, [game.provider, game.apiGameKey, page, committedQuery]);
+  }, [game.provider, game.apiGameKey, page, committedQuery, sort]);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -632,6 +636,19 @@ const GameModBrowser = ({
           <Button type="submit">Search</Button>
         </form>
 
+        <Select value={sort} onValueChange={(v) => { setPage(1); setSort(v as typeof sort); }}>
+          <SelectTrigger className="w-[180px]">
+            <ArrowDownWideNarrow className="mr-1 h-4 w-4" />
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="popular">Most popular</SelectItem>
+            <SelectItem value="downloads">Most downloads</SelectItem>
+            <SelectItem value="updated">Recently updated</SelectItem>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+          </SelectContent>
+        </Select>
+
         {gameVersions.length > 0 && (
           <Select value={gameVersion} onValueChange={setGameVersion}>
             <SelectTrigger className="w-[180px]">
@@ -647,6 +664,20 @@ const GameModBrowser = ({
             </SelectContent>
           </Select>
         )}
+      </div>
+
+      <div className="mb-6">
+        <ModpackManager
+          gameSlug={game.apiGameKey}
+          gameTitle={game.title}
+          installedMods={Object.entries(installed).map(([modId, v]) => ({
+            mod_source: game.provider,
+            mod_id: modId,
+            mod_name: modId,
+            version: v.version,
+            enabled: true,
+          }))}
+        />
       </div>
 
       {error && (

@@ -729,6 +729,38 @@ export type Database = {
         }
         Relationships: []
       }
+      game_launch_prefs: {
+        Row: {
+          active_modpack_id: string | null
+          game_id: string
+          last_mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_modpack_id?: string | null
+          game_id: string
+          last_mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_modpack_id?: string | null
+          game_id?: string
+          last_mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_launch_prefs_active_modpack_id_fkey"
+            columns: ["active_modpack_id"]
+            isOneToOne: false
+            referencedRelation: "modpacks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_requirements: {
         Row: {
           cpu: string | null
@@ -922,6 +954,42 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      installed_mods: {
+        Row: {
+          game_slug: string
+          id: string
+          install_path: string | null
+          installed_at: string
+          mod_id: string
+          mod_name: string
+          mod_source: string
+          user_id: string
+          version: string | null
+        }
+        Insert: {
+          game_slug: string
+          id?: string
+          install_path?: string | null
+          installed_at?: string
+          mod_id: string
+          mod_name: string
+          mod_source: string
+          user_id: string
+          version?: string | null
+        }
+        Update: {
+          game_slug?: string
+          id?: string
+          install_path?: string | null
+          installed_at?: string
+          mod_id?: string
+          mod_name?: string
+          mod_source?: string
+          user_id?: string
+          version?: string | null
         }
         Relationships: []
       }
@@ -1133,6 +1201,89 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      modpack_mods: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          mod_id: string
+          mod_name: string
+          mod_source: string
+          modpack_id: string
+          position: number
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          mod_id: string
+          mod_name: string
+          mod_source: string
+          modpack_id: string
+          position?: number
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          mod_id?: string
+          mod_name?: string
+          mod_source?: string
+          modpack_id?: string
+          position?: number
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modpack_mods_modpack_id_fkey"
+            columns: ["modpack_id"]
+            isOneToOne: false
+            referencedRelation: "modpacks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modpacks: {
+        Row: {
+          created_at: string
+          description: string | null
+          download_count: number
+          game_slug: string
+          id: string
+          is_public: boolean
+          name: string
+          share_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          game_slug: string
+          id?: string
+          is_public?: boolean
+          name: string
+          share_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          game_slug?: string
+          id?: string
+          is_public?: boolean
+          name?: string
+          share_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       orders: {
         Row: {
@@ -1659,6 +1810,7 @@ export type Database = {
       event_community: { Args: { _eid: string }; Returns: string }
       gen_clip_slug: { Args: never; Returns: string }
       gen_invite_code: { Args: never; Returns: string }
+      gen_modpack_code: { Args: never; Returns: string }
       get_community_invite_code: { Args: { _cid: string }; Returns: string }
       get_friend_presence: {
         Args: { _uids: string[] }
@@ -1734,6 +1886,7 @@ export type Database = {
       is_friend_of: { Args: { _other: string }; Returns: boolean }
       join_community_by_code: { Args: { _code: string }; Returns: string }
       message_community: { Args: { _mid: string }; Returns: string }
+      redeem_modpack_code: { Args: { _code: string }; Returns: string }
       regenerate_invite_code: { Args: { _cid: string }; Returns: string }
       shared_clip_viewable: {
         Args: { _clip_id: string; _uid: string }

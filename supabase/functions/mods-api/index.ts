@@ -41,11 +41,18 @@ type BrowseResponse = {
 const SPACEDOCK = "https://spacedock.info";
 const SPACEDOCK_GAMES: Record<string, number> = { ksp1: 3102, ksp2: 22407 };
 
-async function spacedockBrowse(game: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+type SortKey = "popular" | "downloads" | "updated" | "name";
+
+async function spacedockBrowse(game: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   const gameId = SPACEDOCK_GAMES[game] ?? SPACEDOCK_GAMES.ksp1;
+  const orderby =
+    sort === "downloads" ? "downloads" :
+    sort === "updated" ? "updated" :
+    sort === "name" ? "name" : "followers";
+  const order = sort === "name" ? "asc" : "desc";
   const url = q
     ? `${SPACEDOCK}/api/search/mod?query=${encodeURIComponent(q)}&page=${page}`
-    : `${SPACEDOCK}/api/browse?game_id=${gameId}&count=${count}&page=${page}&orderby=downloads&order=desc`;
+    : `${SPACEDOCK}/api/browse?game_id=${gameId}&count=${count}&page=${page}&orderby=${orderby}&order=${order}`;
   const r = await fetch(url, { headers: { Accept: "application/json" } });
   const j = await r.json();
   const list = Array.isArray(j) ? j : j.result ?? [];
@@ -137,15 +144,19 @@ function tsListingToSummary(r: any, community: string): ModSummary {
   };
 }
 
-async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   // Cyberstorm caps page_size at 20 — fan out pages to honour the requested count
   const PAGE_SIZE = 20;
   const need = Math.min(count, 60);
   const startIdx = (page - 1) * need;
   const firstPage = Math.floor(startIdx / PAGE_SIZE) + 1;
   const offsetInFirst = startIdx % PAGE_SIZE;
+  const ordering =
+    sort === "downloads" ? "most-downloaded" :
+    sort === "updated" ? "newest" :
+    sort === "name" ? "name" : "top-rated";
   const params = new URLSearchParams({
-    ordering: "most-downloaded",
+    ordering,
     deprecated: "False",
     nsfw: "False",
     page_size: String(PAGE_SIZE),
@@ -329,15 +340,19 @@ async function resolveModioGameId(game: string): Promise<string> {
   return out;
 }
 
-async function modioBrowse(gameKey: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+async function modioBrowse(gameKey: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
   const gameId = await resolveModioGameId(gameKey);
   const offset = (page - 1) * count;
+  const sortValue =
+    sort === "downloads" ? "-downloads" :
+    sort === "updated" ? "-date_updated" :
+    sort === "name" ? "name" : "-popular";
   const params = new URLSearchParams({
     api_key: MODIO_KEY,
     _limit: String(count),
     _offset: String(offset),
-    _sort: "-downloads",
+    _sort: sortValue,
   });
   if (q) params.set("_q", q);
   const r = await fetch(`https://api.mod.io/v1/games/${gameId}/mods?${params}`, {
@@ -382,16 +397,18 @@ Deno.serve(async (req) => {
     const page = parseInt(url.searchParams.get("page") ?? "1", 10) || 1;
     const count = Math.min(60, parseInt(url.searchParams.get("count") ?? "30", 10) || 30);
     const id = url.searchParams.get("id") ?? "";
+    const sortRaw = (url.searchParams.get("sort") ?? "popular").toLowerCase();
+    const sort: SortKey = (["popular","downloads","updated","name"].includes(sortRaw) ? sortRaw : "popular") as SortKey;
 
     let body: unknown;
     if (provider === "spacedock") {
-      body = action === "mod" ? await spacedockMod(id) : await spacedockBrowse(game || "ksp1", q, page, count);
+      body = action === "mod" ? await spacedockMod(id) : await spacedockBrowse(game || "ksp1", q, page, count, sort);
     } else if (provider === "thunderstore") {
       if (!game) throw new Error("Thunderstore community required");
-      body = action === "mod" ? await thunderstoreMod(game, id) : await thunderstoreBrowse(game, q, page, count);
+      body = action === "mod" ? await thunderstoreMod(game, id) : await thunderstoreBrowse(game, q, page, count, sort);
     } else if (provider === "modio") {
       if (!game) throw new Error("Mod.io game id required");
-      body = action === "mod" ? await modioMod(game, id) : await modioBrowse(game, q, page, count);
+      body = action === "mod" ? await modioMod(game, id) : await modioBrowse(game, q, page, count, sort);
     } else {
       return new Response(JSON.stringify({ error: `unknown provider: ${provider}` }), {
         status: 400,

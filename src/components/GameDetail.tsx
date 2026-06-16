@@ -12,6 +12,8 @@ import { useGameUserData } from "@/hooks/useGameUserData";
 import { GameNotesTab } from "@/components/GameNotesTab";
 import { GameScreenshotsTab } from "@/components/GameScreenshotsTab";
 import { GameClipsTab } from "@/components/GameClipsTab";
+import { GameModsTab } from "@/components/mods/GameModsTab";
+import { findModGameForLauncherGame } from "@/lib/mod-games";
 
 type Props = {
   game: Game | null;
@@ -175,12 +177,21 @@ export const GameDetail = ({
                 </Button>
               </div>
 
+              {(() => {
+                const hasMods = !!findModGameForLauncherGame({
+                  title: game.title,
+                  steamAppId: game.steamAppId,
+                });
+                return (
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 rounded-2xl">
+                <TabsList className={cn("grid w-full rounded-2xl", hasMods ? "grid-cols-5" : "grid-cols-4") }>
                   <TabsTrigger value="overview" className="rounded-xl">Overview</TabsTrigger>
                   <TabsTrigger value="notes" className="rounded-xl">
                     Notes{data.tags.length ? ` · ${data.tags.length}` : ""}
                   </TabsTrigger>
+                  {hasMods && (
+                    <TabsTrigger value="mods" className="rounded-xl">Mods</TabsTrigger>
+                  )}
                   <TabsTrigger value="shots" className="rounded-xl">
                     Shots{shots.length ? ` · ${shots.length}` : ""}
                   </TabsTrigger>
@@ -243,6 +254,12 @@ export const GameDetail = ({
                   )}
                 </TabsContent>
 
+                {hasMods && (
+                  <TabsContent value="mods" className="pt-4">
+                    <GameModsTab game={game} onLaunch={onLaunch} />
+                  </TabsContent>
+                )}
+
                 <TabsContent value="shots" className="pt-4">
                   <GameScreenshotsTab
                     game={game}
@@ -261,6 +278,8 @@ export const GameDetail = ({
                   />
                 </TabsContent>
               </Tabs>
+                );
+              })()}
             </div>
           </>
         )}
