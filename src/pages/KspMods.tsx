@@ -208,12 +208,79 @@ const GameModBrowser = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [gameVersion, setGameVersion] = useState<string>("any");
 
+  // Electron install state
+  const isElectron = typeof window !== "undefined" && window.rubix?.isElectron === true;
+  const [gameDataDir, setGameDataDir] = useState<string | null>(null);
+  const [installed, setInstalled] = useState<Record<string, { version: string; versionId: number }>>({});
+  const [installingId, setInstallingId] = useState<number | null>(null);
+
+  const refreshInstalled = async () => {
+    if (!isElectron || !window.rubix?.mods) return;
+    const res = await window.rubix.mods.listInstalled(game.apiGameKey);
+    if (res.ok) {
+      const next: Record<string, { version: string; versionId: number }> = {};
+      for (const [k, v] of Object.entries(res.installed)) {
+        next[k] = { version: v.version, versionId: v.versionId };
+      }
+      setInstalled(next);
+    }
+  };
+
   useEffect(() => {
     setPage(1);
     setCommittedQuery("");
     setQuery("");
     setGameVersion("any");
+    if (isElectron && window.rubix?.mods) {
+      window.rubix.mods.getFolder(game.apiGameKey).then((r) => setGameDataDir(r.gameDataDir));
+      refreshInstalled();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
+
+  const pickFolder = async () => {
+    if (!window.rubix?.mods) return;
+    const r = await window.rubix.mods.pickFolder(game.apiGameKey, `Select ${game.title} GameData folder`);
+    if (r.ok && r.gameDataDir) {
+      setGameDataDir(r.gameDataDir);
+      toast.success("GameData folder set", { description: r.gameDataDir });
+    }
+  };
+
+  const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
+    if (!window.rubix?.mods) return;
+    if (!gameDataDir) {
+      toast.error("Pick your GameData folder first");
+      return;
+    }
+    setInstallingId(v.id);
+    const r = await window.rubix.mods.install({
+      gameKey: game.apiGameKey,
+      modId: String(mod.id),
+      modName: mod.name,
+      version: v.friendly_version,
+      versionId: v.id,
+      downloadUrl: `https://spacedock.info${v.download_path}`,
+    });
+    setInstallingId(null);
+    if (r.ok) {
+      toast.success(`Installed ${mod.name}`, { description: `${r.files} files written` });
+      refreshInstalled();
+    } else {
+      toast.error("Install failed", { description: r.error });
+    }
+  };
+
+  const uninstallMod = async (mod: ModDetail | ModSummary) => {
+    if (!window.rubix?.mods) return;
+    const r = await window.rubix.mods.uninstall(game.apiGameKey, String(mod.id));
+    if (r.ok) {
+      toast.success(`Uninstalled ${mod.name}`, { description: `${r.removed} files removed` });
+      refreshInstalled();
+    } else {
+      toast.error("Uninstall failed", { description: r.error });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
