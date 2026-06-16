@@ -20,8 +20,56 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Download, ExternalLink, Rocket, Tag, User, Code2 } from "lucide-react";
+import {
+  Search,
+  Download,
+  ExternalLink,
+  Rocket,
+  Tag,
+  User,
+  Code2,
+  ArrowLeft,
+  Package,
+  Sparkles,
+} from "lucide-react";
 
+// ---------- Supported games registry ----------
+// Add more entries here as new mod providers are wired up.
+type SupportedGame = {
+  id: string;            // route-style id e.g. "ksp1"
+  title: string;
+  blurb: string;
+  provider: "spacedock"; // future: "nexus" | "thunderstore" | "github"
+  providerLabel: string;
+  apiGameKey: "ksp1" | "ksp2"; // value passed to the edge function
+  accent: string;        // tailwind gradient classes
+  status: "live" | "coming-soon";
+};
+
+const SUPPORTED_GAMES: SupportedGame[] = [
+  {
+    id: "ksp1",
+    title: "Kerbal Space Program",
+    blurb: "Squad's original spaceflight simulator. Thousands of mods on SpaceDock.",
+    provider: "spacedock",
+    providerLabel: "SpaceDock",
+    apiGameKey: "ksp1",
+    accent: "from-indigo-600/40 to-fuchsia-600/30",
+    status: "live",
+  },
+  {
+    id: "ksp2",
+    title: "Kerbal Space Program 2",
+    blurb: "The KSP sequel. Smaller catalog — early days.",
+    provider: "spacedock",
+    providerLabel: "SpaceDock",
+    apiGameKey: "ksp2",
+    accent: "from-sky-600/40 to-emerald-500/30",
+    status: "live",
+  },
+];
+
+// ---------- API types ----------
 type ModSummary = {
   id: number;
   name: string;
@@ -47,10 +95,7 @@ type ModVersion = {
   downloads?: number;
 };
 
-type ModDetail = ModSummary & {
-  description: string;
-  bg_offset_y?: number;
-};
+type ModDetail = ModSummary & { description: string };
 
 type BrowseResponse = {
   total: number;
@@ -75,8 +120,73 @@ async function callFn(params: Record<string, string>) {
   return res.json();
 }
 
-const KspMods = () => {
-  const [game, setGame] = useState<"ksp1" | "ksp2">("ksp1");
+// ---------- Sidebar boilerplate shared by both views ----------
+const sidebarProps = {
+  collection: "all" as const,
+  onCollection: () => {},
+  genres: [],
+  selectedGenre: null,
+  onGenre: () => {},
+  counts: { all: 0, favorites: 0, recent: 0 },
+  selectedSource: null,
+  onSource: () => {},
+  sourceCounts: { steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 },
+};
+
+// ---------- Game picker ----------
+const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => (
+  <div className="mx-auto max-w-6xl px-6 py-10">
+    <header className="mb-8 flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <Package className="h-7 w-7 text-primary" />
+        <h1 className="text-3xl font-bold tracking-tight">Mod Manager</h1>
+        <Badge variant="secondary">Beta</Badge>
+      </div>
+      <p className="max-w-2xl text-sm text-muted-foreground">
+        Browse, search and download mods for your favourite games. Pick a game to get started —
+        more games are being added.
+      </p>
+    </header>
+
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {SUPPORTED_GAMES.map((g) => (
+        <Card
+          key={g.id}
+          className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+          onClick={() => onPick(g)}
+        >
+          <div className={`relative h-32 w-full bg-gradient-to-br ${g.accent}`}>
+            <Rocket className="absolute right-4 top-4 h-10 w-10 text-white/70" />
+          </div>
+          <div className="p-4">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <h3 className="font-semibold leading-tight">{g.title}</h3>
+              <Badge variant="outline" className="text-[10px]">
+                {g.providerLabel}
+              </Badge>
+            </div>
+            <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
+          </div>
+        </Card>
+      ))}
+
+      <Card className="flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center text-muted-foreground">
+        <Sparkles className="h-6 w-6" />
+        <p className="text-sm font-medium">More games coming soon</p>
+        <p className="text-xs">Nexus, Thunderstore and Steam Workshop integrations are next.</p>
+      </Card>
+    </div>
+  </div>
+);
+
+// ---------- Mod browser for a single game ----------
+const GameModBrowser = ({
+  game,
+  onBack,
+}: {
+  game: SupportedGame;
+  onBack: () => void;
+}) => {
   const [query, setQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -85,18 +195,21 @@ const KspMods = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ModDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [kspVersion, setKspVersion] = useState<string>("any");
+  const [gameVersion, setGameVersion] = useState<string>("any");
 
   useEffect(() => {
-    document.title = "Mod Browser — KSP mods on RUBIX";
-  }, []);
+    setPage(1);
+    setCommittedQuery("");
+    setQuery("");
+    setGameVersion("any");
+  }, [game.id]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const params: Record<string, string> = {
       action: "browse",
-      game,
+      game: game.apiGameKey,
       page: String(page),
       count: "30",
     };
@@ -104,7 +217,6 @@ const KspMods = () => {
     callFn(params)
       .then((j) => {
         if (cancelled) return;
-        // search endpoint returns a plain array
         if (Array.isArray(j)) {
           setData({ total: j.length, count: j.length, pages: 1, page: 1, result: j });
         } else {
@@ -116,7 +228,7 @@ const KspMods = () => {
     return () => {
       cancelled = true;
     };
-  }, [game, page, committedQuery]);
+  }, [game.apiGameKey, page, committedQuery]);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -130,7 +242,7 @@ const KspMods = () => {
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
 
-  const kspVersions = useMemo(() => {
+  const gameVersions = useMemo(() => {
     const set = new Set<string>();
     data?.result.forEach((m) =>
       m.versions?.forEach((v) => v.game_version && set.add(v.game_version)),
@@ -140,164 +252,143 @@ const KspMods = () => {
 
   const filtered = useMemo(() => {
     if (!data) return [] as ModSummary[];
-    if (kspVersion === "any") return data.result;
+    if (gameVersion === "any") return data.result;
     return data.result.filter((m) =>
-      m.versions?.some((v) => v.game_version === kspVersion),
+      m.versions?.some((v) => v.game_version === gameVersion),
     );
-  }, [data, kspVersion]);
+  }, [data, gameVersion]);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-        collection="all"
-        onCollection={() => {}}
-        genres={[]}
-        selectedGenre={null}
-        onGenre={() => {}}
-        counts={{ all: 0, favorites: 0, recent: 0 }}
-        selectedSource={null}
-        onSource={() => {}}
-        sourceCounts={{ steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 }}
-      />
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl px-6 py-8">
-          <header className="mb-6 flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <Rocket className="h-7 w-7 text-primary" />
-              <h1 className="text-3xl font-bold tracking-tight">Mod Browser</h1>
-              <Badge variant="secondary">Beta</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              Browse Kerbal Space Program mods from the SpaceDock community. Clean-room CKAN-style
-              browsing — pick a KSP version, find compatible mods, and grab the download from the
-              authors' official source.
-            </p>
-          </header>
-
-          <div className="mb-6 flex flex-wrap gap-3">
-            <form
-              className="flex flex-1 min-w-[260px] gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setPage(1);
-                setCommittedQuery(query.trim());
-              }}
-            >
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search mods..."
-                  className="pl-9"
-                />
-              </div>
-              <Button type="submit">Search</Button>
-            </form>
-
-            <Select value={game} onValueChange={(v) => { setGame(v as "ksp1" | "ksp2"); setPage(1); }}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ksp1">KSP 1</SelectItem>
-                <SelectItem value="ksp2">KSP 2</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={kspVersion} onValueChange={setKspVersion}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Game version" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any version</SelectItem>
-                {kspVersions.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {v}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <Skeleton key={i} className="h-44 w-full" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <Card className="p-10 text-center text-muted-foreground">
-              No mods found. Try a different search or game version.
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((mod) => {
-                const latest = mod.versions?.[0];
-                return (
-                  <Card
-                    key={mod.id}
-                    className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-                    onClick={() => setSelectedId(mod.id)}
-                  >
-                    <div
-                      className="h-28 w-full bg-muted bg-cover bg-center"
-                      style={
-                        mod.background
-                          ? { backgroundImage: `url(${mod.background})` }
-                          : undefined
-                      }
-                    />
-                    <div className="p-4">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <h3 className="font-semibold leading-tight">{mod.name}</h3>
-                        {latest && (
-                          <Badge variant="outline" className="shrink-0 text-xs">
-                            KSP {latest.game_version}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
-                        {mod.short_description}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" /> {mod.author}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Download className="h-3 w-3" /> {mod.downloads.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-
-          {data && data.pages > 1 && !committedQuery && (
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {data.page} of {data.pages}
-              </span>
-              <Button
-                variant="outline"
-                disabled={page >= data.pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          )}
+    <div className="mx-auto max-w-7xl px-6 py-8">
+      <header className="mb-6 flex flex-col gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-fit -ml-2 text-muted-foreground"
+          onClick={onBack}
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" /> All games
+        </Button>
+        <div className="flex items-center gap-3">
+          <Rocket className="h-7 w-7 text-primary" />
+          <h1 className="text-3xl font-bold tracking-tight">{game.title}</h1>
+          <Badge variant="outline">{game.providerLabel}</Badge>
         </div>
-      </main>
+        <p className="max-w-2xl text-sm text-muted-foreground">{game.blurb}</p>
+      </header>
+
+      <div className="mb-6 flex flex-wrap gap-3">
+        <form
+          className="flex flex-1 min-w-[260px] gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setPage(1);
+            setCommittedQuery(query.trim());
+          }}
+        >
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search ${game.title} mods...`}
+              className="pl-9"
+            />
+          </div>
+          <Button type="submit">Search</Button>
+        </form>
+
+        <Select value={gameVersion} onValueChange={setGameVersion}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Game version" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Any version</SelectItem>
+            {gameVersions.map((v) => (
+              <SelectItem key={v} value={v}>
+                {v}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 w-full" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="p-10 text-center text-muted-foreground">
+          No mods found. Try a different search or game version.
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((mod) => {
+            const latest = mod.versions?.[0];
+            return (
+              <Card
+                key={mod.id}
+                className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+                onClick={() => setSelectedId(mod.id)}
+              >
+                <div
+                  className="h-28 w-full bg-muted bg-cover bg-center"
+                  style={
+                    mod.background
+                      ? { backgroundImage: `url(${mod.background})` }
+                      : undefined
+                  }
+                />
+                <div className="p-4">
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <h3 className="font-semibold leading-tight">{mod.name}</h3>
+                    {latest && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        v{latest.game_version}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+                    {mod.short_description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <User className="h-3 w-3" /> {mod.author}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Download className="h-3 w-3" /> {mod.downloads.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {data && data.pages > 1 && !committedQuery && (
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {data.page} of {data.pages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={page >= data.pages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
 
       <Dialog open={selectedId !== null} onOpenChange={(o) => !o && setSelectedId(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -352,7 +443,7 @@ const KspMods = () => {
                 )}
                 <Button asChild variant="outline" size="sm">
                   <a href={`https://spacedock.info${detail.url}`} target="_blank" rel="noreferrer">
-                    <ExternalLink className="mr-1 h-3 w-3" /> SpaceDock page
+                    <ExternalLink className="mr-1 h-3 w-3" /> {game.providerLabel} page
                   </a>
                 </Button>
               </div>
@@ -368,7 +459,7 @@ const KspMods = () => {
                       <div className="flex flex-col">
                         <span className="font-medium">{v.friendly_version}</span>
                         <span className="text-xs text-muted-foreground">
-                          KSP {v.game_version} · {new Date(v.created).toLocaleDateString()}
+                          Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
                         </span>
                       </div>
                       <Button asChild size="sm" variant="secondary">
@@ -386,8 +477,9 @@ const KspMods = () => {
               </div>
 
               <p className="text-[10px] text-muted-foreground">
-                Mod data from SpaceDock. RUBIX does not host or modify these files; downloads come
-                directly from the mod authors' SpaceDock pages, subject to each mod's own license.
+                Mod data from {game.providerLabel}. RUBIX does not host or modify these files;
+                downloads come directly from the mod authors' pages, subject to each mod's own
+                license.
               </p>
             </>
           )}
@@ -397,4 +489,28 @@ const KspMods = () => {
   );
 };
 
-export default KspMods;
+// ---------- Top-level page ----------
+const ModManager = () => {
+  const [game, setGame] = useState<SupportedGame | null>(null);
+
+  useEffect(() => {
+    document.title = game
+      ? `${game.title} mods — RUBIX Mod Manager`
+      : "Mod Manager — RUBIX";
+  }, [game]);
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar {...sidebarProps} />
+      <main className="flex-1 overflow-y-auto">
+        {game ? (
+          <GameModBrowser game={game} onBack={() => setGame(null)} />
+        ) : (
+          <GamePicker onPick={setGame} />
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default ModManager;

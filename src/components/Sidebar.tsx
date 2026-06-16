@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film, BookMarked, Rocket } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film, BookMarked, Package } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
@@ -53,7 +53,7 @@ export const Sidebar = ({
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
-    { to: "/mods", label: "KSP Mods", icon: Rocket, show: true },
+    { to: "/mods", label: "Mod Manager", icon: Package, show: true },
     { to: "/developer", label: "Developer", icon: Code2, show: isDeveloper },
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
