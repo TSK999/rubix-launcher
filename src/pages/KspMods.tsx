@@ -127,6 +127,17 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     { slug: "rounds", title: "ROUNDS", steamId: "1557740", blurb: "Local-multiplayer card-deck duelling." },
     { slug: "noita", title: "Noita", steamId: "881100", blurb: "Pixel-perfect physics roguelite." },
     { slug: "wrestling-empire", title: "Wrestling Empire", steamId: "1620340", blurb: "Career wrestling sim." },
+    // ---- New additions ----
+    { slug: "webfishing", title: "WEBFISHING", steamId: "1608690", blurb: "Fishing with friends — massive Thunderstore modding scene." },
+    { slug: "bopl-battle", title: "Bopl Battle", steamId: "802870", blurb: "Multiplayer arrow-shooting platformer." },
+    { slug: "brotato", title: "Brotato", steamId: "1629450", blurb: "Top-down arena shooter roguelite." },
+    { slug: "schedule-i", title: "Schedule I", steamId: "2001010", blurb: "Run a drug empire solo or co-op." },
+    { slug: "for-the-king", title: "For The King", steamId: "527230", blurb: "Turn-based roguelike tabletop RPG." },
+    { slug: "skul-the-hero-slayer", title: "Skul: The Hero Slayer", steamId: "1147560", blurb: "Action roguelite platformer." },
+    { slug: "dome-keeper", title: "Dome Keeper", steamId: "1637320", blurb: "Defend your dome, dig for resources." },
+    { slug: "across-the-obelisk", title: "Across the Obelisk", steamId: "1385380", blurb: "Co-op deck-builder RPG." },
+    { slug: "dredge", title: "Dredge", steamId: "1562430", blurb: "Lovecraftian fishing adventure." },
+    { slug: "cobalt-core", title: "Cobalt Core", steamId: "1664910", blurb: "Sci-fi deck-building roguelike." },
   ]),
   // ---- Mod.io (requires MODIO_API_KEY) ----
   ...makeModio([
