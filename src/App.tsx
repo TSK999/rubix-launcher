@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
 
-// Electron loads via file:// — use HashRouter to avoid 404s on deep paths
-const Router = typeof window !== "undefined" && (window as any).rubix?.isElectron
-  ? HashRouter
-  : BrowserRouter;
+// Electron loads via file:// — use HashRouter to avoid 404s on deep paths.
+// Detect via protocol as well, since the preload's `rubix` global may not yet
+// be visible at module-evaluation time in some Electron builds.
+const isElectronEnv =
+  typeof window !== "undefined" &&
+  ((window as any).rubix?.isElectron === true ||
+    window.location.protocol === "file:");
+const Router = isElectronEnv ? HashRouter : BrowserRouter;
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
