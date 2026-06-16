@@ -33,6 +33,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
+import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
+
 // ---------- Supported games registry ----------
 // Add more entries here as new mod providers are wired up.
 type SupportedGame = {
@@ -42,7 +45,7 @@ type SupportedGame = {
   provider: "spacedock"; // future: "nexus" | "thunderstore" | "github"
   providerLabel: string;
   apiGameKey: "ksp1" | "ksp2"; // value passed to the edge function
-  accent: string;        // tailwind gradient classes
+  cover: string;         // hero image URL
   status: "live" | "coming-soon";
 };
 
@@ -54,7 +57,7 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     provider: "spacedock",
     providerLabel: "SpaceDock",
     apiGameKey: "ksp1",
-    accent: "from-indigo-600/40 to-fuchsia-600/30",
+    cover: ksp1Cover.url,
     status: "live",
   },
   {
@@ -64,7 +67,7 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     provider: "spacedock",
     providerLabel: "SpaceDock",
     apiGameKey: "ksp2",
-    accent: "from-sky-600/40 to-emerald-500/30",
+    cover: ksp2Cover.url,
     status: "live",
   },
 ];
@@ -155,8 +158,11 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => (
           className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
           onClick={() => onPick(g)}
         >
-          <div className={`relative h-32 w-full bg-gradient-to-br ${g.accent}`}>
-            <Rocket className="absolute right-4 top-4 h-10 w-10 text-white/70" />
+          <div
+            className="relative h-36 w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${g.cover})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
           <div className="p-4">
             <div className="mb-1 flex items-center justify-between gap-2">
