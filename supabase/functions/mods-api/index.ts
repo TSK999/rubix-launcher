@@ -41,11 +41,18 @@ type BrowseResponse = {
 const SPACEDOCK = "https://spacedock.info";
 const SPACEDOCK_GAMES: Record<string, number> = { ksp1: 3102, ksp2: 22407 };
 
-async function spacedockBrowse(game: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+type SortKey = "popular" | "downloads" | "updated" | "name";
+
+async function spacedockBrowse(game: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   const gameId = SPACEDOCK_GAMES[game] ?? SPACEDOCK_GAMES.ksp1;
+  const orderby =
+    sort === "downloads" ? "downloads" :
+    sort === "updated" ? "updated" :
+    sort === "name" ? "name" : "followers";
+  const order = sort === "name" ? "asc" : "desc";
   const url = q
     ? `${SPACEDOCK}/api/search/mod?query=${encodeURIComponent(q)}&page=${page}`
-    : `${SPACEDOCK}/api/browse?game_id=${gameId}&count=${count}&page=${page}&orderby=downloads&order=desc`;
+    : `${SPACEDOCK}/api/browse?game_id=${gameId}&count=${count}&page=${page}&orderby=${orderby}&order=${order}`;
   const r = await fetch(url, { headers: { Accept: "application/json" } });
   const j = await r.json();
   const list = Array.isArray(j) ? j : j.result ?? [];
