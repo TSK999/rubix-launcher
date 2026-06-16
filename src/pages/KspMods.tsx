@@ -31,7 +31,12 @@ import {
   ArrowLeft,
   Package,
   Sparkles,
+  FolderOpen,
+  CheckCircle2,
+  Trash2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
