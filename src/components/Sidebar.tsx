@@ -195,37 +195,6 @@ export const Sidebar = ({
       <SteamFriendsPanel steamId={steamId} />
 
       <nav className="p-3 space-y-1">
-        <p className="px-3 pt-2 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-          Navigate
-        </p>
-        <div className="space-y-0.5 rounded-2xl bg-secondary/20 p-1.5 border border-border/50">
-          {navItems.filter((i) => i.show).map(({ to, label, icon: Icon, badge }) => {
-            const active = isActive(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={cn(
-                  "relative w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-xl text-sm transition-all",
-                  active
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                )}
-              >
-                {active && (
-                  <span className="absolute left-1 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-[image:var(--gradient-primary)] shadow-[var(--glow-primary)]" />
-                )}
-                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "")} />
-                <span className="flex-1">{label}</span>
-                {badge && (
-                  <span className="text-[9px] uppercase tracking-wider text-primary/90 font-bold px-1.5 py-0.5 rounded-full bg-primary/15">
-                    {badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
 
         <p className="px-3 pt-5 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           Local library
