@@ -397,16 +397,18 @@ Deno.serve(async (req) => {
     const page = parseInt(url.searchParams.get("page") ?? "1", 10) || 1;
     const count = Math.min(60, parseInt(url.searchParams.get("count") ?? "30", 10) || 30);
     const id = url.searchParams.get("id") ?? "";
+    const sortRaw = (url.searchParams.get("sort") ?? "popular").toLowerCase();
+    const sort: SortKey = (["popular","downloads","updated","name"].includes(sortRaw) ? sortRaw : "popular") as SortKey;
 
     let body: unknown;
     if (provider === "spacedock") {
-      body = action === "mod" ? await spacedockMod(id) : await spacedockBrowse(game || "ksp1", q, page, count);
+      body = action === "mod" ? await spacedockMod(id) : await spacedockBrowse(game || "ksp1", q, page, count, sort);
     } else if (provider === "thunderstore") {
       if (!game) throw new Error("Thunderstore community required");
-      body = action === "mod" ? await thunderstoreMod(game, id) : await thunderstoreBrowse(game, q, page, count);
+      body = action === "mod" ? await thunderstoreMod(game, id) : await thunderstoreBrowse(game, q, page, count, sort);
     } else if (provider === "modio") {
       if (!game) throw new Error("Mod.io game id required");
-      body = action === "mod" ? await modioMod(game, id) : await modioBrowse(game, q, page, count);
+      body = action === "mod" ? await modioMod(game, id) : await modioBrowse(game, q, page, count, sort);
     } else {
       return new Response(JSON.stringify({ error: `unknown provider: ${provider}` }), {
         status: 400,
