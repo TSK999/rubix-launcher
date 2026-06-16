@@ -111,13 +111,79 @@ async function spacedockMod(id: string): Promise<ModDetail> {
 }
 
 // ---------- Thunderstore ----------
-// The v1 /api/v1/package/ endpoint returns an unpaginated JSON array of every
-// package in a community — for popular games this is hundreds of MB. We stream
-// the response, parse one top-level object at a time, and stop once we have
-// enough results. A per-community cache holds the most recent slice.
+// Use the paginated cyberstorm listing endpoint for browse (small payloads),
+// and the experimental /api/experimental/package/<ns>/<name>/ endpoint for
+// per-mod detail (which includes the download URL).
+//
+// Mod IDs are encoded as "<namespace>/<name>" so the detail call can look up
+// the right package without an extra index.
+
+const TS_UA = "RUBIX-ModManager/1.0 (+https://rubixlauncher.lovable.app)";
+
+function tsListingToSummary(r: any, community: string): ModSummary {
+  return {
+    id: `${r.namespace}/${r.name}`,
+    name: r.name ?? "",
+    short_description: r.description ?? "",
+    author: r.namespace ?? "",
+    downloads: r.download_count ?? 0,
+    followers: r.rating_count ?? 0,
+    background: r.icon_url ?? null,
+    license: "",
+    website: null,
+    source_code: null,
+    url: `https://thunderstore.io/c/${community}/p/${r.namespace}/${r.name}/`,
+    versions: [], // populated in detail view
+  };
+}
+
+async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+  // Cyberstorm caps page_size at 20 — fan out pages to honour the requested count
+  const PAGE_SIZE = 20;
+  const need = Math.min(count, 60);
+  const startIdx = (page - 1) * need;
+  const firstPage = Math.floor(startIdx / PAGE_SIZE) + 1;
+  const offsetInFirst = startIdx % PAGE_SIZE;
+  const params = new URLSearchParams({
+    ordering: "most-downloaded",
+    deprecated: "False",
+    nsfw: "False",
+    page_size: String(PAGE_SIZE),
+  });
+  if (q && q.trim()) params.set("search", q.trim());
+
+  const all: any[] = [];
+  let total = 0;
+  let pageIdx = firstPage;
+  while (all.length - offsetInFirst < need) {
+    params.set("page", String(pageIdx));
+    const r = await fetch(
+      `https://thunderstore.io/api/cyberstorm/listing/${encodeURIComponent(community)}/?${params}`,
+      { headers: { Accept: "application/json", "User-Agent": TS_UA } },
+    );
+    if (!r.ok) throw new Error(`Thunderstore HTTP ${r.status}`);
+    const j: any = await r.json();
+    total = j.count ?? total;
+    const batch: any[] = j.results ?? [];
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE || !j.next) break;
+    pageIdx++;
+    if (pageIdx - firstPage > 4) break; // safety: at most 5 upstream pages per request
+  }
+
+  const slice = all.slice(offsetInFirst, offsetInFirst + need);
+  const pages = Math.max(1, Math.ceil(total / need));
+  return {
+    total,
+    count: slice.length,
+    pages,
+    page,
+    result: slice.map((r) => tsListingToSummary(r, community)),
+  };
+}
+
 function tsHashId(s: string): number {
-  // 53-bit safe hash so it round-trips through JS Number cleanly
-  let h = 0xcbf29ce4n; // FNV-ish seed
+  let h = 0xcbf29ce4n;
   for (let i = 0; i < s.length; i++) {
     h = (h * 1099511628211n) ^ BigInt(s.charCodeAt(i));
     h &= (1n << 53n) - 1n;
@@ -125,148 +191,48 @@ function tsHashId(s: string): number {
   return Number(h);
 }
 
-type TsPackage = any;
-
-const tsCache = new Map<string, { ts: number; data: TsPackage[] }>();
-const TS_CACHE_TTL = 10 * 60 * 1000;
-// Stop scanning a community after we've parsed this many packages.
-const TS_MAX_PARSE = 800;
-
-async function tsStreamCommunity(community: string): Promise<TsPackage[]> {
-  const cached = tsCache.get(community);
-  if (cached && Date.now() - cached.ts < TS_CACHE_TTL) return cached.data;
-
-  const r = await fetch(`https://thunderstore.io/c/${encodeURIComponent(community)}/api/v1/package/`, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "RUBIX-ModManager/1.0 (+https://rubixlauncher.lovable.app)",
-    },
-  });
-  if (!r.ok || !r.body) {
-    throw new Error(`Thunderstore HTTP ${r.status}`);
-  }
-
-  const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
-  const out: TsPackage[] = [];
-  let buf = "";
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-  let started = false;
-  let objStart = -1;
-
-  outer: while (true) {
-    const { value, done } = await reader.read();
-    if (value) buf += value;
-
-    for (let i = 0; i < buf.length; i++) {
-      const ch = buf[i];
-      if (!started) {
-        if (ch === "[") started = true;
-        continue;
-      }
-      if (inString) {
-        if (escape) escape = false;
-        else if (ch === "\\") escape = true;
-        else if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') { inString = true; continue; }
-      if (ch === "{") { if (depth === 0) objStart = i; depth++; }
-      else if (ch === "}") {
-        depth--;
-        if (depth === 0 && objStart >= 0) {
-          const slice = buf.slice(objStart, i + 1);
-          try { out.push(JSON.parse(slice)); } catch { /* skip */ }
-          objStart = -1;
-          if (out.length >= TS_MAX_PARSE) {
-            try { await reader.cancel(); } catch {}
-            break outer;
-          }
-        }
-      } else if (ch === "]" && depth === 0) {
-        break outer;
-      }
-    }
-    // Trim already-consumed bytes
-    if (objStart < 0) {
-      buf = "";
-    } else {
-      buf = buf.slice(objStart);
-      objStart = 0;
-    }
-    if (done) break;
-  }
-
-  tsCache.set(community, { ts: Date.now(), data: out });
-  return out;
-}
-
-function tsToSummary(p: TsPackage): ModSummary {
-  const latest = p.versions?.[0];
-  const totalDl = (p.versions ?? []).reduce((a: number, v: any) => a + (v.downloads ?? 0), 0);
+async function thunderstoreMod(community: string, id: string): Promise<ModDetail | null> {
+  // id is "namespace/name"
+  const [ns, name] = String(id).split("/");
+  if (!ns || !name) return null;
+  const r = await fetch(
+    `https://thunderstore.io/api/experimental/package/${encodeURIComponent(ns)}/${encodeURIComponent(name)}/`,
+    { headers: { Accept: "application/json", "User-Agent": TS_UA } },
+  );
+  if (!r.ok) return null;
+  const p: any = await r.json();
+  const latest = p.latest;
+  const versions: Version[] = latest
+    ? [
+        {
+          friendly_version: latest.version_number,
+          game_version: "",
+          id: tsHashId(latest.full_name ?? `${ns}-${name}-${latest.version_number}`),
+          created: latest.date_created,
+          download_path: latest.download_url,
+          changelog: "",
+          downloads: latest.downloads ?? 0,
+        },
+      ]
+    : [];
   return {
-    id: p.uuid4 ?? tsHashId(p.full_name ?? p.name ?? ""),
-    name: p.name ?? latest?.name ?? "",
+    id: `${ns}/${name}`,
+    name: p.name ?? name,
     short_description: latest?.description ?? "",
-    author: p.owner ?? "",
-    downloads: totalDl,
+    description: latest?.description ?? "",
+    author: p.owner ?? ns,
+    downloads: latest?.downloads ?? 0,
     followers: p.rating_score ?? 0,
     background: latest?.icon ?? null,
     license: "",
     website: latest?.website_url || null,
     source_code: null,
-    url: p.package_url,
-    versions: (p.versions ?? []).map((v: any) => ({
-      friendly_version: v.version_number,
-      game_version: "",
-      id: tsHashId(v.full_name ?? v.uuid4 ?? `${p.full_name}-${v.version_number}`),
-      created: v.date_created,
-      download_path: v.download_url,
-      changelog: "",
-      downloads: v.downloads,
-    })),
+    url: p.package_url ?? `https://thunderstore.io/c/${community}/p/${ns}/${name}/`,
+    versions,
   };
 }
 
-async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
-  let arr = await tsStreamCommunity(community);
-  arr = arr.filter((p) => !p.is_deprecated);
-  if (q && q.trim()) {
-    const needle = q.toLowerCase();
-    arr = arr.filter(
-      (p) =>
-        (p.name ?? "").toLowerCase().includes(needle) ||
-        (p.full_name ?? "").toLowerCase().includes(needle) ||
-        (p.owner ?? "").toLowerCase().includes(needle) ||
-        (p.versions?.[0]?.description ?? "").toLowerCase().includes(needle),
-    );
-  }
-  arr.sort((a, b) => {
-    const ad = (a.versions ?? []).reduce((s: number, v: any) => s + (v.downloads ?? 0), 0);
-    const bd = (b.versions ?? []).reduce((s: number, v: any) => s + (v.downloads ?? 0), 0);
-    return bd - ad;
-  });
-  const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total / count));
-  const start = (page - 1) * count;
-  const slice = arr.slice(start, start + count);
-  return { total, count: slice.length, pages, page, result: slice.map(tsToSummary) };
-}
 
-async function thunderstoreMod(community: string, id: string): Promise<ModDetail | null> {
-  const arr = await tsStreamCommunity(community);
-  const idStr = String(id);
-  const idNum = Number(idStr);
-  const found = arr.find((p: any) => {
-    if (p.uuid4 === idStr) return true;
-    if (!Number.isNaN(idNum) && tsHashId(p.full_name ?? p.name ?? "") === idNum) return true;
-    return false;
-  });
-  if (!found) return null;
-  const summary = tsToSummary(found);
-  return { ...summary, description: found.versions?.[0]?.description ?? "" };
-}
 
 // ---------- Mod.io ----------
 const MODIO_KEY = Deno.env.get("MODIO_API_KEY") ?? "";
