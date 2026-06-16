@@ -149,7 +149,6 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     { slug: "openxcom", title: "OpenXcom", steamId: "7670", blurb: "Open-source XCOM engine." },
     // ---- New mod.io additions ----
     { slug: "stalker2", title: "S.T.A.L.K.E.R. 2", steamId: "1643320", blurb: "Survival horror shooter." },
-    { slug: "baldursgate3", title: "Baldur's Gate 3", steamId: "1086940", blurb: "Epic D&D RPG with rich modding scene." },
     { slug: "spaceengineers", title: "Space Engineers", steamId: "244850", blurb: "Voxel-based space engineering sandbox." },
     { slug: "readyornot", title: "Ready or Not", steamId: "1144200", blurb: "Tactical FPS SWAT simulator." },
     { slug: "anno-1800", title: "Anno 1800", steamId: "916440", blurb: "City-building strategy in the Industrial Age." },
