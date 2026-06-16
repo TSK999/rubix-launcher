@@ -111,35 +111,106 @@ async function spacedockMod(id: string): Promise<ModDetail> {
 }
 
 // ---------- Thunderstore ----------
-// Community-scoped: e.g. lethal-company, valheim, risk-of-rain-2, content-warning, bonelab
+// The v1 /api/v1/package/ endpoint returns an unpaginated JSON array of every
+// package in a community — for popular games this is hundreds of MB. We stream
+// the response, parse one top-level object at a time, and stop once we have
+// enough results. A per-community cache holds the most recent slice.
 function tsHashId(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+  // 53-bit safe hash so it round-trips through JS Number cleanly
+  let h = 0xcbf29ce4n; // FNV-ish seed
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 1099511628211n) ^ BigInt(s.charCodeAt(i));
+    h &= (1n << 53n) - 1n;
+  }
+  return Number(h);
 }
 
-// Cache packages per community for 5 minutes (per-instance, best effort)
-const tsCache = new Map<string, { ts: number; data: any[] }>();
-async function tsFetchAll(community: string): Promise<any[]> {
+type TsPackage = any;
+
+const tsCache = new Map<string, { ts: number; data: TsPackage[] }>();
+const TS_CACHE_TTL = 10 * 60 * 1000;
+// Stop scanning a community after we've parsed this many packages.
+const TS_MAX_PARSE = 800;
+
+async function tsStreamCommunity(community: string): Promise<TsPackage[]> {
   const cached = tsCache.get(community);
-  if (cached && Date.now() - cached.ts < 5 * 60 * 1000) return cached.data;
+  if (cached && Date.now() - cached.ts < TS_CACHE_TTL) return cached.data;
+
   const r = await fetch(`https://thunderstore.io/c/${encodeURIComponent(community)}/api/v1/package/`, {
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "RUBIX-ModManager/1.0 (+https://rubixlauncher.lovable.app)",
+    },
   });
-  const j = await r.json();
-  const arr = Array.isArray(j) ? j : [];
-  tsCache.set(community, { ts: Date.now(), data: arr });
-  return arr;
+  if (!r.ok || !r.body) {
+    throw new Error(`Thunderstore HTTP ${r.status}`);
+  }
+
+  const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+  const out: TsPackage[] = [];
+  let buf = "";
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let started = false;
+  let objStart = -1;
+
+  outer: while (true) {
+    const { value, done } = await reader.read();
+    if (value) buf += value;
+
+    for (let i = 0; i < buf.length; i++) {
+      const ch = buf[i];
+      if (!started) {
+        if (ch === "[") started = true;
+        continue;
+      }
+      if (inString) {
+        if (escape) escape = false;
+        else if (ch === "\\") escape = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') { inString = true; continue; }
+      if (ch === "{") { if (depth === 0) objStart = i; depth++; }
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0 && objStart >= 0) {
+          const slice = buf.slice(objStart, i + 1);
+          try { out.push(JSON.parse(slice)); } catch { /* skip */ }
+          objStart = -1;
+          if (out.length >= TS_MAX_PARSE) {
+            try { await reader.cancel(); } catch {}
+            break outer;
+          }
+        }
+      } else if (ch === "]" && depth === 0) {
+        break outer;
+      }
+    }
+    // Trim already-consumed bytes
+    if (objStart < 0) {
+      buf = "";
+    } else {
+      buf = buf.slice(objStart);
+      objStart = 0;
+    }
+    if (done) break;
+  }
+
+  tsCache.set(community, { ts: Date.now(), data: out });
+  return out;
 }
 
-function tsToSummary(p: any): ModSummary {
+function tsToSummary(p: TsPackage): ModSummary {
   const latest = p.versions?.[0];
+  const totalDl = (p.versions ?? []).reduce((a: number, v: any) => a + (v.downloads ?? 0), 0);
   return {
-    id: p.uuid4 ?? tsHashId(p.full_name ?? p.name),
+    id: p.uuid4 ?? tsHashId(p.full_name ?? p.name ?? ""),
     name: p.name ?? latest?.name ?? "",
     short_description: latest?.description ?? "",
     author: p.owner ?? "",
-    downloads: (p.versions ?? []).reduce((a: number, v: any) => a + (v.downloads ?? 0), 0),
+    downloads: totalDl,
     followers: p.rating_score ?? 0,
     background: latest?.icon ?? null,
     license: "",
@@ -159,7 +230,7 @@ function tsToSummary(p: any): ModSummary {
 }
 
 async function thunderstoreBrowse(community: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
-  let arr = await tsFetchAll(community);
+  let arr = await tsStreamCommunity(community);
   arr = arr.filter((p) => !p.is_deprecated);
   if (q && q.trim()) {
     const needle = q.toLowerCase();
@@ -171,7 +242,6 @@ async function thunderstoreBrowse(community: string, q: string | null, page: num
         (p.versions?.[0]?.description ?? "").toLowerCase().includes(needle),
     );
   }
-  // Sort by total downloads desc
   arr.sort((a, b) => {
     const ad = (a.versions ?? []).reduce((s: number, v: any) => s + (v.downloads ?? 0), 0);
     const bd = (b.versions ?? []).reduce((s: number, v: any) => s + (v.downloads ?? 0), 0);
@@ -181,23 +251,16 @@ async function thunderstoreBrowse(community: string, q: string | null, page: num
   const pages = Math.max(1, Math.ceil(total / count));
   const start = (page - 1) * count;
   const slice = arr.slice(start, start + count);
-  return {
-    total,
-    count: slice.length,
-    pages,
-    page,
-    result: slice.map(tsToSummary),
-  };
+  return { total, count: slice.length, pages, page, result: slice.map(tsToSummary) };
 }
 
 async function thunderstoreMod(community: string, id: string): Promise<ModDetail | null> {
-  const arr = await tsFetchAll(community);
-  // id may be uuid or our hashed numeric id
+  const arr = await tsStreamCommunity(community);
   const idStr = String(id);
   const idNum = Number(idStr);
-  const found = arr.find((p) => {
+  const found = arr.find((p: any) => {
     if (p.uuid4 === idStr) return true;
-    if (!Number.isNaN(idNum) && tsHashId(p.full_name ?? p.name) === idNum) return true;
+    if (!Number.isNaN(idNum) && tsHashId(p.full_name ?? p.name ?? "") === idNum) return true;
     return false;
   });
   if (!found) return null;
