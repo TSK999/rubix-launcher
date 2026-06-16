@@ -25,6 +25,7 @@ import AdminReview from "./pages/AdminReview.tsx";
 import ClipViewer from "./pages/ClipViewer.tsx";
 import ClipsFeed from "./pages/ClipsFeed.tsx";
 import Passport from "./pages/Passport.tsx";
+import KspMods from "./pages/KspMods.tsx";
 import { UploadDock } from "./components/clips/UploadDock";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
@@ -130,6 +131,14 @@ const App = () => (
           />
           <Route path="/clips" element={<ClipsFeed />} />
           <Route path="/clip/:slug" element={<ClipViewer />} />
+          <Route
+            path="/mods"
+            element={
+              <RequireRubixAuth>
+                <KspMods />
+              </RequireRubixAuth>
+            }
+          />
           <Route
             path="/passport"
             element={
