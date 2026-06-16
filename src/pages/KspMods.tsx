@@ -564,28 +564,70 @@ const GameModBrowser = ({
               <div>
                 <h4 className="mb-2 text-sm font-semibold">Versions</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {detail.versions?.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between rounded-md border bg-card/50 px-3 py-2 text-sm"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">{v.friendly_version}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
-                        </span>
+                  {detail.versions?.map((v) => {
+                    const installedEntry = installed[String(detail.id)];
+                    const isThis = installedEntry?.versionId === v.id;
+                    const isBusy = installingId === v.id;
+                    return (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between rounded-md border bg-card/50 px-3 py-2 text-sm"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium flex items-center gap-2">
+                            {v.friendly_version}
+                            {isThis && (
+                              <Badge variant="secondary" className="h-5 gap-1 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Installed
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          {isElectron ? (
+                            <>
+                              {isThis ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => uninstallMod(detail)}
+                                >
+                                  <Trash2 className="mr-1 h-3 w-3" /> Uninstall
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={isBusy || !gameDataDir}
+                                  onClick={() => installVersion(detail, v)}
+                                >
+                                  {isBusy ? (
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Download className="mr-1 h-3 w-3" />
+                                  )}
+                                  {installedEntry ? "Update" : "Install"}
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <Button asChild size="sm" variant="secondary">
+                              <a
+                                href={`https://spacedock.info${v.download_path}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Download className="mr-1 h-3 w-3" /> Download
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Button asChild size="sm" variant="secondary">
-                        <a
-                          href={`https://spacedock.info${v.download_path}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <Download className="mr-1 h-3 w-3" /> Download
-                        </a>
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
