@@ -319,8 +319,7 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
           <Badge variant="secondary">Beta</Badge>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Browse, search and install mods for your favourite games. One-click installs work in the
-          RUBIX desktop app; the browser opens the mod page on the source site.
+          Browse, search and install mods for your favourite games with one-click installs
         </p>
       </header>
 
