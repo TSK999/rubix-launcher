@@ -74,5 +74,15 @@ contextBridge.exposeInMainWorld("rubix", {
       ipcRenderer.on("updater:status", handler);
       return () => ipcRenderer.removeListener("updater:status", handler);
     },
+  mods: {
+    pickFolder: (gameKey, title) =>
+      ipcRenderer.invoke("mods:pick-folder", { gameKey, title }),
+    getFolder: (gameKey) => ipcRenderer.invoke("mods:get-folder", { gameKey }),
+    listInstalled: (gameKey) =>
+      ipcRenderer.invoke("mods:list-installed", { gameKey }),
+    install: (payload) => ipcRenderer.invoke("mods:install", payload),
+    uninstall: (gameKey, modId) =>
+      ipcRenderer.invoke("mods:uninstall", { gameKey, modId }),
+    openFolder: (gameKey) => ipcRenderer.invoke("mods:open-folder", { gameKey }),
   },
 });
