@@ -269,21 +269,33 @@ function modioToSummary(m: any): ModSummary {
 }
 
 const modioGameIdCache = new Map<string, string>();
+const MODIO_GAME_IDS: Record<string, string> = {
+  mordhau: "169",
+  skaterxl: "629",
+  "skater-xl": "629",
+};
+
 async function resolveModioGameId(game: string): Promise<string> {
-  if (/^\d+$/.test(game)) return game;
-  const cached = modioGameIdCache.get(game);
+  const key = game.trim().toLowerCase();
+  if (/^\d+$/.test(key)) return key;
+  const knownId = MODIO_GAME_IDS[key];
+  if (knownId) return knownId;
+  const cached = modioGameIdCache.get(key);
   if (cached) return cached;
   if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
-  const r = await fetch(
-    `https://api.mod.io/v1/games?api_key=${MODIO_KEY}&name_id=${encodeURIComponent(game)}`,
-    { headers: { Accept: "application/json" } },
-  );
+  const params = new URLSearchParams({ api_key: MODIO_KEY, _q: key, _limit: "25" });
+  const r = await fetch(`https://api.mod.io/v1/games?${params}`, { headers: { Accept: "application/json" } });
   if (!r.ok) throw new Error(`mod.io game lookup HTTP ${r.status}`);
   const j: any = await r.json();
-  const id = j?.data?.[0]?.id;
+  const match = (j?.data ?? []).find((g: any) => {
+    const nameId = String(g.name_id ?? "").toLowerCase();
+    const profileSlug = String(g.profile_url ?? "").toLowerCase().split("/g/").pop();
+    return nameId === key || profileSlug === key;
+  });
+  const id = match?.id;
   if (!id) throw new Error(`mod.io game not found: ${game}`);
   const out = String(id);
-  modioGameIdCache.set(game, out);
+  modioGameIdCache.set(key, out);
   return out;
 }
 

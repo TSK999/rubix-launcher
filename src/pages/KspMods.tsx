@@ -53,7 +53,7 @@ type SupportedGame = {
   // Provider-specific game key:
   // - spacedock: "ksp1" | "ksp2"
   // - thunderstore: community slug (e.g. "lethal-company")
-  // - modio: numeric game id as string
+  // - modio: provider slug handled by the backend resolver
   apiGameKey: string;
   cover: string;
   status: "live" | "coming-soon";
@@ -187,7 +187,7 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     blurb: "Skateboarding sim. Community gear & maps via Mod.io.",
     provider: "modio",
     providerLabel: "Mod.io",
-    apiGameKey: "skater-xl",
+    apiGameKey: "skaterxl",
     cover: "https://cdn.akamai.steamstatic.com/steam/apps/962730/header.jpg",
     status: "live",
     pickerMode: "root",
