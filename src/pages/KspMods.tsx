@@ -353,6 +353,41 @@ const GameModBrowser = ({
           <Badge variant="outline">{game.providerLabel}</Badge>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">{game.blurb}</p>
+
+        {isElectron ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card/50 p-3">
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {gameDataDir ? (
+                <>
+                  GameData:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{gameDataDir}</code>
+                </>
+              ) : (
+                <span className="text-muted-foreground">No GameData folder set.</span>
+              )}
+            </span>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="outline" onClick={pickFolder}>
+                {gameDataDir ? "Change folder" : "Choose folder"}
+              </Button>
+              {gameDataDir && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => window.rubix?.mods?.openFolder(game.apiGameKey)}
+                >
+                  Open
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+            One-click install is available in the RUBIX desktop app. In the browser, downloads open
+            on {game.providerLabel} and you'll need to unzip into <code>GameData/</code> yourself.
+          </div>
+        )}
       </header>
 
       <div className="mb-6 flex flex-wrap gap-3">
