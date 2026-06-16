@@ -158,8 +158,11 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => (
           className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
           onClick={() => onPick(g)}
         >
-          <div className={`relative h-32 w-full bg-gradient-to-br ${g.accent}`}>
-            <Rocket className="absolute right-4 top-4 h-10 w-10 text-white/70" />
+          <div
+            className="relative h-36 w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${g.cover})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
           </div>
           <div className="p-4">
             <div className="mb-1 flex items-center justify-between gap-2">
