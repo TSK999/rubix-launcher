@@ -457,11 +457,18 @@ const GameModBrowser = ({
                 <div className="p-4">
                   <div className="mb-1 flex items-start justify-between gap-2">
                     <h3 className="font-semibold leading-tight">{mod.name}</h3>
-                    {latest && (
-                      <Badge variant="outline" className="shrink-0 text-xs">
-                        v{latest.game_version}
-                      </Badge>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {latest && (
+                        <Badge variant="outline" className="text-xs">
+                          v{latest.game_version}
+                        </Badge>
+                      )}
+                      {installed[String(mod.id)] && (
+                        <Badge variant="secondary" className="gap-1 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3" /> Installed
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
                     {mod.short_description}
