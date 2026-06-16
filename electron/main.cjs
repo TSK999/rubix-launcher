@@ -1101,6 +1101,205 @@ ipcMain.handle("hotkeys:set", (_evt, map) => {
 
 ipcMain.handle("hotkeys:get", () => ({ ok: true, active: activeHotkeys }));
 
+// ---------- Mods (CKAN-style installer) ----------
+const AdmZip = require("adm-zip");
+const https = require("https");
+const http = require("http");
+
+function modsDir() {
+  const dir = path.join(app.getPath("userData"), "rubix-mods");
+  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+  return dir;
+}
+function configPath() { return path.join(modsDir(), "config.json"); }
+function manifestPath(gameKey) {
+  return path.join(modsDir(), `installed-${gameKey}.json`);
+}
+function readJson(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return fallback; }
+}
+function writeJson(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+function downloadFollow(url, dest, maxRedirects = 6) {
+  return new Promise((resolve, reject) => {
+    const go = (u, left) => {
+      const lib = u.startsWith("https") ? https : http;
+      const req = lib.get(u, { headers: { "User-Agent": "RUBIX-ModManager" } }, (res) => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          if (left <= 0) return reject(new Error("Too many redirects"));
+          const next = new URL(res.headers.location, u).toString();
+          res.resume();
+          return go(next, left - 1);
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          return reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+        }
+        const out = fs.createWriteStream(dest);
+        res.pipe(out);
+        out.on("finish", () => out.close(() => resolve()));
+        out.on("error", reject);
+      });
+      req.on("error", reject);
+    };
+    go(url, maxRedirects);
+  });
+}
+
+// Some KSP mod zips ship a top-level GameData/ folder; others ship the mod
+// folder directly. Return the path *inside* the zip that should map to GameData/.
+function detectZipRoot(zip) {
+  const entries = zip.getEntries();
+  const topLevel = new Set();
+  for (const e of entries) {
+    const p = e.entryName.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!p) continue;
+    topLevel.add(p.split("/")[0]);
+  }
+  if (topLevel.has("GameData")) return "GameData/";
+  return ""; // extract entries as-is into GameData/
+}
+
+function safeJoin(base, rel) {
+  const target = path.resolve(base, rel);
+  const baseResolved = path.resolve(base) + path.sep;
+  if (!target.startsWith(baseResolved) && target !== path.resolve(base)) {
+    throw new Error(`Unsafe path in zip: ${rel}`);
+  }
+  return target;
+}
+
+ipcMain.handle("mods:pick-folder", async (_evt, { gameKey, title }) => {
+  if (!mainWindow) return { ok: false, error: "No window" };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: title || `Select ${gameKey} GameData folder`,
+    properties: ["openDirectory"],
+  });
+  if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
+  const chosen = result.filePaths[0];
+  // Accept either GameData itself or the game root containing GameData
+  let gameDataDir = chosen;
+  if (path.basename(chosen).toLowerCase() !== "gamedata") {
+    const candidate = path.join(chosen, "GameData");
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      gameDataDir = candidate;
+    }
+  }
+  const cfg = readJson(configPath(), {});
+  cfg[gameKey] = { gameDataDir };
+  writeJson(configPath(), cfg);
+  return { ok: true, gameDataDir };
+});
+
+ipcMain.handle("mods:get-folder", async (_evt, { gameKey }) => {
+  const cfg = readJson(configPath(), {});
+  return { ok: true, gameDataDir: cfg[gameKey]?.gameDataDir || null };
+});
+
+ipcMain.handle("mods:list-installed", async (_evt, { gameKey }) => {
+  return { ok: true, installed: readJson(manifestPath(gameKey), {}) };
+});
+
+ipcMain.handle("mods:install", async (_evt, payload) => {
+  try {
+    const { gameKey, modId, modName, version, versionId, downloadUrl } = payload || {};
+    if (!gameKey || !modId || !downloadUrl) {
+      return { ok: false, error: "Missing parameters" };
+    }
+    const cfg = readJson(configPath(), {});
+    const gameDataDir = cfg[gameKey]?.gameDataDir;
+    if (!gameDataDir || !fs.existsSync(gameDataDir)) {
+      return { ok: false, error: "GameData folder not set. Choose it first." };
+    }
+
+    // If already installed, uninstall the previous version first
+    const manifest = readJson(manifestPath(gameKey), {});
+    if (manifest[modId]?.files?.length) {
+      for (const rel of manifest[modId].files) {
+        try { fs.rmSync(path.join(gameDataDir, rel), { force: true }); } catch {}
+      }
+    }
+
+    const tmp = path.join(app.getPath("temp"), `rubix-mod-${modId}-${Date.now()}.zip`);
+    await downloadFollow(downloadUrl, tmp);
+
+    const zip = new AdmZip(tmp);
+    const strip = detectZipRoot(zip);
+    const written = [];
+    for (const entry of zip.getEntries()) {
+      const norm = entry.entryName.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (!norm) continue;
+      if (strip && !norm.startsWith(strip)) continue;
+      const rel = strip ? norm.slice(strip.length) : norm;
+      if (!rel || rel.endsWith("/")) {
+        if (rel) fs.mkdirSync(safeJoin(gameDataDir, rel), { recursive: true });
+        continue;
+      }
+      const dest = safeJoin(gameDataDir, rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, entry.getData());
+      written.push(rel);
+    }
+    try { fs.unlinkSync(tmp); } catch {}
+
+    manifest[modId] = {
+      modId,
+      modName,
+      version,
+      versionId,
+      installedAt: new Date().toISOString(),
+      files: written,
+    };
+    writeJson(manifestPath(gameKey), manifest);
+    return { ok: true, files: written.length };
+  } catch (err) {
+    log.warn("mod install failed", err);
+    return { ok: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle("mods:uninstall", async (_evt, { gameKey, modId }) => {
+  try {
+    const cfg = readJson(configPath(), {});
+    const gameDataDir = cfg[gameKey]?.gameDataDir;
+    if (!gameDataDir) return { ok: false, error: "GameData folder not set" };
+    const manifest = readJson(manifestPath(gameKey), {});
+    const entry = manifest[modId];
+    if (!entry) return { ok: true, removed: 0 };
+
+    const dirs = new Set();
+    let removed = 0;
+    for (const rel of entry.files || []) {
+      const full = path.join(gameDataDir, rel);
+      try { fs.rmSync(full, { force: true }); removed++; } catch {}
+      let d = path.dirname(full);
+      const root = path.resolve(gameDataDir);
+      while (d.startsWith(root) && d !== root) { dirs.add(d); d = path.dirname(d); }
+    }
+    // Prune now-empty dirs (deepest first)
+    const sorted = [...dirs].sort((a, b) => b.length - a.length);
+    for (const d of sorted) {
+      try { if (fs.readdirSync(d).length === 0) fs.rmdirSync(d); } catch {}
+    }
+    delete manifest[modId];
+    writeJson(manifestPath(gameKey), manifest);
+    return { ok: true, removed };
+  } catch (err) {
+    log.warn("mod uninstall failed", err);
+    return { ok: false, error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle("mods:open-folder", async (_evt, { gameKey }) => {
+  const cfg = readJson(configPath(), {});
+  const dir = cfg[gameKey]?.gameDataDir;
+  if (!dir) return { ok: false, error: "Not set" };
+  await shell.openPath(dir);
+  return { ok: true };
+});
+
 app.whenReady().then(() => {
   try {
     const isMediaPermission = (permission) => {

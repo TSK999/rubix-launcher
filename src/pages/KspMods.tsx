@@ -31,7 +31,12 @@ import {
   ArrowLeft,
   Package,
   Sparkles,
+  FolderOpen,
+  CheckCircle2,
+  Trash2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
@@ -203,12 +208,79 @@ const GameModBrowser = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [gameVersion, setGameVersion] = useState<string>("any");
 
+  // Electron install state
+  const isElectron = typeof window !== "undefined" && window.rubix?.isElectron === true;
+  const [gameDataDir, setGameDataDir] = useState<string | null>(null);
+  const [installed, setInstalled] = useState<Record<string, { version: string; versionId: number }>>({});
+  const [installingId, setInstallingId] = useState<number | null>(null);
+
+  const refreshInstalled = async () => {
+    if (!isElectron || !window.rubix?.mods) return;
+    const res = await window.rubix.mods.listInstalled(game.apiGameKey);
+    if (res.ok) {
+      const next: Record<string, { version: string; versionId: number }> = {};
+      for (const [k, v] of Object.entries(res.installed)) {
+        next[k] = { version: v.version, versionId: v.versionId };
+      }
+      setInstalled(next);
+    }
+  };
+
   useEffect(() => {
     setPage(1);
     setCommittedQuery("");
     setQuery("");
     setGameVersion("any");
+    if (isElectron && window.rubix?.mods) {
+      window.rubix.mods.getFolder(game.apiGameKey).then((r) => setGameDataDir(r.gameDataDir));
+      refreshInstalled();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
+
+  const pickFolder = async () => {
+    if (!window.rubix?.mods) return;
+    const r = await window.rubix.mods.pickFolder(game.apiGameKey, `Select ${game.title} GameData folder`);
+    if (r.ok && r.gameDataDir) {
+      setGameDataDir(r.gameDataDir);
+      toast.success("GameData folder set", { description: r.gameDataDir });
+    }
+  };
+
+  const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
+    if (!window.rubix?.mods) return;
+    if (!gameDataDir) {
+      toast.error("Pick your GameData folder first");
+      return;
+    }
+    setInstallingId(v.id);
+    const r = await window.rubix.mods.install({
+      gameKey: game.apiGameKey,
+      modId: String(mod.id),
+      modName: mod.name,
+      version: v.friendly_version,
+      versionId: v.id,
+      downloadUrl: `https://spacedock.info${v.download_path}`,
+    });
+    setInstallingId(null);
+    if (r.ok) {
+      toast.success(`Installed ${mod.name}`, { description: `${r.files} files written` });
+      refreshInstalled();
+    } else {
+      toast.error("Install failed", { description: r.error });
+    }
+  };
+
+  const uninstallMod = async (mod: ModDetail | ModSummary) => {
+    if (!window.rubix?.mods) return;
+    const r = await window.rubix.mods.uninstall(game.apiGameKey, String(mod.id));
+    if (r.ok) {
+      toast.success(`Uninstalled ${mod.name}`, { description: `${r.removed} files removed` });
+      refreshInstalled();
+    } else {
+      toast.error("Uninstall failed", { description: r.error });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -281,6 +353,41 @@ const GameModBrowser = ({
           <Badge variant="outline">{game.providerLabel}</Badge>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">{game.blurb}</p>
+
+        {isElectron ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card/50 p-3">
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {gameDataDir ? (
+                <>
+                  GameData:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{gameDataDir}</code>
+                </>
+              ) : (
+                <span className="text-muted-foreground">No GameData folder set.</span>
+              )}
+            </span>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="outline" onClick={pickFolder}>
+                {gameDataDir ? "Change folder" : "Choose folder"}
+              </Button>
+              {gameDataDir && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => window.rubix?.mods?.openFolder(game.apiGameKey)}
+                >
+                  Open
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+            One-click install is available in the RUBIX desktop app. In the browser, downloads open
+            on {game.providerLabel} and you'll need to unzip into <code>GameData/</code> yourself.
+          </div>
+        )}
       </header>
 
       <div className="mb-6 flex flex-wrap gap-3">
@@ -350,11 +457,18 @@ const GameModBrowser = ({
                 <div className="p-4">
                   <div className="mb-1 flex items-start justify-between gap-2">
                     <h3 className="font-semibold leading-tight">{mod.name}</h3>
-                    {latest && (
-                      <Badge variant="outline" className="shrink-0 text-xs">
-                        v{latest.game_version}
-                      </Badge>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {latest && (
+                        <Badge variant="outline" className="text-xs">
+                          v{latest.game_version}
+                        </Badge>
+                      )}
+                      {installed[String(mod.id)] && (
+                        <Badge variant="secondary" className="gap-1 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3" /> Installed
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
                     {mod.short_description}
@@ -457,28 +571,70 @@ const GameModBrowser = ({
               <div>
                 <h4 className="mb-2 text-sm font-semibold">Versions</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {detail.versions?.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between rounded-md border bg-card/50 px-3 py-2 text-sm"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">{v.friendly_version}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
-                        </span>
+                  {detail.versions?.map((v) => {
+                    const installedEntry = installed[String(detail.id)];
+                    const isThis = installedEntry?.versionId === v.id;
+                    const isBusy = installingId === v.id;
+                    return (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between rounded-md border bg-card/50 px-3 py-2 text-sm"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium flex items-center gap-2">
+                            {v.friendly_version}
+                            {isThis && (
+                              <Badge variant="secondary" className="h-5 gap-1 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Installed
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Game v{v.game_version} · {new Date(v.created).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          {isElectron ? (
+                            <>
+                              {isThis ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => uninstallMod(detail)}
+                                >
+                                  <Trash2 className="mr-1 h-3 w-3" /> Uninstall
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={isBusy || !gameDataDir}
+                                  onClick={() => installVersion(detail, v)}
+                                >
+                                  {isBusy ? (
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Download className="mr-1 h-3 w-3" />
+                                  )}
+                                  {installedEntry ? "Update" : "Install"}
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <Button asChild size="sm" variant="secondary">
+                              <a
+                                href={`https://spacedock.info${v.download_path}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Download className="mr-1 h-3 w-3" /> Download
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Button asChild size="sm" variant="secondary">
-                        <a
-                          href={`https://spacedock.info${v.download_path}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <Download className="mr-1 h-3 w-3" /> Download
-                        </a>
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

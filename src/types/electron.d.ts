@@ -204,6 +204,44 @@ declare global {
         get: () => Promise<{ ok: boolean; active: Record<string, string> }>;
         onFired: (cb: (data: { action: string; at: number }) => void) => () => void;
       };
+      mods: {
+        pickFolder: (
+          gameKey: string,
+          title?: string,
+        ) => Promise<{ ok: boolean; gameDataDir?: string; canceled?: boolean; error?: string }>;
+        getFolder: (
+          gameKey: string,
+        ) => Promise<{ ok: boolean; gameDataDir: string | null }>;
+        listInstalled: (
+          gameKey: string,
+        ) => Promise<{
+          ok: boolean;
+          installed: Record<
+            string,
+            {
+              modId: string;
+              modName: string;
+              version: string;
+              versionId: number;
+              installedAt: string;
+              files: string[];
+            }
+          >;
+        }>;
+        install: (payload: {
+          gameKey: string;
+          modId: string;
+          modName: string;
+          version: string;
+          versionId: number;
+          downloadUrl: string;
+        }) => Promise<{ ok: boolean; files?: number; error?: string }>;
+        uninstall: (
+          gameKey: string,
+          modId: string,
+        ) => Promise<{ ok: boolean; removed?: number; error?: string }>;
+        openFolder: (gameKey: string) => Promise<{ ok: boolean; error?: string }>;
+      };
     };
   }
 }
