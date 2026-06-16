@@ -340,15 +340,19 @@ async function resolveModioGameId(game: string): Promise<string> {
   return out;
 }
 
-async function modioBrowse(gameKey: string, q: string | null, page: number, count: number): Promise<BrowseResponse> {
+async function modioBrowse(gameKey: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
   if (!MODIO_KEY) throw new Error("MODIO_API_KEY is not configured");
   const gameId = await resolveModioGameId(gameKey);
   const offset = (page - 1) * count;
+  const sortValue =
+    sort === "downloads" ? "-downloads" :
+    sort === "updated" ? "-date_updated" :
+    sort === "name" ? "name" : "-popular";
   const params = new URLSearchParams({
     api_key: MODIO_KEY,
     _limit: String(count),
     _offset: String(offset),
-    _sort: "-downloads",
+    _sort: sortValue,
   });
   if (q) params.set("_q", q);
   const r = await fetch(`https://api.mod.io/v1/games/${gameId}/mods?${params}`, {
