@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModpackManager } from "@/components/mods/ModpackManager";
+import { GameSetupWizard } from "@/components/mods/GameSetupWizard";
+import { getAdapterOrFallback, expandSubdir as adapterExpandSubdir } from "@/lib/mod-adapters";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
