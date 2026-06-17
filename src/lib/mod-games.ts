@@ -2,7 +2,7 @@
 // Used by GameDetail's "Mods" tab to know whether the current game has mods
 // available and what slug/provider key to use when talking to mods-api.
 
-export type ModGameProvider = "spacedock" | "thunderstore" | "modio";
+export type ModGameProvider = "spacedock" | "thunderstore" | "modio" | "curseforge";
 
 export type ModGameEntry = {
   slug: string;          // matches SUPPORTED_GAMES[i].apiGameKey in KspMods.tsx
