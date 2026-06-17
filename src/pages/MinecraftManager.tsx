@@ -84,7 +84,17 @@ export default function MinecraftManager() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
-      <Sidebar />
+      <Sidebar
+        collection="all"
+        onCollection={() => {}}
+        genres={[]}
+        selectedGenre={null}
+        onGenre={() => {}}
+        counts={{ all: 0, favorites: 0, recent: 0 }}
+        selectedSource={null}
+        onSource={() => {}}
+        sourceCounts={{ steam: 0, epic: 0, ea: 0, xbox: 0, riot: 0, other: 0 }}
+      />
       <main className="flex-1 p-6 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <div>
