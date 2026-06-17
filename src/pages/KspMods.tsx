@@ -161,6 +161,15 @@ const SUPPORTED_GAMES: SupportedGame[] = [
     { slug: "contractors", title: "Contractors VR", steamId: "963930", blurb: "Competitive VR military shooter." },
     { slug: "hf2", title: "House Flipper 2", steamId: "1190970", blurb: "Renovation sim with UGC interiors." },
   ]),
+  // ---- CurseForge (requires CURSEFORGE_API_KEY) ----
+  ...makeCurseforge([
+    { slug: "minecraft", title: "Minecraft", steamId: "", blurb: "The biggest modding scene on the planet — Forge, Fabric, NeoForge.", subdir: "mods/{name}" },
+    { slug: "sims-4", title: "The Sims 4", steamId: "1222670", blurb: "Custom content, mods and gameplay tweaks for The Sims 4.", subdir: "Mods/{name}" },
+    { slug: "stardew-valley", title: "Stardew Valley", steamId: "413150", blurb: "SMAPI mods, expansions and content packs.", subdir: "Mods/{name}" },
+    { slug: "wow", title: "World of Warcraft", steamId: "", blurb: "Addons for WoW Retail and Classic.", subdir: "Interface/AddOns/{name}" },
+    { slug: "rimworld", title: "RimWorld", steamId: "294100", blurb: "Mods for the sci-fi colony sim.", subdir: "Mods/{name}" },
+    { slug: "terraria", title: "Terraria", steamId: "105600", blurb: "tModLoader mods for Terraria.", subdir: "tModLoader/Mods/{name}" },
+  ]),
 ];
 
 // Helpers to keep the registry tidy.
