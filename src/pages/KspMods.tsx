@@ -1026,11 +1026,5 @@ const ModManager = () => {
 };
 
 export default ModManager;
-          <GamePicker onPick={setGame} />
-        )}
-      </main>
-    </div>
-  );
-};
 
 export default ModManager;
