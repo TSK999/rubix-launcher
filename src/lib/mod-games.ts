@@ -61,6 +61,13 @@ export const MOD_SUPPORTED_GAMES: ModGameEntry[] = [
   { slug: "pavlov", title: "Pavlov VR", provider: "modio", providerLabel: "Mod.io", steamAppId: 555160 },
   { slug: "contractors", title: "Contractors VR", provider: "modio", providerLabel: "Mod.io", steamAppId: 963930 },
   { slug: "hf2", title: "House Flipper 2", provider: "modio", providerLabel: "Mod.io", steamAppId: 1190970 },
+  // CurseForge
+  { slug: "minecraft", title: "Minecraft", provider: "curseforge", providerLabel: "CurseForge" },
+  { slug: "sims-4", title: "The Sims 4", provider: "curseforge", providerLabel: "CurseForge", steamAppId: 1222670 },
+  { slug: "stardew-valley", title: "Stardew Valley", provider: "curseforge", providerLabel: "CurseForge", steamAppId: 413150 },
+  { slug: "wow", title: "World of Warcraft", provider: "curseforge", providerLabel: "CurseForge" },
+  { slug: "rimworld", title: "RimWorld", provider: "curseforge", providerLabel: "CurseForge", steamAppId: 294100 },
+  { slug: "terraria", title: "Terraria", provider: "curseforge", providerLabel: "CurseForge", steamAppId: 105600 },
 ];
 
 const normalize = (s: string) =>
