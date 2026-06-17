@@ -720,6 +720,11 @@ const GameModBrowser = ({
               Mod.io needs a free API key. Ask RUBIX to add the <code>MODIO_API_KEY</code> secret.
             </p>
           )}
+          {game.provider === "curseforge" && /CURSEFORGE_API_KEY/.test(error) && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              CurseForge needs an API key. Ask RUBIX to add the <code>CURSEFORGE_API_KEY</code> secret.
+            </p>
+          )}
         </Card>
       )}
 
