@@ -1026,5 +1026,3 @@ const ModManager = () => {
 };
 
 export default ModManager;
-
-export default ModManager;
