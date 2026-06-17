@@ -210,9 +210,32 @@ declare global {
           title?: string,
           mode?: "ksp" | "root",
         ) => Promise<{ ok: boolean; gameDataDir?: string; canceled?: boolean; error?: string }>;
+        setFolder: (
+          gameKey: string,
+          path: string,
+        ) => Promise<{ ok: boolean; gameDataDir?: string; error?: string }>;
         getFolder: (
           gameKey: string,
         ) => Promise<{ ok: boolean; gameDataDir: string | null }>;
+        listConfigured: () => Promise<{ ok: boolean; configured: Record<string, string> }>;
+        removeFolder: (gameKey: string) => Promise<{ ok: boolean }>;
+        validatePath: (payload: {
+          path: string;
+          signatureFiles: string[];
+        }) => Promise<{ ok: boolean; matched?: string | null; reason?: string }>;
+        autoDetect: (adapter: {
+          steamAppId?: number;
+          signatureFiles: string[];
+          userPathHints: string[];
+        }) => Promise<{
+          ok: boolean;
+          candidates: Array<{
+            source: string;
+            path: string;
+            valid: boolean;
+            matched: string | null;
+          }>;
+        }>;
         listInstalled: (
           gameKey: string,
         ) => Promise<{
