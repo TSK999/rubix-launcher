@@ -489,12 +489,13 @@ const GameModBrowser = ({
     if (isElectron && window.rubix?.mods) {
       window.rubix.mods.getFolder(storageKey).then((r) => {
         setInstallDir(r.gameDataDir);
-        // First-run setup: open the wizard automatically when the game has
-        // never been configured.
-        if (!r.gameDataDir) setWizardOpen(true);
+        // Note: we no longer auto-open the setup wizard. The "New modpack"
+        // button is the entry point for first-run setup (see ModpackManager
+        // onRequestCreate below).
       });
       refreshInstalled();
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
