@@ -44,7 +44,7 @@ import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
 
 // ---------- Supported games registry ----------
-type Provider = "spacedock" | "thunderstore" | "modio";
+type Provider = "spacedock" | "thunderstore" | "modio" | "curseforge";
 
 type SupportedGame = {
   id: string;
