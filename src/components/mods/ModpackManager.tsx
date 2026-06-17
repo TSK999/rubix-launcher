@@ -32,9 +32,16 @@ type Props = {
   /** Optional: pre-fill new modpacks with currently installed mods. */
   installedMods?: Array<Omit<ModpackMod, "id" | "modpack_id" | "position">>;
   compact?: boolean;
+  /**
+   * If provided and returns true, the "New modpack" click is intercepted
+   * (e.g. to launch a first-run setup wizard) and the create dialog will
+   * not be opened.
+   */
+  onRequestCreate?: () => boolean;
 };
 
-export function ModpackManager({ gameSlug, gameTitle, installedMods, compact }: Props) {
+export function ModpackManager({ gameSlug, gameTitle, installedMods, compact, onRequestCreate }: Props) {
+
   const { user } = useRubixAuth();
   const [loading, setLoading] = useState(true);
   const [packs, setPacks] = useState<ModpackWithMods[]>([]);
