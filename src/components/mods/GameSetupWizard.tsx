@@ -20,6 +20,27 @@ type Candidate = {
   matched: string | null;
 };
 
+type SetupModsBridge = {
+  autoDetect: (adapter: {
+    steamAppId?: number;
+    signatureFiles: string[];
+    userPathHints: string[];
+  }) => Promise<{ ok: boolean; candidates: Candidate[]; error?: string }>;
+  validatePath: (payload: {
+    path: string;
+    signatureFiles: string[];
+  }) => Promise<{ ok: boolean; matched?: string | null; reason?: string }>;
+  setFolder: (
+    gameKey: string,
+    path: string,
+  ) => Promise<{ ok: boolean; gameDataDir?: string; error?: string }>;
+  pickFolder: (
+    gameKey: string,
+    title?: string,
+    mode?: "ksp" | "root",
+  ) => Promise<{ ok: boolean; gameDataDir?: string; canceled?: boolean; error?: string }>;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +54,9 @@ type Props = {
 
 const isElectron = () =>
   typeof window !== "undefined" && window.rubix?.isElectron === true;
+
+const getSetupModsBridge = () =>
+  (typeof window !== "undefined" ? window.rubix?.mods : null) as SetupModsBridge | null;
 
 export function GameSetupWizard({
   open,
@@ -58,7 +82,8 @@ export function GameSetupWizard({
   }, [open]);
 
   async function runAutoDetect() {
-    if (!isElectron() || !window.rubix?.mods) {
+    const mods = getSetupModsBridge();
+    if (!isElectron() || !mods) {
       toast.error("Auto Detect is only available in the desktop app");
       return;
     }
@@ -67,7 +92,7 @@ export function GameSetupWizard({
     const found: Candidate[] = [];
     try {
       // 1) Steam + user-path hints come from the Electron main.
-      const native = await window.rubix.mods.autoDetect({
+      const native = await mods.autoDetect({
         steamAppId: adapter.steamAppId,
         signatureFiles: adapter.signatureFiles,
         userPathHints: adapter.userPathHints ?? [],
@@ -114,7 +139,7 @@ export function GameSetupWizard({
       const validated: Candidate[] = [];
       for (const c of found) {
         try {
-          const v = await window.rubix.mods.validatePath({
+          const v = await mods.validatePath({
             path: c.path,
             signatureFiles: adapter.signatureFiles,
           });
@@ -143,9 +168,10 @@ export function GameSetupWizard({
   }
 
   async function apply(path: string) {
-    if (!window.rubix?.mods) return;
+    const mods = getSetupModsBridge();
+    if (!mods) return;
     setApplying(path);
-    const r = await window.rubix.mods.setFolder(storageKey, path);
+    const r = await mods.setFolder(storageKey, path);
     setApplying(null);
     if (r.ok && r.gameDataDir) {
       toast.success(`${title} configured`, { description: r.gameDataDir });
@@ -157,8 +183,9 @@ export function GameSetupWizard({
   }
 
   async function browse() {
-    if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.pickFolder(
+    const mods = getSetupModsBridge();
+    if (!mods) return;
+    const r = await mods.pickFolder(
       storageKey,
       `Select ${title} ${adapter.folderLabel}`,
       adapter.pickerMode,
@@ -169,7 +196,7 @@ export function GameSetupWizard({
     }
     const chosen = r.gameDataDir!;
     // Validate after the dialog already saved it.
-    const v = await window.rubix.mods.validatePath({
+    const v = await mods.validatePath({
       path: chosen,
       signatureFiles: adapter.signatureFiles,
     });
