@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModpackManager } from "@/components/mods/ModpackManager";
+import { GameSetupWizard } from "@/components/mods/GameSetupWizard";
+import { getAdapterOrFallback, expandSubdir as adapterExpandSubdir } from "@/lib/mod-adapters";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
@@ -309,7 +311,13 @@ const sidebarProps = {
 };
 
 // ---------- Game picker ----------
-const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
+const GamePicker = ({
+  onPick,
+  configuredKeys,
+}: {
+  onPick: (g: SupportedGame) => void;
+  configuredKeys: Set<string>;
+}) => {
   const [search, setSearch] = useState("");
 
   const grouped = useMemo(() => {
@@ -384,29 +392,37 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
                 {section.label}
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {section.items.map((g) => (
-                  <Card
-                    key={g.id}
-                    className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-                    onClick={() => onPick(g)}
-                  >
-                    <div
-                      className="relative h-36 w-full bg-cover bg-center"
-                      style={{ backgroundImage: `url(${g.cover})` }}
+                {section.items.map((g) => {
+                  const isConfigured = configuredKeys.has(`${g.provider}-${g.apiGameKey}`);
+                  return (
+                    <Card
+                      key={g.id}
+                      className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+                      onClick={() => onPick(g)}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                    </div>
-                    <div className="p-4">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <h3 className="font-semibold leading-tight">{g.title}</h3>
-                        <Badge variant="outline" className="text-[10px]">
-                          {g.providerLabel}
-                        </Badge>
+                      <div
+                        className="relative h-36 w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${g.cover})` }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                        {isConfigured && (
+                          <Badge className="absolute right-2 top-2 bg-emerald-500/85 text-emerald-50 hover:bg-emerald-500/85">
+                            <CheckCircle2 className="mr-1 h-3 w-3" /> Configured
+                          </Badge>
+                        )}
                       </div>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
-                    </div>
-                  </Card>
-                ))}
+                      <div className="p-4">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <h3 className="font-semibold leading-tight">{g.title}</h3>
+                          <Badge variant="outline" className="text-[10px]">
+                            {g.providerLabel}
+                          </Badge>
+                        </div>
+                        <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             </section>
           )
@@ -445,8 +461,13 @@ const GameModBrowser = ({
   const [installDir, setInstallDir] = useState<string | null>(null);
   const [installed, setInstalled] = useState<Record<string, { version: string; versionId: number }>>({});
   const [installingId, setInstallingId] = useState<number | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const storageKey = `${game.provider}-${game.apiGameKey}`;
+  const adapter = useMemo(
+    () => getAdapterOrFallback(storageKey, game.provider, game.apiGameKey, game.title),
+    [storageKey, game.provider, game.apiGameKey, game.title],
+  );
 
   const refreshInstalled = async () => {
     if (!isElectron || !window.rubix?.mods) return;
@@ -466,29 +487,21 @@ const GameModBrowser = ({
     setQuery("");
     setGameVersion("any");
     if (isElectron && window.rubix?.mods) {
-      window.rubix.mods.getFolder(storageKey).then((r) => setInstallDir(r.gameDataDir));
+      window.rubix.mods.getFolder(storageKey).then((r) => {
+        setInstallDir(r.gameDataDir);
+        // First-run setup: open the wizard automatically when the game has
+        // never been configured.
+        if (!r.gameDataDir) setWizardOpen(true);
+      });
       refreshInstalled();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
-  const pickFolder = async () => {
-    if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.pickFolder(
-      storageKey,
-      `Select ${game.title} ${game.folderLabel}`,
-      game.pickerMode,
-    );
-    if (r.ok && r.gameDataDir) {
-      setInstallDir(r.gameDataDir);
-      toast.success(`${game.folderLabel} set`, { description: r.gameDataDir });
-    }
-  };
-
   const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
     if (!window.rubix?.mods) return;
     if (!installDir) {
-      toast.error(`Pick your ${game.folderLabel} first`);
+      setWizardOpen(true);
       return;
     }
     setInstallingId(v.id);
@@ -499,8 +512,11 @@ const GameModBrowser = ({
       version: v.friendly_version,
       versionId: v.id,
       downloadUrl: v.download_path,
-      stripHint: game.stripHint,
-      installSubdir: expandSubdir(game.installSubdir, { name: mod.name, author: mod.author }),
+      stripHint: adapter.stripHint,
+      installSubdir: adapterExpandSubdir(adapter.installSubdir, {
+        name: mod.name,
+        author: mod.author,
+      }),
     });
     setInstallingId(null);
     if (r.ok) {
@@ -615,16 +631,21 @@ const GameModBrowser = ({
             <span className="text-sm">
               {installDir ? (
                 <>
-                  {game.folderLabel}:{" "}
+                  <Badge className="mr-2 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15">
+                    <CheckCircle2 className="mr-1 h-3 w-3" /> Configured
+                  </Badge>
+                  <span className="text-muted-foreground">{adapter.loaderLabel}:</span>{" "}
                   <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{installDir}</code>
                 </>
               ) : (
-                <span className="text-muted-foreground">No {game.folderLabel} set.</span>
+                <span className="text-muted-foreground">
+                  Not configured — run setup to install mods.
+                </span>
               )}
             </span>
             <div className="ml-auto flex gap-2">
-              <Button size="sm" variant="outline" onClick={pickFolder}>
-                {installDir ? "Change folder" : "Choose folder"}
+              <Button size="sm" variant="outline" onClick={() => setWizardOpen(true)}>
+                {installDir ? "Change directory" : "Run setup"}
               </Button>
               {installDir && (
                 <Button
@@ -641,10 +662,23 @@ const GameModBrowser = ({
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click install is available in the RUBIX desktop app. In the browser, downloads open
             on {game.providerLabel} and you'll need to extract the archive into your{" "}
-            <code>{game.folderLabel}</code> yourself.
+            <code>{adapter.folderLabel}</code> yourself.
           </div>
         )}
       </header>
+
+      <GameSetupWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        storageKey={storageKey}
+        provider={game.provider}
+        slug={game.apiGameKey}
+        title={game.title}
+        currentPath={installDir}
+        onConfigured={(p) => setInstallDir(p)}
+      />
+
+
 
       <div className="mb-6 flex flex-wrap gap-3">
         <form
@@ -955,11 +989,26 @@ const GameModBrowser = ({
 // ---------- Top-level page ----------
 const ModManager = () => {
   const [game, setGame] = useState<SupportedGame | null>(null);
+  const [configuredKeys, setConfiguredKeys] = useState<Set<string>>(new Set());
+
+  const refreshConfigured = async () => {
+    if (typeof window === "undefined" || !window.rubix?.mods?.listConfigured) {
+      setConfiguredKeys(new Set());
+      return;
+    }
+    const r = await window.rubix.mods.listConfigured();
+    if (r.ok) setConfiguredKeys(new Set(Object.keys(r.configured)));
+  };
 
   useEffect(() => {
     document.title = game
       ? `${game.title} mods — RUBIX Mod Manager`
       : "Mod Manager — RUBIX";
+  }, [game]);
+
+  // Refresh whenever we return to the picker so badges update after the wizard.
+  useEffect(() => {
+    if (!game) refreshConfigured();
   }, [game]);
 
   return (
@@ -969,7 +1018,7 @@ const ModManager = () => {
         {game ? (
           <GameModBrowser game={game} onBack={() => setGame(null)} />
         ) : (
-          <GamePicker onPick={setGame} />
+          <GamePicker onPick={setGame} configuredKeys={configuredKeys} />
         )}
       </main>
     </div>
