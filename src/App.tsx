@@ -30,6 +30,7 @@ import ClipViewer from "./pages/ClipViewer.tsx";
 import ClipsFeed from "./pages/ClipsFeed.tsx";
 import Passport from "./pages/Passport.tsx";
 import ModManager from "./pages/KspMods.tsx";
+import MinecraftManager from "./pages/MinecraftManager.tsx";
 import { UploadDock } from "./components/clips/UploadDock";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
@@ -140,6 +141,14 @@ const App = () => (
             element={
               <RequireRubixAuth>
                 <ModManager />
+              </RequireRubixAuth>
+            }
+          />
+          <Route
+            path="/mods/minecraft"
+            element={
+              <RequireRubixAuth>
+                <MinecraftManager />
               </RequireRubixAuth>
             }
           />
