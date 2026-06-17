@@ -1324,6 +1324,176 @@ ipcMain.handle("mods:open-folder", async (_evt, { gameKey }) => {
   return { ok: true };
 });
 
+// ---------- Mod adapter: auto-detect / validate / set / list-configured ----------
+const os = require("os");
+
+function expandPathHint(t) {
+  if (!t || typeof t !== "string") return "";
+  const home = os.homedir();
+  return t
+    .replace(/\{HOME\}/g, home)
+    .replace(/\{APPDATA\}/g, process.env.APPDATA || path.join(home, "AppData", "Roaming"))
+    .replace(/\{LOCALAPPDATA\}/g, process.env.LOCALAPPDATA || path.join(home, "AppData", "Local"))
+    .replace(/\{USERPROFILE\}/g, process.env.USERPROFILE || home)
+    .replace(/\{DOCUMENTS\}/g, app.getPath("documents"));
+}
+
+function validateGameDir(dir, signatureFiles) {
+  try {
+    if (!dir || !fs.existsSync(dir)) return { ok: false, reason: "Folder does not exist" };
+    if (!fs.statSync(dir).isDirectory()) return { ok: false, reason: "Not a directory" };
+    const sigs = Array.isArray(signatureFiles) ? signatureFiles : [];
+    if (sigs.length === 0) {
+      const items = fs.readdirSync(dir);
+      if (items.length === 0) return { ok: false, reason: "Folder is empty" };
+      return { ok: true, matched: null };
+    }
+    for (const sig of sigs) {
+      if (fs.existsSync(path.join(dir, sig))) return { ok: true, matched: sig };
+    }
+    // Permissive fallback: any executable-like file in the dir.
+    try {
+      const items = fs.readdirSync(dir);
+      if (items.some((n) => /\.(exe|app|x86_64|sh)$/i.test(n))) {
+        return { ok: true, matched: null };
+      }
+    } catch { /* ignore */ }
+    return { ok: false, reason: "No expected game files found in that folder" };
+  } catch (err) {
+    return { ok: false, reason: err?.message || String(err) };
+  }
+}
+
+ipcMain.handle("mods:validate-path", async (_evt, payload) => {
+  const { path: p, signatureFiles } = payload || {};
+  return validateGameDir(p, signatureFiles);
+});
+
+function getSteamRoots() {
+  const home = os.homedir();
+  if (process.platform === "win32") {
+    const roots = [
+      "C:\\Program Files (x86)\\Steam",
+      "C:\\Program Files\\Steam",
+      path.join(home, "AppData", "Local", "Steam"),
+    ];
+    if (process.env["ProgramFiles(x86)"]) {
+      roots.push(path.join(process.env["ProgramFiles(x86)"], "Steam"));
+    }
+    return roots;
+  }
+  if (process.platform === "darwin") {
+    return [path.join(home, "Library", "Application Support", "Steam")];
+  }
+  return [
+    path.join(home, ".steam", "steam"),
+    path.join(home, ".local", "share", "Steam"),
+    path.join(home, ".var", "app", "com.valvesoftware.Steam", "data", "Steam"),
+  ];
+}
+
+function findSteamLibraries() {
+  const libs = new Set();
+  for (const root of getSteamRoots()) {
+    try {
+      if (!fs.existsSync(root)) continue;
+      libs.add(root);
+      const lf = path.join(root, "steamapps", "libraryfolders.vdf");
+      if (!fs.existsSync(lf)) continue;
+      const text = fs.readFileSync(lf, "utf8");
+      const re = /"path"\s+"([^"]+)"/g;
+      let m;
+      while ((m = re.exec(text))) {
+        // Unescape the standard VDF backslashes.
+        libs.add(m[1].replace(/\\\\/g, "\\"));
+      }
+    } catch { /* ignore */ }
+  }
+  return Array.from(libs);
+}
+
+function findSteamGameInstallDir(appId) {
+  if (!appId) return null;
+  for (const lib of findSteamLibraries()) {
+    try {
+      const acf = path.join(lib, "steamapps", `appmanifest_${appId}.acf`);
+      if (!fs.existsSync(acf)) continue;
+      const text = fs.readFileSync(acf, "utf8");
+      const m = /"installdir"\s+"([^"]+)"/.exec(text);
+      if (!m) continue;
+      const full = path.join(lib, "steamapps", "common", m[1]);
+      if (fs.existsSync(full)) return full;
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
+ipcMain.handle("mods:auto-detect", async (_evt, adapter) => {
+  try {
+    const sigs = Array.isArray(adapter?.signatureFiles) ? adapter.signatureFiles : [];
+    const candidates = [];
+    const seen = new Set();
+    const push = (source, p, opts = {}) => {
+      if (!p) return;
+      const norm = path.resolve(p);
+      if (seen.has(norm)) return;
+      seen.add(norm);
+      const v = validateGameDir(norm, sigs);
+      candidates.push({
+        source,
+        path: norm,
+        valid: !!(opts.assumeValid || v.ok),
+        matched: v.matched || null,
+      });
+    };
+
+    if (adapter?.steamAppId) {
+      const dir = findSteamGameInstallDir(adapter.steamAppId);
+      if (dir) push("Steam", dir, { assumeValid: true });
+    }
+
+    if (Array.isArray(adapter?.userPathHints)) {
+      for (const hint of adapter.userPathHints) {
+        const p = expandPathHint(hint);
+        if (p && fs.existsSync(p)) push("Default location", p);
+      }
+    }
+
+    return { ok: true, candidates };
+  } catch (err) {
+    return { ok: false, candidates: [], error: err?.message || String(err) };
+  }
+});
+
+ipcMain.handle("mods:set-folder", async (_evt, { gameKey, path: p }) => {
+  if (!gameKey || !p || typeof p !== "string") {
+    return { ok: false, error: "gameKey and path are required" };
+  }
+  if (!fs.existsSync(p)) return { ok: false, error: "Folder does not exist" };
+  const cfg = readJson(configPath(), {});
+  cfg[gameKey] = { gameDataDir: p };
+  writeJson(configPath(), cfg);
+  return { ok: true, gameDataDir: p };
+});
+
+ipcMain.handle("mods:list-configured", async () => {
+  const cfg = readJson(configPath(), {});
+  const out = {};
+  for (const [k, v] of Object.entries(cfg)) {
+    if (v && typeof v === "object" && v.gameDataDir) out[k] = v.gameDataDir;
+  }
+  return { ok: true, configured: out };
+});
+
+ipcMain.handle("mods:remove-folder", async (_evt, { gameKey }) => {
+  const cfg = readJson(configPath(), {});
+  if (cfg[gameKey]) {
+    delete cfg[gameKey];
+    writeJson(configPath(), cfg);
+  }
+  return { ok: true };
+});
+
 app.whenReady().then(() => {
   try {
     const isMediaPermission = (permission) => {
