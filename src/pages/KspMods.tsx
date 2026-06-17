@@ -989,11 +989,26 @@ const GameModBrowser = ({
 // ---------- Top-level page ----------
 const ModManager = () => {
   const [game, setGame] = useState<SupportedGame | null>(null);
+  const [configuredKeys, setConfiguredKeys] = useState<Set<string>>(new Set());
+
+  const refreshConfigured = async () => {
+    if (typeof window === "undefined" || !window.rubix?.mods?.listConfigured) {
+      setConfiguredKeys(new Set());
+      return;
+    }
+    const r = await window.rubix.mods.listConfigured();
+    if (r.ok) setConfiguredKeys(new Set(Object.keys(r.configured)));
+  };
 
   useEffect(() => {
     document.title = game
       ? `${game.title} mods — RUBIX Mod Manager`
       : "Mod Manager — RUBIX";
+  }, [game]);
+
+  // Refresh whenever we return to the picker so badges update after the wizard.
+  useEffect(() => {
+    if (!game) refreshConfigured();
   }, [game]);
 
   return (
@@ -1003,6 +1018,14 @@ const ModManager = () => {
         {game ? (
           <GameModBrowser game={game} onBack={() => setGame(null)} />
         ) : (
+          <GamePicker onPick={setGame} configuredKeys={configuredKeys} />
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default ModManager;
           <GamePicker onPick={setGame} />
         )}
       </main>
