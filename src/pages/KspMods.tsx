@@ -743,7 +743,17 @@ const GameModBrowser = ({
             version: v.version,
             enabled: true,
           }))}
+          onRequestCreate={() => {
+            // First-run: redirect "New modpack" to the Setup Wizard until
+            // the game has a valid install directory configured.
+            if (isElectron && !installDir) {
+              setWizardOpen(true);
+              return true;
+            }
+            return false;
+          }}
         />
+
       </div>
 
       {error && (
