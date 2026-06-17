@@ -617,16 +617,21 @@ const GameModBrowser = ({
             <span className="text-sm">
               {installDir ? (
                 <>
-                  {game.folderLabel}:{" "}
+                  <Badge className="mr-2 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15">
+                    <CheckCircle2 className="mr-1 h-3 w-3" /> Configured
+                  </Badge>
+                  <span className="text-muted-foreground">{adapter.loaderLabel}:</span>{" "}
                   <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{installDir}</code>
                 </>
               ) : (
-                <span className="text-muted-foreground">No {game.folderLabel} set.</span>
+                <span className="text-muted-foreground">
+                  Not configured — run setup to install mods.
+                </span>
               )}
             </span>
             <div className="ml-auto flex gap-2">
-              <Button size="sm" variant="outline" onClick={pickFolder}>
-                {installDir ? "Change folder" : "Choose folder"}
+              <Button size="sm" variant="outline" onClick={() => setWizardOpen(true)}>
+                {installDir ? "Change directory" : "Run setup"}
               </Button>
               {installDir && (
                 <Button
@@ -643,10 +648,23 @@ const GameModBrowser = ({
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click install is available in the RUBIX desktop app. In the browser, downloads open
             on {game.providerLabel} and you'll need to extract the archive into your{" "}
-            <code>{game.folderLabel}</code> yourself.
+            <code>{adapter.folderLabel}</code> yourself.
           </div>
         )}
       </header>
+
+      <GameSetupWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        storageKey={storageKey}
+        provider={game.provider}
+        slug={game.apiGameKey}
+        title={game.title}
+        currentPath={installDir}
+        onConfigured={(p) => setInstallDir(p)}
+      />
+
+
 
       <div className="mb-6 flex flex-wrap gap-3">
         <form
