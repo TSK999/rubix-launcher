@@ -213,6 +213,26 @@ function makeModio(items: ModioEntry[]): SupportedGame[] {
   }));
 }
 
+type CfEntry = { slug: string; title: string; steamId: string; blurb: string; subdir?: string };
+function makeCurseforge(items: CfEntry[]): SupportedGame[] {
+  return items.map((it) => ({
+    id: it.slug,
+    title: it.title,
+    blurb: it.blurb,
+    provider: "curseforge",
+    providerLabel: "CurseForge",
+    apiGameKey: it.slug,
+    cover: it.steamId
+      ? `https://cdn.akamai.steamstatic.com/steam/apps/${it.steamId}/header.jpg`
+      : "",
+    status: "live",
+    pickerMode: "root",
+    folderLabel: "Game install folder",
+    stripHint: "",
+    installSubdir: it.subdir ?? "mods/{name}",
+  }));
+}
+
 // ---------- Normalized API types ----------
 type ModSummary = {
   id: string | number;
