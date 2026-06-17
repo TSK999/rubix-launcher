@@ -384,6 +384,152 @@ async function modioMod(gameKey: string, id: string): Promise<ModDetail | null> 
 }
 
 
+// ---------- CurseForge ----------
+const CF_KEY = Deno.env.get("CURSEFORGE_API_KEY") ?? "";
+const CF_BASE = "https://api.curseforge.com/v1";
+
+// Known CurseForge game IDs (gameId is required by every endpoint).
+// Anything not listed is resolved dynamically via /games?gameId=slug match.
+const CURSEFORGE_GAME_IDS: Record<string, number> = {
+  minecraft: 432,
+  "sims-4": 78,
+  sims4: 78,
+  "stardew-valley": 669,
+  stardewvalley: 669,
+  wow: 1,
+  "world-of-warcraft": 1,
+  "wow-classic": 1,
+  rimworld: 1149,
+  terraria: 431,
+  kerbal: 4401,
+  factorio: 432, // placeholder; factorio is 432 -- removed
+};
+delete (CURSEFORGE_GAME_IDS as any).factorio;
+
+const cfGameIdCache = new Map<string, number>();
+
+async function resolveCurseforgeGameId(game: string): Promise<number> {
+  const key = game.trim().toLowerCase();
+  if (/^\d+$/.test(key)) return parseInt(key, 10);
+  if (CURSEFORGE_GAME_IDS[key]) return CURSEFORGE_GAME_IDS[key];
+  const cached = cfGameIdCache.get(key);
+  if (cached) return cached;
+  if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
+  const r = await fetch(`${CF_BASE}/games?pageSize=50`, {
+    headers: { Accept: "application/json", "x-api-key": CF_KEY },
+  });
+  if (!r.ok) throw new Error(`CurseForge games HTTP ${r.status}`);
+  const j: any = await r.json();
+  const match = (j?.data ?? []).find((g: any) => {
+    const slug = String(g.slug ?? "").toLowerCase();
+    const name = String(g.name ?? "").toLowerCase().replace(/\s+/g, "-");
+    return slug === key || name === key;
+  });
+  if (!match) throw new Error(`CurseForge game not found: ${game}`);
+  cfGameIdCache.set(key, match.id);
+  return match.id;
+}
+
+function cfToSummary(m: any): ModSummary {
+  const latest = (m.latestFiles ?? [])[0];
+  const ver: Version[] = latest
+    ? [
+        {
+          friendly_version: latest.displayName ?? latest.fileName ?? "latest",
+          game_version: (latest.gameVersions ?? [])[0] ?? "",
+          id: latest.id,
+          created: latest.fileDate ?? new Date().toISOString(),
+          download_path: latest.downloadUrl ?? "",
+          changelog: "",
+          downloads: latest.downloadCount ?? 0,
+        },
+      ]
+    : [];
+  const logo = m.logo?.thumbnailUrl || m.logo?.url || null;
+  return {
+    id: m.id,
+    name: m.name ?? "",
+    short_description: m.summary ?? "",
+    author: (m.authors ?? [])[0]?.name ?? "",
+    downloads: m.downloadCount ?? 0,
+    followers: m.thumbsUpCount ?? 0,
+    background: logo,
+    license: "",
+    website: m.links?.websiteUrl ?? null,
+    source_code: m.links?.sourceUrl ?? null,
+    url: m.links?.websiteUrl ?? `https://www.curseforge.com/`,
+    versions: ver,
+  };
+}
+
+async function curseforgeBrowse(gameKey: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
+  if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
+  const gameId = await resolveCurseforgeGameId(gameKey);
+  // sortField: 1=Featured, 2=Popularity, 3=LastUpdated, 4=Name, 6=TotalDownloads
+  const sortField =
+    sort === "downloads" ? 6 :
+    sort === "updated" ? 3 :
+    sort === "name" ? 4 : 2;
+  const sortOrder = sort === "name" ? "asc" : "desc";
+  const params = new URLSearchParams({
+    gameId: String(gameId),
+    pageSize: String(count),
+    index: String((page - 1) * count),
+    sortField: String(sortField),
+    sortOrder,
+  });
+  if (q && q.trim()) params.set("searchFilter", q.trim());
+  const r = await fetch(`${CF_BASE}/mods/search?${params}`, {
+    headers: { Accept: "application/json", "x-api-key": CF_KEY },
+  });
+  if (!r.ok) throw new Error(`CurseForge HTTP ${r.status}`);
+  const j: any = await r.json();
+  const total = j?.pagination?.totalCount ?? (j?.data?.length ?? 0);
+  return {
+    total,
+    count: (j.data ?? []).length,
+    pages: Math.max(1, Math.ceil(total / count)),
+    page,
+    result: (j.data ?? []).map(cfToSummary),
+  };
+}
+
+async function curseforgeMod(_gameKey: string, id: string): Promise<ModDetail | null> {
+  if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
+  const r = await fetch(`${CF_BASE}/mods/${encodeURIComponent(id)}`, {
+    headers: { Accept: "application/json", "x-api-key": CF_KEY },
+  });
+  if (!r.ok) return null;
+  const j: any = await r.json();
+  const m = j?.data;
+  if (!m) return null;
+  // Pull full file list for richer version selection.
+  let versions = cfToSummary(m).versions;
+  try {
+    const fr = await fetch(`${CF_BASE}/mods/${m.id}/files?pageSize=20&index=0`, {
+      headers: { Accept: "application/json", "x-api-key": CF_KEY },
+    });
+    if (fr.ok) {
+      const fj: any = await fr.json();
+      versions = (fj?.data ?? []).map((f: any) => ({
+        friendly_version: f.displayName ?? f.fileName ?? "file",
+        game_version: (f.gameVersions ?? [])[0] ?? "",
+        id: f.id,
+        created: f.fileDate ?? new Date().toISOString(),
+        download_path: f.downloadUrl ?? "",
+        changelog: "",
+        downloads: f.downloadCount ?? 0,
+      }));
+    }
+  } catch (_e) { /* ignore, keep latest */ }
+  const s = cfToSummary(m);
+  return {
+    ...s,
+    versions,
+    description: m.summary ?? "",
+  };
+}
+
 // ---------- HTTP entrypoint ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
