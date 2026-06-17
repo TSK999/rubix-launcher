@@ -311,7 +311,13 @@ const sidebarProps = {
 };
 
 // ---------- Game picker ----------
-const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
+const GamePicker = ({
+  onPick,
+  configuredKeys,
+}: {
+  onPick: (g: SupportedGame) => void;
+  configuredKeys: Set<string>;
+}) => {
   const [search, setSearch] = useState("");
 
   const grouped = useMemo(() => {
