@@ -317,6 +317,7 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
       spacedock: [],
       thunderstore: [],
       modio: [],
+      curseforge: [],
     };
     SUPPORTED_GAMES.forEach((g) => by[g.provider].push(g));
     return by;
@@ -337,6 +338,7 @@ const GamePicker = ({ onPick }: { onPick: (g: SupportedGame) => void }) => {
     { provider: "spacedock", label: "SpaceDock (KSP)", items: filterGames(grouped.spacedock) },
     { provider: "thunderstore", label: "Thunderstore (BepInEx games)", items: filterGames(grouped.thunderstore) },
     { provider: "modio", label: "Mod.io", items: filterGames(grouped.modio) },
+    { provider: "curseforge", label: "CurseForge", items: filterGames(grouped.curseforge) },
   ];
 
   const totalFiltered = sections.reduce((sum, s) => sum + s.items.length, 0);
