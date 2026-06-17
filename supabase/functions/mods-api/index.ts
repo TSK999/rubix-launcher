@@ -555,6 +555,9 @@ Deno.serve(async (req) => {
     } else if (provider === "modio") {
       if (!game) throw new Error("Mod.io game id required");
       body = action === "mod" ? await modioMod(game, id) : await modioBrowse(game, q, page, count, sort);
+    } else if (provider === "curseforge") {
+      if (!game) throw new Error("CurseForge game key required");
+      body = action === "mod" ? await curseforgeMod(game, id) : await curseforgeBrowse(game, q, page, count, sort);
     } else {
       return new Response(JSON.stringify({ error: `unknown provider: ${provider}` }), {
         status: 400,
