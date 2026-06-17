@@ -392,29 +392,37 @@ const GamePicker = ({
                 {section.label}
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {section.items.map((g) => (
-                  <Card
-                    key={g.id}
-                    className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
-                    onClick={() => onPick(g)}
-                  >
-                    <div
-                      className="relative h-36 w-full bg-cover bg-center"
-                      style={{ backgroundImage: `url(${g.cover})` }}
+                {section.items.map((g) => {
+                  const isConfigured = configuredKeys.has(`${g.provider}-${g.apiGameKey}`);
+                  return (
+                    <Card
+                      key={g.id}
+                      className="group cursor-pointer overflow-hidden transition-colors hover:border-primary/60"
+                      onClick={() => onPick(g)}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-                    </div>
-                    <div className="p-4">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <h3 className="font-semibold leading-tight">{g.title}</h3>
-                        <Badge variant="outline" className="text-[10px]">
-                          {g.providerLabel}
-                        </Badge>
+                      <div
+                        className="relative h-36 w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${g.cover})` }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                        {isConfigured && (
+                          <Badge className="absolute right-2 top-2 bg-emerald-500/85 text-emerald-50 hover:bg-emerald-500/85">
+                            <CheckCircle2 className="mr-1 h-3 w-3" /> Configured
+                          </Badge>
+                        )}
                       </div>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
-                    </div>
-                  </Card>
-                ))}
+                      <div className="p-4">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <h3 className="font-semibold leading-tight">{g.title}</h3>
+                          <Badge variant="outline" className="text-[10px]">
+                            {g.providerLabel}
+                          </Badge>
+                        </div>
+                        <p className="line-clamp-2 text-xs text-muted-foreground">{g.blurb}</p>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             </section>
           )
