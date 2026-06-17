@@ -447,8 +447,13 @@ const GameModBrowser = ({
   const [installDir, setInstallDir] = useState<string | null>(null);
   const [installed, setInstalled] = useState<Record<string, { version: string; versionId: number }>>({});
   const [installingId, setInstallingId] = useState<number | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const storageKey = `${game.provider}-${game.apiGameKey}`;
+  const adapter = useMemo(
+    () => getAdapterOrFallback(storageKey, game.provider, game.apiGameKey, game.title),
+    [storageKey, game.provider, game.apiGameKey, game.title],
+  );
 
   const refreshInstalled = async () => {
     if (!isElectron || !window.rubix?.mods) return;
@@ -468,29 +473,21 @@ const GameModBrowser = ({
     setQuery("");
     setGameVersion("any");
     if (isElectron && window.rubix?.mods) {
-      window.rubix.mods.getFolder(storageKey).then((r) => setInstallDir(r.gameDataDir));
+      window.rubix.mods.getFolder(storageKey).then((r) => {
+        setInstallDir(r.gameDataDir);
+        // First-run setup: open the wizard automatically when the game has
+        // never been configured.
+        if (!r.gameDataDir) setWizardOpen(true);
+      });
       refreshInstalled();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
-  const pickFolder = async () => {
-    if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.pickFolder(
-      storageKey,
-      `Select ${game.title} ${game.folderLabel}`,
-      game.pickerMode,
-    );
-    if (r.ok && r.gameDataDir) {
-      setInstallDir(r.gameDataDir);
-      toast.success(`${game.folderLabel} set`, { description: r.gameDataDir });
-    }
-  };
-
   const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
     if (!window.rubix?.mods) return;
     if (!installDir) {
-      toast.error(`Pick your ${game.folderLabel} first`);
+      setWizardOpen(true);
       return;
     }
     setInstallingId(v.id);
@@ -501,8 +498,11 @@ const GameModBrowser = ({
       version: v.friendly_version,
       versionId: v.id,
       downloadUrl: v.download_path,
-      stripHint: game.stripHint,
-      installSubdir: expandSubdir(game.installSubdir, { name: mod.name, author: mod.author }),
+      stripHint: adapter.stripHint,
+      installSubdir: adapterExpandSubdir(adapter.installSubdir, {
+        name: mod.name,
+        author: mod.author,
+      }),
     });
     setInstallingId(null);
     if (r.ok) {
