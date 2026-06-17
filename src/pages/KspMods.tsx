@@ -1018,7 +1018,17 @@ const ModManager = () => {
         {game ? (
           <GameModBrowser game={game} onBack={() => setGame(null)} />
         ) : (
-          <GamePicker onPick={setGame} configuredKeys={configuredKeys} />
+          <GamePicker
+            onPick={(g) => {
+              // Minecraft uses a dedicated mini-launcher, not the generic adapter flow.
+              if (g.id === "minecraft" || g.apiGameKey === "minecraft") {
+                window.location.assign(window.location.pathname.includes("#") ? "#/mods/minecraft" : "/mods/minecraft");
+                return;
+              }
+              setGame(g);
+            }}
+            configuredKeys={configuredKeys}
+          />
         )}
       </main>
     </div>

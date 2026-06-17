@@ -269,6 +269,25 @@ declare global {
         ) => Promise<{ ok: boolean; removed?: number; error?: string }>;
         openFolder: (gameKey: string) => Promise<{ ok: boolean; error?: string }>;
       };
+      minecraft: {
+        env: () => Promise<{ ok: boolean; root?: string; java?: { ok: boolean; version?: string; path?: string; error?: string } }>;
+        listInstances: () => Promise<{ ok: boolean; instances: any[]; error?: string }>;
+        getInstance: (name: string) => Promise<{ ok: boolean; instance?: any; installed?: Record<string, any>; error?: string }>;
+        createInstance: (p: { name: string; mcVersion: string; loader: string; loaderVersion: string }) => Promise<{ ok: boolean; instance?: any; error?: string }>;
+        renameInstance: (from: string, to: string) => Promise<{ ok: boolean; error?: string }>;
+        duplicateInstance: (name: string, newName: string) => Promise<{ ok: boolean; error?: string }>;
+        deleteInstance: (name: string) => Promise<{ ok: boolean; error?: string }>;
+        openInstanceFolder: (name: string) => Promise<{ ok: boolean; error?: string }>;
+        updateInstance: (name: string, patch: Record<string, unknown>) => Promise<{ ok: boolean; instance?: any; error?: string }>;
+        installMod: (p: {
+          instance: string; projectId: number; fileId: number; fileName: string;
+          name: string; downloadUrl: string; dependencies?: number[];
+        }) => Promise<{ ok: boolean; error?: string }>;
+        uninstallMod: (instance: string, projectId: number) => Promise<{ ok: boolean; error?: string }>;
+        toggleMod: (instance: string, projectId: number, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+        importModpack: (instanceName?: string) => Promise<{ ok: boolean; canceled?: boolean; error?: string; instance?: string; mcVersion?: string; loader?: string; loaderVersion?: string; files?: Array<{ projectID: number; fileID: number; required: boolean }> }>;
+        launch: (name: string) => Promise<{ ok: boolean; error?: string; launched?: string; gameDir?: string; openedFolder?: boolean }>;
+      };
     };
   }
 }

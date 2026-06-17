@@ -8,6 +8,7 @@ const ffmpegManager = require("./clipping/ffmpeg-manager.cjs");
 const encoderDetect = require("./clipping/encoder-detect.cjs");
 const replayBuffer = require("./clipping/replay-buffer.cjs");
 const clipExport = require("./clipping/clip-export.cjs");
+require("./minecraft.cjs");
 
 // Keep desktop capture available for the recorder on Chromium/Electron builds
 // that still honor the legacy chromeMediaSource path. Modern builds use the

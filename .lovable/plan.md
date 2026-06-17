@@ -1,90 +1,127 @@
-# Modpacks & Mod Detection Plan
+# Minecraft Integration for RUBIX Mod Manager
 
-A sizeable feature spanning DB, edge functions, and UI. Breaking it into clear phases.
+A dedicated mini-launcher (Prism/CurseForge-style) inside RUBIX. Completely bypasses the generic game adapter system.
 
-## 1. Database (new tables)
+## Scope
+
+Minecraft becomes its own route/page with: instance manager, loader installer (Fabric / Forge / NeoForge / Quilt / Vanilla), CurseForge mod browser+installer with dependency resolution, modpack `.zip` import, and an Electron-backed Java launcher.
+
+## Architecture
 
 ```text
-modpacks
-  id uuid pk, user_id uuid, game_slug text, name text,
-  description text, share_code text unique (8-char), is_public bool,
-  download_count int, created_at, updated_at
-
-modpack_mods
-  id uuid pk, modpack_id uuid fk, mod_source text ('modio'|'nexus'|'curseforge'|...),
-  mod_id text, mod_name text, version text, enabled bool, position int
-
-installed_mods  (per user, per game — tracked client/desktop side, mirrored here for cross-device)
-  id uuid pk, user_id uuid, game_slug text, mod_source text, mod_id text,
-  mod_name text, version text, install_path text, installed_at
-
-game_launch_prefs
-  user_id uuid, game_id uuid, last_mode text ('vanilla'|'modded'),
-  active_modpack_id uuid null, updated_at
-  pk(user_id, game_id)
+src/pages/MinecraftManager.tsx        ← mini-launcher UI (replaces Minecraft card in KspMods)
+src/components/minecraft/
+  CreateInstanceWizard.tsx            ← 4-step wizard
+  ImportInstanceDialog.tsx
+  ImportModpackDialog.tsx
+  InstanceCard.tsx, InstanceList.tsx
+  InstanceDetail.tsx                  ← tabs: Mods / Resource Packs / Worlds / Screenshots / Settings
+  MinecraftModBrowser.tsx             ← CurseForge browse + 1-click install
+  InstalledModsList.tsx               ← enable/disable/uninstall/update
+src/lib/minecraft/
+  versions.ts        ← Mojang version manifest fetcher
+  loaders.ts         ← Fabric/Forge/NeoForge/Quilt metadata APIs
+  curseforge-mc.ts   ← CF Minecraft search + file resolution + dep graph
+  instances.ts       ← client-side instance registry (via Electron IPC)
+  modpack.ts         ← CF modpack manifest.json parser
+electron/minecraft.cjs   ← required; loaded by electron/main.cjs
+electron/main.cjs        ← wire new IPC channels
+electron/preload.cjs     ← expose window.rubix.minecraft.*
+src/types/electron.d.ts  ← types for new bridge
+supabase/functions/mods-api/index.ts  ← add minecraft-specific CF endpoints
 ```
 
-Each table: GRANT to authenticated + service_role, RLS so users only see/edit their own rows; modpacks readable by anyone when `is_public=true` OR matched by share_code via RPC.
+## First-time setup (no instances exist)
 
-RPC `redeem_modpack_code(_code text)` — security definer, looks up by share_code, copies modpack + mods into caller's account, increments download_count.
+Empty state with two CTAs: **Create Instance** and **Import Existing Instance**.
 
-## 2. Mod detection
+### Create Instance wizard
 
-- Desktop app: scan known mod directories per game (KSP `GameData/`, Minecraft `mods/`, etc.). For browser-only users, detection is unavailable — show "Open RUBIX desktop to detect installed mods".
-- Add IPC `electron.detectMods(gameSlug, installPath)` that returns a list; sync results into `installed_mods` table on launch.
-- Match installed mods to launcher games by `game_slug` (already on games supported by mod manager).
+1. **Minecraft version** — searchable list from `https://piston-meta.mojang.com/mc/game/version_manifest_v2.json` (releases first, snapshots toggle).
+2. **Loader** — Fabric / Forge / NeoForge / Quilt / Vanilla. Loader versions fetched live, latest stable preselected:
+   - Fabric: `https://meta.fabricmc.net/v2/versions/loader/{mc}`
+   - Forge: `https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json`
+   - NeoForge: `https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge`
+   - Quilt: `https://meta.quiltmc.org/v3/versions/loader/{mc}`
+3. **Instance name** — defaulted to `{Loader} {mc}`, validated unique.
+4. **Create** — Electron does the heavy lifting (see below).
 
-## 3. Game Detail — new "Mods" tab
+### Electron `minecraft:create-instance`
 
-In `src/components/GameDetail.tsx`, add a `Mods` tab next to Shots/Clips, visible only when the game's slug is supported by the mod manager. Tab contents:
+- Verify Java: probe `java -version`; if missing, show download guidance (Adoptium link) and abort.
+- Resolve version JSON from Mojang, download client jar, libraries, asset index → `~/.rubix/minecraft/shared/` (shared cache across instances).
+- Install loader by invoking its installer jar headlessly (Fabric/Quilt have JSON profiles; Forge/NeoForge run their installer with `--installClient`).
+- Create folder `~/.rubix/minecraft/instances/{name}/` with `mods/ config/ resourcepacks/ saves/ screenshots/`.
+- Write `instance.json` with `{ name, mcVersion, loader, loaderVersion, createdAt, lastPlayed, javaPath }`.
+- Register in `~/.rubix/minecraft/instances.json` registry.
 
-- **Installed mods** list (from `installed_mods` for this user+game).
-- **Launch mode toggle**: Vanilla / Modded.
-- **Modpack picker** (when Modded): dropdown of user's modpacks for this game + "Create modpack" + "Redeem code".
-- Launch button calls existing `onLaunch` but passes the chosen mode/modpack via a new `launchOptions` param (extend `Game` launch flow to apply modpack before starting).
+## Instance management
 
-## 4. Modpack management UI
+`InstanceList` shows cards with name, MC version, loader badge, installed mod count, on-disk size, last played, **Launch** button, and a `⋯` menu: Duplicate / Rename / Delete / Export / Open Folder.
 
-New component `ModpackManager` shown:
-- inside the GameDetail Mods tab (compact list)
-- inside `src/pages/KspMods.tsx` (and each supported game's mod page) as a full section
+- **Duplicate**: copy folder + new entry.
+- **Rename**: rename folder + update registry.
+- **Delete**: confirm dialog → recursive rm.
+- **Export**: zip instance dir → save dialog.
+- **Import**: zip → unzip into instances + register.
 
-Features:
-- Create modpack from currently installed mods (or empty + add from browse).
-- Edit name/description, toggle public.
-- Show **share code** with copy button; "Redeem code" input to import others' packs.
-- Delete modpack.
+Remember last-used instance in `localStorage` key `rubix:mc:last-instance`.
 
-## 5. Mod Manager browse: sorting
+## Mod installation (CurseForge)
 
-In `KspMods.tsx` browse list, add a sort dropdown with options:
-- Most popular (default)
-- Most downloads
-- Recently updated
-- Name (A–Z)
+CF Minecraft = `gameId=432`. Browser tab uses existing `mods-api` `curseforge` provider, plus two new endpoints:
 
-Wire to `mods-api` edge function: accept `sort` query param, map to source-specific sort (mod.io `popular`/`downloads`, etc.).
+- `curseforge-mc-files?modId=&mcVersion=&loader=` → CF `/mods/{id}/files` filtered by `gameVersions` containing both the MC version and loader name (Fabric/Forge/NeoForge/Quilt).
+- `curseforge-mc-resolve` → walks `dependencies[]` (relationType 3 = required) recursively, returns ordered install list.
 
-## 6. Edge function updates
+Install flow per mod:
+1. Resolve best file for current instance (mcVersion + loader).
+2. If none → toast `"{Mod} requires {loader} {mcVersion}"` and abort (no install).
+3. Recursively collect required deps, dedup against already-installed.
+4. Sequentially download each `downloadUrl` to `instances/{name}/mods/{filename}`.
+5. Append to instance `installed-mods.json` with `{ projectId, fileId, filename, name, version, dependencies }`.
 
-- `mods-api`: add `?sort=` handling.
-- New `modpacks-api` function (optional, can use direct Supabase client from frontend since RLS covers it). Use RPC for code redemption.
+### Installed mods list (per instance)
 
-## 7. Files touched
+- Enable/Disable → rename `.jar` ↔ `.jar.disabled`.
+- Uninstall → delete file + registry entry; warn if other mods depend on it.
+- **Update All** → for each mod, query CF latest file matching instance; show update count badge; bulk apply.
 
-- New: `supabase/migrations/<ts>_modpacks.sql`
-- New: `src/lib/modpacks.ts` (client helpers)
-- New: `src/components/mods/ModpackManager.tsx`
-- New: `src/components/mods/InstalledModsList.tsx`
-- New: `src/components/mods/LaunchModeSelector.tsx`
-- Edit: `src/components/GameDetail.tsx` (new tab)
-- Edit: `src/pages/KspMods.tsx` (sort + modpack section)
-- Edit: `supabase/functions/mods-api/index.ts` (sort param)
-- Edit: `electron/main.cjs` + `electron/preload.cjs` + `src/types/electron.d.ts` (detectMods IPC)
-- Edit: `src/lib/game-types.ts` if launch options need typing
+## Modpack import
 
-## Open questions
+`Import CurseForge Modpack (.zip)`:
+1. Unzip, read `manifest.json` (`minecraft.version`, `minecraft.modLoaders[].id` like `fabric-0.15.11`, `files[]` with `projectID`+`fileID`+`required`).
+2. Create instance with those MC+loader values.
+3. For each file, fetch CF download URL via `/mods/{projectID}/files/{fileID}` and download to `mods/`.
+4. Copy `overrides/` into instance root.
+5. Register instance, open detail view.
 
-1. Should modpack sharing also bundle the actual mod files, or only the list of mod IDs/versions (recipient re-downloads from source)? List-only is simpler and legal; bundling files raises licensing issues. **Recommended: list-only.**
-2. For browser users (no desktop app), should the Mods tab still appear (read-only, can build modpacks but can't launch)? **Recommended: yes, show with a "desktop required to apply" banner.**
-3. Sort options — keep the four above, or only the two you mentioned (Most popular / Most downloads)?
+## Launching
+
+Launch button → Electron `minecraft:launch`:
+- Build classpath from version JSON libraries + loader libraries + client jar.
+- Resolve main class from loader profile (e.g. `net.fabricmc.loader.impl.launch.knot.KnotClient`).
+- Spawn `java -Xmx{ram}M -cp ... {mainClass} --username Player --version {name} --gameDir {instanceDir} --assetsDir ... --accessToken 0`.
+- Stream stdout/stderr to a log panel (offline mode only — no Mojang auth in v1).
+- Update `lastPlayed` on exit.
+
+Settings tab per instance: RAM slider (default 2048 MB), custom Java path, JVM args, version/loader info (read-only).
+
+## Web-mode fallback
+
+Outside Electron the page renders an empty state: "Open RUBIX desktop to manage Minecraft instances." All bridge calls are guarded by `window.rubix?.isElectron`.
+
+## Out of scope (v1)
+
+- Mojang/Microsoft authentication (offline launch only; documented in Settings).
+- Modrinth (CF only this pass; clean seam for later).
+- Shader pack manager (resource packs only).
+- Server-side launching.
+
+## Files touched
+
+**Create**: `src/pages/MinecraftManager.tsx`, 8 components under `src/components/minecraft/`, 5 libs under `src/lib/minecraft/`, `electron/minecraft.cjs`.
+
+**Edit**: `electron/main.cjs` (require + register IPC), `electron/preload.cjs` (expose `rubix.minecraft`), `src/types/electron.d.ts`, `src/App.tsx` (route `/mods/minecraft`), `src/pages/KspMods.tsx` (Minecraft card → navigates to dedicated page instead of generic wizard), `supabase/functions/mods-api/index.ts` (mc-specific CF endpoints).
+
+Approve to build.
