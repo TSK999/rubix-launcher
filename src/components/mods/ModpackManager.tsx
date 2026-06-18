@@ -169,7 +169,13 @@ export function ModpackManager({ gameSlug, gameTitle, installedMods, compact, on
           <Button size="sm" variant="outline" onClick={() => setRedeemOpen(true)}>
             <Download className="mr-1 h-3.5 w-3.5" /> Redeem code
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (onRequestCreate && onRequestCreate() === true) return;
+              setCreateOpen(true);
+            }}
+          >
             <Plus className="mr-1 h-3.5 w-3.5" /> New modpack
           </Button>
         </div>
