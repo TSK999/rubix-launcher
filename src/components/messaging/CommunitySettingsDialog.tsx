@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   deleteCommunity,
+  fetchCommunityInviteCode,
   getCommunity,
   leaveCommunity,
   regenerateInviteCode,
@@ -35,6 +36,7 @@ export const CommunitySettingsDialog = ({
   onLeft,
 }: Props) => {
   const [community, setCommunity] = useState<Community | null>(null);
+  const [inviteCode, setInviteCode] = useState<string>("");
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +48,12 @@ export const CommunitySettingsDialog = ({
       setName(c?.name ?? "");
       setIcon(c?.icon_url ?? "");
     });
-  }, [open, communityId]);
+    if (isAdmin) {
+      void fetchCommunityInviteCode(communityId).then((code) => setInviteCode(code ?? ""));
+    } else {
+      setInviteCode("");
+    }
+  }, [open, communityId, isAdmin]);
 
   const save = async () => {
     setBusy(true);
@@ -65,7 +72,7 @@ export const CommunitySettingsDialog = ({
     setBusy(true);
     try {
       const code = await regenerateInviteCode(communityId);
-      setCommunity((c) => (c ? { ...c, invite_code: code } : c));
+      setInviteCode(code);
       toast.success("New invite code generated");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -75,8 +82,8 @@ export const CommunitySettingsDialog = ({
   };
 
   const copy = async () => {
-    if (!community) return;
-    await navigator.clipboard.writeText(community.invite_code);
+    if (!inviteCode) return;
+    await navigator.clipboard.writeText(inviteCode);
     toast.success("Copied");
   };
 
@@ -122,20 +129,20 @@ export const CommunitySettingsDialog = ({
               <Label className="text-xs">Icon URL</Label>
               <Input value={icon} onChange={(e) => setIcon(e.target.value)} disabled={!isAdmin} />
             </div>
-            <div>
-              <Label className="text-xs">Invite code</Label>
-              <div className="flex gap-2">
-                <Input value={community.invite_code} readOnly className="font-mono" />
-                <Button size="icon" variant="outline" onClick={copy}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-                {isAdmin && (
+            {isAdmin && (
+              <div>
+                <Label className="text-xs">Invite code</Label>
+                <div className="flex gap-2">
+                  <Input value={inviteCode} readOnly className="font-mono" />
+                  <Button size="icon" variant="outline" onClick={copy} disabled={!inviteCode}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="outline" onClick={regen} disabled={busy}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
             {isAdmin && (
               <Button onClick={save} disabled={busy} className="w-full">
                 Save changes
