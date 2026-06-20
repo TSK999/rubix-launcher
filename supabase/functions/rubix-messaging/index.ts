@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
         .in("conversation_id", convIds);
 
       const allUserIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id)));
-      const { data: profs } = await admin()
+      const { data: profs } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", allUserIds);
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
         .eq("conversation_id", cid);
       if (error) return json({ error: error.message }, 400);
       const ids = (data ?? []).map((r: any) => r.user_id);
-      const { data: profs } = await admin()
+      const { data: profs } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", ids);
@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("community_id", cid);
       const memberIds = (members ?? []).map((r: any) => r.user_id);
-      const { data: profs } = await admin()
+      const { data: profs } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", memberIds);
@@ -655,7 +655,7 @@ Deno.serve(async (req) => {
         .eq("call_id", session.id)
         .is("left_at", null);
       const ids = (parts ?? []).map((p: any) => p.user_id);
-      const { data: profs } = await admin()
+      const { data: profs } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", ids);
@@ -740,7 +740,7 @@ Deno.serve(async (req) => {
         .eq("status", "accepted");
       if (error) return json({ error: error.message }, 400);
       const otherIds = (rows ?? []).map((r: any) => (r.user_a === userId ? r.user_b : r.user_a));
-      const { data: profs } = await admin()
+      const { data: profs } = await client
         .from("profiles")
         .select(PROFILE_COLS)
         .in("user_id", otherIds);
