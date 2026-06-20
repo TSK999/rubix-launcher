@@ -1799,6 +1799,10 @@ export type Database = {
         Returns: boolean
       }
       channel_community: { Args: { _chid: string }; Returns: string }
+      claim_passport_stamp: {
+        Args: { _game_key?: string; _stamp_id: string }
+        Returns: boolean
+      }
       community_role_of: {
         Args: { _cid: string; _uid: string }
         Returns: Database["public"]["Enums"]["community_role"]
@@ -1807,6 +1811,7 @@ export type Database = {
         Args: { _icon_url?: string; _name: string }
         Returns: string
       }
+      create_order: { Args: { _game_id: string }; Returns: string }
       event_community: { Args: { _eid: string }; Returns: string }
       gen_clip_slug: { Args: never; Returns: string }
       gen_invite_code: { Args: never; Returns: string }
