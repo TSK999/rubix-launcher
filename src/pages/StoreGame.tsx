@@ -118,12 +118,7 @@ const StoreGame = () => {
   const handleBuy = async () => {
     if (!user || !game) return;
     setBuying(true);
-    const { error } = await supabase.from("orders").insert({
-      user_id: user.id,
-      game_id: game.id,
-      price_cents: game.price_cents,
-      status: "completed",
-    });
+    const { error } = await supabase.rpc("create_order", { _game_id: game.id });
     setBuying(false);
     if (error) {
       toast.error("Purchase failed", { description: error.message });
