@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
       if (ids.length === 0) return json({ communities: [] });
       const { data: comms } = await client
         .from("communities")
-        .select("*")
+        .select("id, name, icon_url, banner_url, owner_id, created_at, updated_at")
         .in("id", ids);
       const { data: counts } = await admin()
         .from("community_members")
@@ -468,7 +468,7 @@ Deno.serve(async (req) => {
       const cid = m[1];
       const { data: comm, error } = await client
         .from("communities")
-        .select("*")
+        .select("id, name, icon_url, banner_url, owner_id, created_at, updated_at")
         .eq("id", cid)
         .maybeSingle();
       if (error) return json({ error: error.message }, 400);
