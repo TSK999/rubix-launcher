@@ -7,10 +7,13 @@ export type Community = {
   icon_url: string | null;
   banner_url: string | null;
   owner_id: string;
-  invite_code: string;
+  /** Only readable by community admins/owners via fetchCommunityInviteCode(). */
+  invite_code?: string;
   created_at: string;
   updated_at: string;
 };
+
+const COMMUNITY_COLS = "id, name, icon_url, banner_url, owner_id, created_at, updated_at";
 
 export type CommunityRole = "owner" | "admin" | "member";
 
@@ -54,15 +57,22 @@ export const listMyCommunities = async (): Promise<Community[]> => {
   if (ids.length === 0) return [];
   const { data } = await supabase
     .from("communities")
-    .select("*")
+    .select(COMMUNITY_COLS)
     .in("id", ids)
     .order("created_at", { ascending: true });
   return (data ?? []) as Community[];
 };
 
 export const getCommunity = async (id: string): Promise<Community | null> => {
-  const { data } = await supabase.from("communities").select("*").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("communities").select(COMMUNITY_COLS).eq("id", id).maybeSingle();
   return (data as Community) ?? null;
+};
+
+/** Admin-only: fetches the invite code via SECURITY DEFINER function. */
+export const fetchCommunityInviteCode = async (id: string): Promise<string | null> => {
+  const { data, error } = await supabase.rpc("get_community_invite_code", { _cid: id });
+  if (error) return null;
+  return (data as string | null) ?? null;
 };
 
 export const createCommunity = async (name: string, iconUrl?: string | null): Promise<string> => {

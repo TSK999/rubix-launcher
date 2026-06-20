@@ -131,13 +131,13 @@ const awardStamps = async (
   gameKey: string | null,
 ) => {
   if (stamps.length === 0) return;
-  const rows = stamps.map((s) => ({
-    user_id: userId,
-    stamp_id: s.id,
-    game_key: s.game_key ?? gameKey,
-  }));
-  const { error } = await supabase.from("user_passport_stamps").insert(rows);
-  if (!error) stamps.forEach(showStampToast);
+  for (const s of stamps) {
+    const { data, error } = await supabase.rpc("claim_passport_stamp", {
+      _stamp_id: s.id,
+      _game_key: s.game_key ?? gameKey ?? null,
+    });
+    if (!error && data === true) showStampToast(s);
+  }
 };
 
 type EvalContext = {

@@ -15,12 +15,33 @@ const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const CLAIMED_ID_RE =
   /^https?:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/;
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data: u, error: aerr } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (aerr || !u?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
     const params: Record<string, string> = body?.params ?? {};
 
