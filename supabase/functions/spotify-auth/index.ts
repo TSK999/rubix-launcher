@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       const origin = req.headers.get("Origin") || "";
       const returnTo = normalizeReturnTo(body.returnTo, origin);
       // state encodes user id + return path so callback can attribute tokens
-      const state = btoa(JSON.stringify({ uid: userData.user.id, returnTo }));
+      const state = await signState({ uid: userData.user.id, returnTo });
 
       const params = new URLSearchParams({
         response_type: "code",
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
 
       let state: { uid: string; returnTo: string };
       try {
-        state = JSON.parse(atob(stateRaw));
+        state = await verifyState(stateRaw);
       } catch {
         return htmlRedirect(appendSpotifyStatus("/", "error"));
       }
@@ -197,4 +197,50 @@ function htmlRedirect(target: string) {
     status: 200,
     headers: { "Content-Type": "text/html" },
   });
+}
+
+// HMAC-signed OAuth state to prevent forgery (callback would otherwise trust
+// a base64 payload claiming any uid + returnTo). Uses the service role key as
+// the HMAC secret since it is already a server-only value.
+async function getStateKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  return await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+function b64urlEncode(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlDecode(s: string): Uint8Array {
+  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+  const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
+  const out = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+  return out;
+}
+async function signState(payload: { uid: string; returnTo: string }): Promise<string> {
+  const key = await getStateKey();
+  const body = b64urlEncode(new TextEncoder().encode(JSON.stringify(payload)));
+  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  const sig = b64urlEncode(new Uint8Array(sigBuf));
+  return `${body}.${sig}`;
+}
+async function verifyState(raw: string): Promise<{ uid: string; returnTo: string }> {
+  const [body, sig] = raw.split(".");
+  if (!body || !sig) throw new Error("malformed state");
+  const key = await getStateKey();
+  const ok = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    b64urlDecode(sig),
+    new TextEncoder().encode(body),
+  );
+  if (!ok) throw new Error("bad signature");
+  return JSON.parse(new TextDecoder().decode(b64urlDecode(body)));
 }
