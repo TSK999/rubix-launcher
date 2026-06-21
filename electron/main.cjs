@@ -103,6 +103,18 @@ autoUpdater.on("update-downloaded", (info) => {
 });
 
 function createWindow() {
+  // Resolve preload via app path so it works the same inside asar and unpacked.
+  const preloadPath = path.join(app.getAppPath(), "electron", "preload.cjs");
+  try {
+    const exists = fs.existsSync(preloadPath);
+    log.info(`[preload] path=${preloadPath} exists=${exists}`);
+    if (!exists) {
+      log.error(`[preload] MISSING preload file at ${preloadPath} — window.rubix will be undefined`);
+    }
+  } catch (err) {
+    log.warn("[preload] existence check failed", err);
+  }
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -113,11 +125,17 @@ function createWindow() {
     title: "RUBIX Launcher",
     icon: path.join(__dirname, "..", "build", process.platform === "win32" ? "icon.ico" : "icon.png"),
     webPreferences: {
-      preload: path.join(__dirname, "preload.cjs"),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
       backgroundThrottling: false,
     },
+  });
+
+  // Surface any preload load/exec failure so it shows up in electron-log.
+  mainWindow.webContents.on("preload-error", (_evt, file, error) => {
+    log.error(`[preload-error] file=${file} error=${error?.stack || error}`);
   });
 
   mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
