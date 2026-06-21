@@ -31,6 +31,7 @@ import ClipsFeed from "./pages/ClipsFeed.tsx";
 import Passport from "./pages/Passport.tsx";
 import ModManager from "./pages/KspMods.tsx";
 import MinecraftManager from "./pages/MinecraftManager.tsx";
+import { MinecraftErrorBoundary } from "./components/MinecraftErrorBoundary";
 import { UploadDock } from "./components/clips/UploadDock";
 import { RequireRubixAuth } from "./components/RequireRubixAuth";
 import { LinkSteamPrompt } from "./components/LinkSteamPrompt";
@@ -148,7 +149,9 @@ const App = () => (
             path="/mods/minecraft"
             element={
               <RequireRubixAuth>
-                <MinecraftManager />
+                <MinecraftErrorBoundary>
+                  <MinecraftManager />
+                </MinecraftErrorBoundary>
               </RequireRubixAuth>
             }
           />
