@@ -37,7 +37,7 @@ export const directCopyStrategy: ModStrategy = {
       version: pkg.version,
       versionId: versionIdNum,
       downloadUrl: pkg.archive,
-      stripHint: game.modFolder === "GameData" ? "GameData" : "",
+      stripHint: game.stripHint ?? (game.modFolder === "GameData" ? "GameData" : ""),
       installSubdir: game.modFolder,
     });
     if (!r.ok) return { ok: false, error: r.error };
