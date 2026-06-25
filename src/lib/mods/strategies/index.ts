@@ -1,5 +1,8 @@
 // Central dispatcher. UI imports installMod/uninstallMod from here.
 
+import { packageDepsToGraph } from "../dependencies/from-package";
+import { resolveDependencies } from "../dependencies/resolver";
+import type { InstalledDependency, ResolutionResult } from "../dependencies/types";
 import { preInstallGuardrails } from "../state-machine";
 import type { GameDefinition, InstalledManifest, ModPackage } from "../types";
 import { ModInstallError } from "../types";
@@ -44,12 +47,49 @@ export async function verifyLoader(game: GameDefinition): Promise<StrategyResult
   return getStrategy(strategyForGame(game)).verifyLoader(game);
 }
 
+/** Pure: resolve a mod's full dep graph against what's installed. */
+export function planInstall(
+  game: GameDefinition,
+  pkg: ModPackage,
+  installed: InstalledDependency[] = [],
+): ResolutionResult {
+  return resolveDependencies({
+    modSystem: game.modSystemType,
+    loader: game.loader,
+    modDeps: packageDepsToGraph(pkg),
+    installed,
+  });
+}
+
+export interface InstallOptions {
+  /** Currently-installed deps for the game (loader version, frameworks, other mods). */
+  installed?: InstalledDependency[];
+  /** Skip the dependency resolver (guardrails still run). */
+  skipDependencyCheck?: boolean;
+}
+
 export async function installMod(
   game: GameDefinition,
   pkg: ModPackage,
+  options: InstallOptions = {},
 ): Promise<StrategyResult<InstalledManifest>> {
   const guard = preInstallGuardrails(game, pkg);
   if (guard) return { ok: false, error: guard.message };
+
+  if (!options.skipDependencyCheck) {
+    const plan = planInstall(game, pkg, options.installed ?? []);
+    if (!plan.ok) {
+      const summary = plan.issues
+        .filter((i) => i.code !== "UNKNOWN_DEPENDENCY")
+        .map((i) => i.message)
+        .join("; ");
+      return {
+        ok: false,
+        error: `DEPENDENCY_UNRESOLVED: ${summary || "blocking dependency issue"}`,
+      };
+    }
+  }
+
   try {
     return await getStrategy(pkg.installStrategy).install(game, pkg);
   } catch (e) {
@@ -67,3 +107,4 @@ export async function uninstallMod(
 }
 
 export type { ModStrategy, StrategyResult } from "./types";
+
