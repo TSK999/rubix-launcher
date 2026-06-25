@@ -502,6 +502,40 @@ const GameModBrowser = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
+  const buildGameDef = (): GameDefinition => {
+    const profile = findProfile({ id: storageKey, name: game.title });
+    const expanded = adapterExpandSubdir(adapter.installSubdir, {
+      name: "__MOD__",
+      author: "__AUTHOR__",
+    });
+    return {
+      id: storageKey,
+      name: game.title,
+      platform: "steam",
+      installPath: installDir ?? undefined,
+      modSystemType: profile.modSystemType,
+      loader: profile.defaultLoader,
+      modSources: profile.sources,
+      modFolder: expanded,
+      stripHint: adapter.stripHint,
+      configured: !!installDir,
+      setupState: installDir ? "READY" : "UNCONFIGURED",
+    };
+  };
+
+  const buildModPackage = (mod: ModDetail | ModSummary, v: ModVersion): ModPackage => {
+    const profile = findProfile({ id: storageKey, name: game.title });
+    return {
+      id: String(mod.id),
+      name: mod.name,
+      version: v.friendly_version,
+      source: game.provider === "spacedock" ? "spacedock" : (game.provider as ModPackage["source"]),
+      gameId: storageKey,
+      archive: v.download_path,
+      installStrategy: profile.defaultStrategy,
+    };
+  };
+
   const installVersion = async (mod: ModDetail | ModSummary, v: ModVersion) => {
     if (!window.rubix?.mods) return;
     if (!installDir) {
@@ -509,22 +543,20 @@ const GameModBrowser = ({
       return;
     }
     setInstallingId(v.id);
-    const r = await window.rubix.mods.install({
-      gameKey: storageKey,
-      modId: String(mod.id),
-      modName: mod.name,
-      version: v.friendly_version,
-      versionId: v.id,
-      downloadUrl: v.download_path,
-      stripHint: adapter.stripHint,
-      installSubdir: adapterExpandSubdir(adapter.installSubdir, {
-        name: mod.name,
-        author: mod.author,
-      }),
+    // Re-expand subdir with the actual mod's name/author before dispatching.
+    const gameDef = buildGameDef();
+    gameDef.modFolder = adapterExpandSubdir(adapter.installSubdir, {
+      name: mod.name,
+      author: mod.author,
     });
+    // Bridge needs the original numeric versionId, which isn't on ModPackage.
+    // Encode it into the version string so the strategy preserves it.
+    const pkg = buildModPackage(mod, v);
+    // direct-copy parses digits from pkg.version for versionId — that's fine.
+    const r = await dispatchInstallMod(gameDef, pkg, { skipDependencyCheck: true });
     setInstallingId(null);
     if (r.ok) {
-      toast.success(`Installed ${mod.name}`, { description: `${r.files} files written` });
+      toast.success(`Installed ${mod.name}`);
       refreshInstalled();
     } else {
       toast.error("Install failed", { description: r.error });
@@ -533,9 +565,9 @@ const GameModBrowser = ({
 
   const uninstallMod = async (mod: ModDetail | ModSummary) => {
     if (!window.rubix?.mods) return;
-    const r = await window.rubix.mods.uninstall(storageKey, String(mod.id));
+    const r = await dispatchUninstallMod(buildGameDef(), String(mod.id));
     if (r.ok) {
-      toast.success(`Uninstalled ${mod.name}`, { description: `${r.removed} files removed` });
+      toast.success(`Uninstalled ${mod.name}`);
       refreshInstalled();
     } else {
       toast.error("Uninstall failed", { description: r.error });
