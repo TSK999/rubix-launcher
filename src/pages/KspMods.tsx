@@ -67,7 +67,7 @@ type SupportedGame = {
   // Install behavior (Electron):
   pickerMode: "ksp" | "root";
   folderLabel: string;          // e.g. "GameData folder" or "Game install folder"
-  stripHint?: "GameData" | "";  // zip strip mode
+  stripHint?: string;  // zip strip mode
   // Subfolder under chosen folder where the mod zip should be extracted.
   // Supports {name} and {author} placeholders (Thunderstore uses author-mod).
   installSubdir?: string;

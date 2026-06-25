@@ -38,7 +38,7 @@ export type ModAdapter = {
   loaderLabel: string;
   // Install behavior — used at install time
   installSubdir: string;          // template: supports {name}, {author}
-  stripHint: "" | "GameData";
+  stripHint: string;
   // Browse Folder dialog
   pickerMode: "ksp" | "root";
   folderLabel: string;
@@ -222,7 +222,7 @@ for (const g of MOD_SUPPORTED_GAMES) {
     loader: override.loader ?? (defaults.loader as ModLoader),
     loaderLabel: override.loaderLabel ?? (defaults.loaderLabel as string),
     installSubdir: override.installSubdir ?? (defaults.installSubdir as string),
-    stripHint: (override.stripHint ?? defaults.stripHint ?? "") as "" | "GameData",
+    stripHint: override.stripHint ?? defaults.stripHint ?? "",
     pickerMode: (override.pickerMode ?? defaults.pickerMode ?? "root") as "ksp" | "root",
     folderLabel: override.folderLabel ?? (defaults.folderLabel as string),
     signatureFiles: override.signatureFiles ?? (defaults.signatureFiles as string[]),
@@ -254,7 +254,7 @@ export function getAdapterOrFallback(
     loader: defaults.loader as ModLoader,
     loaderLabel: defaults.loaderLabel as string,
     installSubdir: defaults.installSubdir as string,
-    stripHint: (defaults.stripHint ?? "") as "" | "GameData",
+    stripHint: defaults.stripHint ?? "",
     pickerMode: (defaults.pickerMode ?? "root") as "ksp" | "root",
     folderLabel: defaults.folderLabel as string,
     signatureFiles: defaults.signatureFiles as string[],
