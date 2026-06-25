@@ -62,6 +62,8 @@ export interface GameDefinition {
 
   /** Default sub-path under installPath where mods land for FOLDER/ADDON systems. */
   modFolder?: string;
+  /** Archive path prefix to strip when extracting (FOLDER_INJECTION). */
+  stripHint?: string;
 
   configured: boolean;
   setupState: SetupState;
