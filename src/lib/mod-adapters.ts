@@ -38,7 +38,7 @@ export type ModAdapter = {
   loaderLabel: string;
   // Install behavior — used at install time
   installSubdir: string;          // template: supports {name}, {author}
-  stripHint: "" | "GameData";
+  stripHint: string;
   // Browse Folder dialog
   pickerMode: "ksp" | "root";
   folderLabel: string;
