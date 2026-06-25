@@ -4,9 +4,25 @@
 import type { GameDefinition, InstalledManifest, ModPackage } from "../types";
 import type { ModStrategy, StrategyResult } from "./types";
 
-function bridge() {
+type DirectCopyModsBridge = {
+  setFolder: (gameKey: string, path: string) => Promise<{ ok: boolean; error?: string }>;
+  listInstalled: (gameKey: string) => Promise<{ ok: boolean }>;
+  install: (payload: {
+    gameKey: string;
+    modId: string;
+    modName: string;
+    version: string;
+    versionId: number;
+    downloadUrl: string;
+    stripHint?: string;
+    installSubdir?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  uninstall: (gameKey: string, modId: string) => Promise<{ ok: boolean; error?: string }>;
+};
+
+function bridge(): DirectCopyModsBridge | null {
   if (typeof window === "undefined" || !window.rubix?.mods) return null;
-  return window.rubix.mods;
+  return window.rubix.mods as DirectCopyModsBridge;
 }
 
 export const directCopyStrategy: ModStrategy = {
