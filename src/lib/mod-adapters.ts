@@ -254,7 +254,7 @@ export function getAdapterOrFallback(
     loader: defaults.loader as ModLoader,
     loaderLabel: defaults.loaderLabel as string,
     installSubdir: defaults.installSubdir as string,
-    stripHint: (defaults.stripHint ?? "") as "" | "GameData",
+    stripHint: defaults.stripHint ?? "",
     pickerMode: (defaults.pickerMode ?? "root") as "ksp" | "root",
     folderLabel: defaults.folderLabel as string,
     signatureFiles: defaults.signatureFiles as string[],
