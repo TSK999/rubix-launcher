@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Download, AlertTriangle, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cfBrowseMinecraft, cfMcResolve } from "@/lib/minecraft/api";
-import { installMod } from "@/lib/minecraft/bridge";
 import type { Instance } from "@/lib/minecraft/bridge";
+import { installMod as dispatchInstallMod } from "@/lib/mods/strategies";
+import type { GameDefinition, ModPackage } from "@/lib/mods/types";
 
 type Props = {
   instance: Instance;
