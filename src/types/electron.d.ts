@@ -260,7 +260,7 @@ declare global {
           version: string;
           versionId: number;
           downloadUrl: string;
-          stripHint?: "GameData" | "";
+          stripHint?: string;
           installSubdir?: string;
         }) => Promise<{ ok: boolean; files?: number; error?: string }>;
         uninstall: (
