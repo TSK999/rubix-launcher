@@ -8,6 +8,7 @@ export {
   verifyLoader,
   installMod,
   uninstallMod,
+  planInstall,
 } from "./strategies";
 export {
   resolveDependencies,
