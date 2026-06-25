@@ -222,7 +222,7 @@ for (const g of MOD_SUPPORTED_GAMES) {
     loader: override.loader ?? (defaults.loader as ModLoader),
     loaderLabel: override.loaderLabel ?? (defaults.loaderLabel as string),
     installSubdir: override.installSubdir ?? (defaults.installSubdir as string),
-    stripHint: (override.stripHint ?? defaults.stripHint ?? "") as "" | "GameData",
+    stripHint: override.stripHint ?? defaults.stripHint ?? "",
     pickerMode: (override.pickerMode ?? defaults.pickerMode ?? "root") as "ksp" | "root",
     folderLabel: override.folderLabel ?? (defaults.folderLabel as string),
     signatureFiles: override.signatureFiles ?? (defaults.signatureFiles as string[]),
