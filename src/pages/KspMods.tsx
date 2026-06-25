@@ -41,6 +41,9 @@ import { toast } from "sonner";
 import { ModpackManager } from "@/components/mods/ModpackManager";
 import { GameSetupWizard } from "@/components/mods/GameSetupWizard";
 import { getAdapterOrFallback, expandSubdir as adapterExpandSubdir } from "@/lib/mod-adapters";
+import { installMod as dispatchInstallMod, uninstallMod as dispatchUninstallMod } from "@/lib/mods/strategies";
+import { findProfile } from "@/lib/mods/profiles";
+import type { GameDefinition, ModPackage } from "@/lib/mods/types";
 
 import ksp1Cover from "@/assets/ksp1-cover.jpg.asset.json";
 import ksp2Cover from "@/assets/ksp2-cover.jpg.asset.json";
