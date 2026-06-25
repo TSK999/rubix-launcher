@@ -9,3 +9,19 @@ export {
   installMod,
   uninstallMod,
 } from "./strategies";
+export {
+  resolveDependencies,
+  satisfies,
+  getLayerDeps,
+  SYSTEM_RUNTIME_DEPS,
+  LOADER_LAYER_DEPS,
+} from "./dependencies";
+export type {
+  Dependency as RuntimeDependency,
+  DependencyType,
+  DependencyIssue,
+  DependencyErrorCode,
+  InstalledDependency,
+  ResolutionResult,
+  InstallSource,
+} from "./dependencies";
