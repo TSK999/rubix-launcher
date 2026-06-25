@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Download, AlertTriangle, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cfBrowseMinecraft, cfMcResolve } from "@/lib/minecraft/api";
-import { installMod } from "@/lib/minecraft/bridge";
 import type { Instance } from "@/lib/minecraft/bridge";
+import { installMod as dispatchInstallMod } from "@/lib/mods/strategies";
+import type { GameDefinition, ModPackage } from "@/lib/mods/types";
 
 type Props = {
   instance: Instance;
@@ -41,16 +42,36 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
         toast.error(`This mod requires ${instance.loader} ${instance.mcVersion}`);
         return;
       }
+      const gameDef: GameDefinition = {
+        id: `minecraft-${instance.name}`,
+        name: "Minecraft",
+        platform: "manual",
+        modSystemType: "PROFILE_BASED_RUNTIME",
+        loader: instance.loader.toUpperCase() as GameDefinition["loader"],
+        modSources: ["curseforge", "modrinth"],
+        configured: true,
+        setupState: "READY",
+      };
       for (const f of resolved.install) {
-        const r = await installMod({
+        const pkg: ModPackage & {
+          instance: string;
+          fileId: number;
+          fileName: string;
+          displayName: string;
+        } = {
+          id: String(f.modId),
+          name: f.modName,
+          displayName: f.modName,
+          version: String(f.fileId),
+          source: "curseforge",
+          gameId: gameDef.id,
+          archive: f.downloadUrl,
+          installStrategy: "PROFILE_ISOLATED",
           instance: instance.name,
-          projectId: f.modId,
           fileId: f.fileId,
           fileName: f.fileName,
-          name: f.modName,
-          downloadUrl: f.downloadUrl,
-          dependencies: [],
-        });
+        };
+        const r = await dispatchInstallMod(gameDef, pkg, { skipDependencyCheck: true });
         if (!r.ok) throw new Error(r.error || "Install failed");
       }
       toast.success(`Installed ${mod.name}${resolved.install.length > 1 ? ` (+${resolved.install.length - 1} deps)` : ""}`);

@@ -9,8 +9,17 @@ function mc() {
   return window.rubix.minecraft;
 }
 
+type McExtras = {
+  instance?: string;
+  fileId?: number;
+  fileName?: string;
+  displayName?: string;
+};
+function mcExtras(pkg: ModPackage): McExtras {
+  return (pkg as ModPackage & McExtras) ?? {};
+}
 function instanceOf(pkg: ModPackage): string {
-  return (pkg as ModPackage & { instance?: string }).instance ?? "default";
+  return mcExtras(pkg).instance ?? "default";
 }
 
 export const profileIsolatedStrategy: ModStrategy = {
@@ -33,14 +42,15 @@ export const profileIsolatedStrategy: ModStrategy = {
   async install(game: GameDefinition, pkg: ModPackage): Promise<StrategyResult<InstalledManifest>> {
     const b = mc();
     if (!b) return { ok: false, error: "Desktop app required." };
+    const extras = mcExtras(pkg);
     const projectId = Number.parseInt(pkg.id, 10);
-    const fileId = Number.parseInt(pkg.version.replace(/\D/g, ""), 10) || Date.now();
+    const fileId = extras.fileId ?? (Number.parseInt(pkg.version.replace(/\D/g, ""), 10) || Date.now());
     const r = await b.installMod({
       instance: instanceOf(pkg),
       projectId: Number.isFinite(projectId) ? projectId : 0,
       fileId,
-      fileName: pkg.name,
-      name: pkg.name,
+      fileName: extras.fileName ?? pkg.name,
+      name: extras.displayName ?? pkg.name,
       downloadUrl: pkg.archive,
       dependencies: pkg.dependencies
         ?.map((d) => Number.parseInt(d.modId, 10))
