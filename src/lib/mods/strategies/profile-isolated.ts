@@ -9,8 +9,17 @@ function mc() {
   return window.rubix.minecraft;
 }
 
+type McExtras = {
+  instance?: string;
+  fileId?: number;
+  fileName?: string;
+  displayName?: string;
+};
+function mcExtras(pkg: ModPackage): McExtras {
+  return (pkg as ModPackage & McExtras) ?? {};
+}
 function instanceOf(pkg: ModPackage): string {
-  return (pkg as ModPackage & { instance?: string }).instance ?? "default";
+  return mcExtras(pkg).instance ?? "default";
 }
 
 export const profileIsolatedStrategy: ModStrategy = {
