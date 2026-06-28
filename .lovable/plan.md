@@ -1,72 +1,79 @@
-# RUBIX Mod Manager — Architecture Refactor Plan
+# Finish the Mod Strategies — Phase 3 completion + Phase 4
 
-Adopt the spec as the single source of truth for all mod installs. Rollout is staged so the app keeps working at every step.
+Right now `installMod()` dispatches to 8 strategies, but only `DIRECT_COPY` (KSP) and `PROFILE_ISOLATED` (Minecraft) are real. The other 6 return `not implemented`, and the Setup Wizard is still KSP-shaped. This plan ships them all behind the existing dispatcher — no UI changes required at call sites.
 
-## Phase 1 — Core types & registry (no behavior change)
+## Scope
 
-Create `src/lib/mods/` with the type system from the spec:
+### 1. Strategy implementations (`src/lib/mods/strategies/`)
 
-- `types.ts` — `ModSystemType`, `LoaderType`, `SetupState`, `InstallStrategy`, `GameDefinition`, `ModPackage`, `ModFile`, `Dependency`.
-- `profiles.ts` — `MOD_PROFILES`: static map from known game id / signature → `ModSystemType` + default `LoaderType` + default install paths. Seeded with: KSP1/2 (FOLDER_INJECTION), Lethal Company / Valheim / RoR2 / DRG (BEPINEX), BONELAB / Blade & Sorcery (MELONLOADER), Minecraft (PROFILE_BASED), Stardew (SMAPI), Terraria (TMODLOADER), WoW (ADDON_FOLDER), Ready or Not / Space Engineers / SnowRunner (MODIO).
-- `classify.ts` — `classifyGame(game)` implementing the Section 4 decision tree, falling back to FOLDER_INJECTION.
+Each strategy implements `setup / verifyLoader / install / uninstall / validate` against the existing `window.rubix` Electron bridge. Renderer code stays untouched.
 
-## Phase 2 — Install state machine
+- **bepinex.ts** — `BEPINEX_RUNTIME` (Lethal Company, Valheim, RoR2, DRG)
+  - `setup`: download correct BepInEx pack (x64 vs IL2CPP) from Thunderstore, extract to game root, first-launch to generate config.
+  - `install`: route `BepInExPack` archives → game root; everything else → `BepInEx/plugins/{author}-{name}/`.
+  - `verifyLoader`: check `winhttp.dll` + `BepInEx/core/BepInEx.dll`, read version from `BepInEx.cfg`.
+- **melonloader.ts** — `MELONLOADER_RUNTIME` (BONELAB, Blade & Sorcery)
+  - `setup`: run MelonLoader installer (bundled) or extract release zip.
+  - `install`: `.dll` → `Mods/`, `UserLibs/` passthrough, ignore source archives.
+- **smapi.ts** — Stardew Valley
+  - `setup`: run SMAPI installer (`install on Windows.bat`) headlessly, patch Steam launch options.
+  - `install`: each mod = its own folder under `Mods/{ModName}/` with `manifest.json` preserved.
+- **tmodloader.ts** — Terraria
+  - `setup`: ensure tModLoader installed via Steam (1.4) — detect, prompt if missing.
+  - `install`: `.tmod` files → `%UserProfile%/Documents/My Games/Terraria/tModLoader/Mods/`.
+- **addon-folder.ts** — WoW
+  - `setup`: validate `Interface/AddOns/` exists for chosen flavor (Retail/Classic/WotLK).
+  - `install`: extract addon zip directly into `Interface/AddOns/`, each top-level folder = one addon.
+- **modio.ts** — Ready or Not, Space Engineers, SnowRunner
+  - `setup`: OAuth/email-code link to user's mod.io account, store token in Electron safeStorage.
+  - `install`: call mod.io subscribe API; game's native sync handles the download. No file I/O.
+  - `uninstall`: unsubscribe.
 
-`src/lib/mods/state-machine.ts`:
+Each gets a matching IPC handler in `electron/main.cjs` (new file `electron/strategies/{name}.cjs` per strategy to keep `main.cjs` thin) and a typed bridge in `electron/preload.cjs` + `src/types/electron.d.ts`.
 
-```text
-START → DETECT_GAME → VALIDATE_INSTALL_PATH → IDENTIFY_MOD_SYSTEM
-  → (setupState !== READY ? SETUP_WIZARD) → VERIFY_LOADER
-  → INSTALL_MOD → VALIDATE_INSTALLATION → REGISTER_MANIFEST → END
-```
+### 2. Generic Setup Wizard (Phase 4)
 
-- Pure reducer: `(state, event) → nextState`.
-- Each transition returns `{ next, sideEffect }`; side effects executed by a thin runner so the FSM stays testable.
-- Guardrails (Section 7) live as predicates the runner calls before `INSTALL_MOD`.
-
-## Phase 3 — Strategy adapters
-
-`src/lib/mods/strategies/` — one file per `InstallStrategy`, each exporting:
+Replace `src/components/mods/GameSetupWizard.tsx` with a profile-driven wizard that reads `game.modSystemType` and renders steps from a per-strategy config:
 
 ```ts
-{ setup(game), verifyLoader(game), install(game, pkg), uninstall(game, modId), validate(game) }
+interface SetupStepConfig {
+  id: 'pick-path' | 'install-loader' | 'verify-loader' | 'link-account' | 'pick-flavor';
+  title: string;
+  optional?: boolean;
+}
 ```
 
-Files: `direct-copy.ts`, `bepinex.ts`, `melonloader.ts`, `profile-isolated.ts` (Minecraft), `smapi.ts`, `tmodloader.ts`, `addon-folder.ts`, `modio.ts`.
+Strategy exposes `getSetupSteps(): SetupStepConfig[]`. Wizard renders steps in order, calling `strategy.setup()` / `strategy.verifyLoader()` between them. WoW gets the flavor picker; Mod.io games get the account link step; everything else gets path + loader.
 
-Existing logic gets moved, not rewritten:
-- KSP code → `direct-copy.ts`
-- `electron/minecraft.cjs` + `src/lib/minecraft/*` → wrapped by `profile-isolated.ts`
-- New stubs for the rest return `NotImplemented` with a clear toast, so UI never silently no-ops.
+The current KSP wizard becomes the `DIRECT_COPY` case (path-pick only). Minecraft keeps its dedicated instance wizard — it's not a setup wizard, it's per-instance.
 
-## Phase 4 — Setup Wizard (generic)
+### 3. Registry + dispatcher updates
 
-Replace `GameSetupWizard.tsx` with a profile-driven wizard that reads the game's `ModSystemType` and renders the needed steps (path pick → loader install → verify). Per-game wizards become thin configs, not bespoke components.
+- `strategies/index.ts`: replace 6 `notImplemented` entries with the new modules.
+- `profiles.ts`: already covers all 6 system types; no changes needed.
+- Mark each strategy with a `capabilities` flag (`requiresAccount`, `requiresLoaderInstall`, `requiresGameVersion`) consumed by the wizard.
 
-## Phase 5 — Guardrails & manifest
+### 4. Tests
 
-- `installed_mods` table already exists; add a per-install manifest record `{ gameId, modId, strategy, files[], loaderVersion, profileId? }` for clean uninstall/rollback.
-- Pre-install checks: loader compatibility, game version, dependency resolution, profile correctness. Failures block install with a typed error.
+Extend `src/test/mods.strategies.test.ts`:
+- Each strategy's `install()` is called with the right archive layout (mocked bridge).
+- Wizard step generation per `ModSystemType`.
+- Guardrails still block when loader is missing (verified per strategy).
 
-## Phase 6 — Wire UI
+Target: 30+ tests passing.
 
-`ModpackManager`, `GameModsTab`, `MinecraftManager`, `MinecraftModBrowser` all route through one `installMod(game, pkg)` entrypoint. No component talks to a strategy directly.
+### 5. Out of scope
 
-## Technical notes
-
-- All electron-side strategy work stays in `electron/` modules exposed through the existing `rubix` preload bridge; renderer only sees the strategy interface.
-- New profiles = add an entry in `profiles.ts` + (if needed) one strategy file. No UI changes required.
-- Version bump to **v1.6.0** when Phase 1–3 land (breaking internal API for mod install).
-
-## Out of scope for this plan
-
-- Implementing every strategy end-to-end. Phase 3 lands the interface + KSP + Minecraft working; others ship behind a "coming soon" state with proper UX, not a crash.
-- Fixing the current Minecraft page crash — that is tracked separately and unblocks before Phase 4.
+- New UI surfaces beyond the wizard (KspMods page and Minecraft browser already route through `installMod`).
+- Nexus auth — Nexus stays "manual download" until they grant API access.
+- Version bump — happens at the end as v1.6.0 once Phase 4 lands and QA passes.
 
 ## Deliverable order
 
-1. Phase 1 + 2 in one PR (pure types + FSM + unit tests).
-2. Phase 3 KSP + Minecraft adapters, others stubbed.
-3. Phase 4 wizard refactor.
-4. Phase 5 manifest + guardrails.
-5. Phase 6 UI rewire + v1.6.0 cut.
+1. `bepinex` + `melonloader` (highest demand, ~10 games covered).
+2. `smapi` + `tmodloader` (single-game each, but big communities).
+3. `addon-folder` (WoW) + `modio` (3 games, account-linked).
+4. Generic Setup Wizard refactor.
+5. Tests + v1.6.0 cut.
+
+Each step is independently shippable — if anything blocks (e.g. mod.io OAuth setup), the rest still lands.
