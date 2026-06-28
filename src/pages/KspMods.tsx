@@ -1034,6 +1034,7 @@ const GameModBrowser = ({
 
 // ---------- Top-level page ----------
 const ModManager = () => {
+  const navigate = useNavigate();
   const [game, setGame] = useState<SupportedGame | null>(null);
   const [configuredKeys, setConfiguredKeys] = useState<Set<string>>(new Set());
 
