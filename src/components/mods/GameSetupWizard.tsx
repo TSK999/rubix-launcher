@@ -394,10 +394,12 @@ export function GameSetupWizard({
           </div>
         )}
 
+        {!isElectron() && (
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click setup is only available in the RUBIX desktop app.
           </div>
         )}
+
       </DialogContent>
     </Dialog>
   );
