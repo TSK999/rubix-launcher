@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1034,6 +1035,7 @@ const GameModBrowser = ({
 
 // ---------- Top-level page ----------
 const ModManager = () => {
+  const navigate = useNavigate();
   const [game, setGame] = useState<SupportedGame | null>(null);
   const [configuredKeys, setConfiguredKeys] = useState<Set<string>>(new Set());
 
@@ -1068,7 +1070,7 @@ const ModManager = () => {
             onPick={(g) => {
               // Minecraft uses a dedicated mini-launcher, not the generic adapter flow.
               if (g.id === "minecraft" || g.apiGameKey === "minecraft") {
-                window.location.assign(window.location.pathname.includes("#") ? "#/mods/minecraft" : "/mods/minecraft");
+                navigate("/mods/minecraft");
                 return;
               }
               setGame(g);
