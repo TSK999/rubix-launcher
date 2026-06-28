@@ -370,7 +370,30 @@ export function GameSetupWizard({
           </div>
         )}
 
-        {!isElectron() && (
+        {loaderStatus.state !== "idle" && (
+          <div
+            className={
+              "flex items-center gap-2 rounded-md border p-3 text-xs " +
+              (loaderStatus.state === "ok"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : loaderStatus.state === "error"
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-border bg-muted/30 text-muted-foreground")
+            }
+          >
+            {loaderStatus.state === "running" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : loaderStatus.state === "ok" ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : loaderStatus.state === "error" ? (
+              <AlertTriangle className="h-4 w-4" />
+            ) : (
+              <Cog className="h-4 w-4" />
+            )}
+            <span>{loaderStatus.message}</span>
+          </div>
+        )}
+
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click setup is only available in the RUBIX desktop app.
           </div>
