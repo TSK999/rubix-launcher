@@ -1068,7 +1068,7 @@ const ModManager = () => {
             onPick={(g) => {
               // Minecraft uses a dedicated mini-launcher, not the generic adapter flow.
               if (g.id === "minecraft" || g.apiGameKey === "minecraft") {
-                window.location.assign(window.location.pathname.includes("#") ? "#/mods/minecraft" : "/mods/minecraft");
+                navigate("/mods/minecraft");
                 return;
               }
               setGame(g);
