@@ -9,9 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FolderOpen, Wand2, CheckCircle2, AlertTriangle, FolderSearch } from "lucide-react";
+import { Loader2, FolderOpen, Wand2, CheckCircle2, AlertTriangle, FolderSearch, Cog } from "lucide-react";
 import { toast } from "sonner";
-import { getAdapterOrFallback, normalizeLauncherName, type ModAdapter } from "@/lib/mod-adapters";
+import { adapterToGameDefinition, getAdapterOrFallback, normalizeLauncherName, type ModAdapter } from "@/lib/mod-adapters";
+import { setupGame, verifyLoader } from "@/lib/mods/strategies";
+
 
 type Candidate = {
   source: string;
@@ -73,13 +75,44 @@ export function GameSetupWizard({
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [applying, setApplying] = useState<string | null>(null);
   const [scanned, setScanned] = useState(false);
+  const [loaderStatus, setLoaderStatus] = useState<
+    | { state: "idle" }
+    | { state: "running"; message: string }
+    | { state: "ok"; message: string }
+    | { state: "error"; message: string }
+  >({ state: "idle" });
 
   useEffect(() => {
     if (!open) {
       setCandidates([]);
       setScanned(false);
+      setLoaderStatus({ state: "idle" });
     }
   }, [open]);
+
+  // Run strategy.setup() then verifyLoader() through the unified dispatcher.
+  // This bootstraps BepInEx / MelonLoader / SMAPI / etc. whenever the
+  // chosen strategy needs it; for plain folder-injection games it's a no-op.
+  async function runStrategySetup(path: string): Promise<boolean> {
+    const game = adapterToGameDefinition(adapter, path);
+    setLoaderStatus({ state: "running", message: `Preparing ${adapter.loaderLabel}…` });
+    const setupRes = await setupGame(game);
+    if (!setupRes.ok) {
+      setLoaderStatus({ state: "error", message: setupRes.error || "Loader setup failed" });
+      toast.error(`${adapter.loaderLabel} setup failed`, { description: setupRes.error });
+      return false;
+    }
+    const verifyRes = await verifyLoader(game);
+    if (!verifyRes.ok) {
+      setLoaderStatus({ state: "error", message: verifyRes.error || "Loader not detected" });
+      toast.warning(`${adapter.loaderLabel} could not be verified`, { description: verifyRes.error });
+      return false;
+    }
+    const v = verifyRes.data?.version ? ` (${verifyRes.data.version})` : "";
+    setLoaderStatus({ state: "ok", message: `${adapter.loaderLabel}${v} ready` });
+    return true;
+  }
+
 
   async function runAutoDetect() {
     const mods = getSetupModsBridge();
