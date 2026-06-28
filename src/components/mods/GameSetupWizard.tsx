@@ -9,9 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FolderOpen, Wand2, CheckCircle2, AlertTriangle, FolderSearch } from "lucide-react";
+import { Loader2, FolderOpen, Wand2, CheckCircle2, AlertTriangle, FolderSearch, Cog } from "lucide-react";
 import { toast } from "sonner";
-import { getAdapterOrFallback, normalizeLauncherName, type ModAdapter } from "@/lib/mod-adapters";
+import { adapterToGameDefinition, getAdapterOrFallback, normalizeLauncherName, type ModAdapter } from "@/lib/mod-adapters";
+import { setupGame, verifyLoader } from "@/lib/mods/strategies";
+
 
 type Candidate = {
   source: string;
@@ -73,13 +75,44 @@ export function GameSetupWizard({
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [applying, setApplying] = useState<string | null>(null);
   const [scanned, setScanned] = useState(false);
+  const [loaderStatus, setLoaderStatus] = useState<
+    | { state: "idle" }
+    | { state: "running"; message: string }
+    | { state: "ok"; message: string }
+    | { state: "error"; message: string }
+  >({ state: "idle" });
 
   useEffect(() => {
     if (!open) {
       setCandidates([]);
       setScanned(false);
+      setLoaderStatus({ state: "idle" });
     }
   }, [open]);
+
+  // Run strategy.setup() then verifyLoader() through the unified dispatcher.
+  // This bootstraps BepInEx / MelonLoader / SMAPI / etc. whenever the
+  // chosen strategy needs it; for plain folder-injection games it's a no-op.
+  async function runStrategySetup(path: string): Promise<boolean> {
+    const game = adapterToGameDefinition(adapter, path);
+    setLoaderStatus({ state: "running", message: `Preparing ${adapter.loaderLabel}…` });
+    const setupRes = await setupGame(game);
+    if (!setupRes.ok) {
+      setLoaderStatus({ state: "error", message: setupRes.error || "Loader setup failed" });
+      toast.error(`${adapter.loaderLabel} setup failed`, { description: setupRes.error });
+      return false;
+    }
+    const verifyRes = await verifyLoader(game);
+    if (!verifyRes.ok) {
+      setLoaderStatus({ state: "error", message: verifyRes.error || "Loader not detected" });
+      toast.warning(`${adapter.loaderLabel} could not be verified`, { description: verifyRes.error });
+      return false;
+    }
+    const v = verifyRes.data?.version ? ` (${verifyRes.data.version})` : "";
+    setLoaderStatus({ state: "ok", message: `${adapter.loaderLabel}${v} ready` });
+    return true;
+  }
+
 
   async function runAutoDetect() {
     const mods = getSetupModsBridge();
@@ -172,14 +205,17 @@ export function GameSetupWizard({
     if (!mods) return;
     setApplying(path);
     const r = await mods.setFolder(storageKey, path);
-    setApplying(null);
-    if (r.ok && r.gameDataDir) {
-      toast.success(`${title} configured`, { description: r.gameDataDir });
-      onConfigured(r.gameDataDir);
-      onOpenChange(false);
-    } else {
+    if (!r.ok || !r.gameDataDir) {
+      setApplying(null);
       toast.error("Couldn't save folder", { description: r.error });
+      return;
     }
+    const resolved = r.gameDataDir;
+    const loaderOk = await runStrategySetup(resolved);
+    setApplying(null);
+    toast.success(`${title} configured`, { description: resolved });
+    onConfigured(resolved);
+    if (loaderOk) onOpenChange(false);
   }
 
   async function browse() {
@@ -195,7 +231,6 @@ export function GameSetupWizard({
       return;
     }
     const chosen = r.gameDataDir!;
-    // Validate after the dialog already saved it.
     const v = await mods.validatePath({
       path: chosen,
       signatureFiles: adapter.signatureFiles,
@@ -207,9 +242,11 @@ export function GameSetupWizard({
         description: v?.reason || "No expected game files found in that folder.",
       });
     }
+    const loaderOk = await runStrategySetup(chosen);
     onConfigured(chosen);
-    onOpenChange(false);
+    if (loaderOk) onOpenChange(false);
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -333,11 +370,36 @@ export function GameSetupWizard({
           </div>
         )}
 
+        {loaderStatus.state !== "idle" && (
+          <div
+            className={
+              "flex items-center gap-2 rounded-md border p-3 text-xs " +
+              (loaderStatus.state === "ok"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : loaderStatus.state === "error"
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-border bg-muted/30 text-muted-foreground")
+            }
+          >
+            {loaderStatus.state === "running" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : loaderStatus.state === "ok" ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : loaderStatus.state === "error" ? (
+              <AlertTriangle className="h-4 w-4" />
+            ) : (
+              <Cog className="h-4 w-4" />
+            )}
+            <span>{loaderStatus.message}</span>
+          </div>
+        )}
+
         {!isElectron() && (
           <div className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
             One-click setup is only available in the RUBIX desktop app.
           </div>
         )}
+
       </DialogContent>
     </Dialog>
   );
