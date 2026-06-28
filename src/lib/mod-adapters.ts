@@ -277,3 +277,53 @@ export function expandSubdir(
 export function normalizeLauncherName(s: string): string {
   return norm(s);
 }
+
+// ---------------------------------------------------------------------------
+// Bridge from the UI-level adapter to the strategy-level GameDefinition.
+// Lets the wizard call setupGame()/verifyLoader() through the unified
+// strategies dispatcher regardless of mod loader family.
+// ---------------------------------------------------------------------------
+
+import type { GameDefinition, LoaderType, ModSystemType, ModSource } from "@/lib/mods/types";
+
+const LOADER_TO_SYSTEM: Record<ModLoader, { system: ModSystemType; loader: LoaderType }> = {
+  "spacedock-ckan":   { system: "FOLDER_INJECTION",      loader: "NONE" },
+  bepinex:            { system: "BEPINEX_RUNTIME",       loader: "BEPINEX" },
+  melonloader:        { system: "MELONLOADER_RUNTIME",   loader: "MELONLOADER" },
+  "modio-native":     { system: "MODIO_NATIVE_SYNC",     loader: "NONE" },
+  "minecraft-mods":   { system: "PROFILE_BASED_RUNTIME", loader: "FABRIC" },
+  smapi:              { system: "SMAPI_RUNTIME",         loader: "SMAPI" },
+  "wow-addons":       { system: "ADDON_FOLDER_SYSTEM",   loader: "NONE" },
+  "rimworld-mods":    { system: "FOLDER_INJECTION",      loader: "NONE" },
+  tmodloader:         { system: "TMODLOADER_RUNTIME",    loader: "TMODLOADER" },
+  "sims4-mods":       { system: "FOLDER_INJECTION",      loader: "NONE" },
+  "generic-zip":      { system: "FOLDER_INJECTION",      loader: "NONE" },
+};
+
+const PROVIDER_TO_SOURCE: Record<ModAdapter["provider"], ModSource> = {
+  spacedock: "spacedock",
+  thunderstore: "thunderstore",
+  modio: "modio",
+  curseforge: "curseforge",
+};
+
+export function adapterToGameDefinition(
+  adapter: ModAdapter,
+  installPath: string,
+): GameDefinition {
+  const map = LOADER_TO_SYSTEM[adapter.loader];
+  return {
+    id: adapter.storageKey,
+    name: adapter.title,
+    platform: "manual",
+    installPath,
+    modSystemType: map.system,
+    loader: map.loader,
+    modSources: [PROVIDER_TO_SOURCE[adapter.provider]],
+    modFolder: adapter.installSubdir || undefined,
+    stripHint: adapter.stripHint || undefined,
+    configured: true,
+    setupState: "READY",
+  };
+}
+
