@@ -205,14 +205,17 @@ export function GameSetupWizard({
     if (!mods) return;
     setApplying(path);
     const r = await mods.setFolder(storageKey, path);
-    setApplying(null);
-    if (r.ok && r.gameDataDir) {
-      toast.success(`${title} configured`, { description: r.gameDataDir });
-      onConfigured(r.gameDataDir);
-      onOpenChange(false);
-    } else {
+    if (!r.ok || !r.gameDataDir) {
+      setApplying(null);
       toast.error("Couldn't save folder", { description: r.error });
+      return;
     }
+    const resolved = r.gameDataDir;
+    const loaderOk = await runStrategySetup(resolved);
+    setApplying(null);
+    toast.success(`${title} configured`, { description: resolved });
+    onConfigured(resolved);
+    if (loaderOk) onOpenChange(false);
   }
 
   async function browse() {
@@ -228,7 +231,6 @@ export function GameSetupWizard({
       return;
     }
     const chosen = r.gameDataDir!;
-    // Validate after the dialog already saved it.
     const v = await mods.validatePath({
       path: chosen,
       signatureFiles: adapter.signatureFiles,
@@ -240,9 +242,11 @@ export function GameSetupWizard({
         description: v?.reason || "No expected game files found in that folder.",
       });
     }
+    const loaderOk = await runStrategySetup(chosen);
     onConfigured(chosen);
-    onOpenChange(false);
+    if (loaderOk) onOpenChange(false);
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
