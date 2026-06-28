@@ -26,8 +26,23 @@ const pkg: ModPackage = {
 };
 
 describe("strategy dispatcher", () => {
-  it("returns notImplemented stub for unimplemented strategies", async () => {
-    const r = await getStrategy("BEPINEX_MAP").install(game, pkg);
+  it("returns a real strategy for every supported InstallStrategy", () => {
+    for (const id of [
+      "DIRECT_COPY",
+      "PROFILE_ISOLATED",
+      "BEPINEX_MAP",
+      "MELONLOADER_DLL",
+      "SMAPI_DEPLOY",
+      "TMODLOADER_DEPLOY",
+      "ADDON_COPY",
+      "MODIO_SUBSCRIBE",
+    ] as const) {
+      expect(getStrategy(id).id).toBe(id);
+    }
+  });
+
+  it("falls back to notImplemented stub for unknown strategies", async () => {
+    const r = await getStrategy("DOES_NOT_EXIST").install(game, pkg);
     expect(r.ok).toBe(false);
     expect(r.error).toContain("not implemented");
   });
@@ -36,5 +51,15 @@ describe("strategy dispatcher", () => {
     const r = await installMod({ ...game, setupState: "UNCONFIGURED" }, pkg);
     expect(r.ok).toBe(false);
     expect(r.error).toContain("Setup Wizard");
+  });
+
+  it("strategies require the desktop bridge when run in a node env", async () => {
+    // No window.rubix in vitest → bepinex install short-circuits cleanly.
+    const r = await getStrategy("BEPINEX_MAP").install(game, {
+      ...pkg,
+      installStrategy: "BEPINEX_MAP",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/Desktop app required/);
   });
 });
