@@ -6,19 +6,25 @@ import type { InstalledDependency, ResolutionResult } from "../dependencies/type
 import { preInstallGuardrails } from "../state-machine";
 import type { GameDefinition, InstalledManifest, ModPackage } from "../types";
 import { ModInstallError } from "../types";
+import { addonFolderStrategy } from "./addon-folder";
+import { bepinexStrategy } from "./bepinex";
 import { directCopyStrategy } from "./direct-copy";
+import { melonloaderStrategy } from "./melonloader";
+import { modioStrategy } from "./modio";
 import { profileIsolatedStrategy } from "./profile-isolated";
+import { smapiStrategy } from "./smapi";
+import { tmodloaderStrategy } from "./tmodloader";
 import { notImplemented, type ModStrategy, type StrategyResult } from "./types";
 
 const STRATEGIES: Record<string, ModStrategy> = {
   DIRECT_COPY: directCopyStrategy,
   PROFILE_ISOLATED: profileIsolatedStrategy,
-  BEPINEX_MAP: notImplemented("BEPINEX_MAP"),
-  MELONLOADER_DLL: notImplemented("MELONLOADER_DLL"),
-  SMAPI_DEPLOY: notImplemented("SMAPI_DEPLOY"),
-  TMODLOADER_DEPLOY: notImplemented("TMODLOADER_DEPLOY"),
-  ADDON_COPY: notImplemented("ADDON_COPY"),
-  MODIO_SUBSCRIBE: notImplemented("MODIO_SUBSCRIBE"),
+  BEPINEX_MAP: bepinexStrategy,
+  MELONLOADER_DLL: melonloaderStrategy,
+  SMAPI_DEPLOY: smapiStrategy,
+  TMODLOADER_DEPLOY: tmodloaderStrategy,
+  ADDON_COPY: addonFolderStrategy,
+  MODIO_SUBSCRIBE: modioStrategy,
 };
 
 export function getStrategy(strategyId: string): ModStrategy {
