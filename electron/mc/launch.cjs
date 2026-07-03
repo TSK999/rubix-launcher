@@ -89,17 +89,46 @@ async function launchGame({
   logStream.write(`# RUBIX launch @ ${new Date().toISOString()}\n`);
   logStream.write(`# java=${javaBin}\n# args=${args.join(" ")}\n\n`);
 
-  const child = spawn(javaBin, args, {
-    cwd: gameDir,
-    stdio: ["ignore", "pipe", "pipe"],
-    detached: false,
-  });
-  child.stdout.pipe(logStream, { end: false });
-  child.stderr.pipe(logStream, { end: false });
-  child.on("close", (code) => {
-    logStream.write(`\n# exited with code ${code}\n`);
+  // Keep a rolling tail of stderr so we can surface a real reason on crash.
+  let stderrTail = "";
+  const TAIL_MAX = 4000;
+
+  let child;
+  try {
+    child = spawn(javaBin, args, {
+      cwd: gameDir,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: false,
+      windowsHide: true,
+    });
+  } catch (e) {
+    logStream.write(`\n# spawn threw: ${e && e.message}\n`);
     logStream.end();
-    if (onExit) onExit(code, logPath);
+    throw new Error(`Failed to spawn Java (${javaBin}): ${e && e.message}`);
+  }
+
+  child.stdout.pipe(logStream, { end: false });
+  child.stderr.on("data", (chunk) => {
+    const s = chunk.toString("utf-8");
+    stderrTail = (stderrTail + s).slice(-TAIL_MAX);
+    logStream.write(s);
+  });
+
+  let spawnError = null;
+  child.on("error", (err) => {
+    spawnError = err;
+    logStream.write(`\n# spawn error: ${err && err.message}\n`);
+  });
+
+  child.on("close", (code, signal) => {
+    const reason = spawnError
+      ? `spawn error: ${spawnError.message}`
+      : signal
+        ? `killed by ${signal}`
+        : `exit code ${code}`;
+    logStream.write(`\n# exited (${reason})\n`);
+    logStream.end();
+    if (onExit) onExit(code, logPath, { signal, spawnError: spawnError?.message || null, stderrTail });
   });
   return { pid: child.pid, logPath };
 }
