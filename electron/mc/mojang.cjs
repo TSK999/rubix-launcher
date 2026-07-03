@@ -120,6 +120,19 @@ async function ensureLibraries(versionJson, onProgress) {
       const dest = path.join(LIBRARIES_DIR(), art.path);
       await download(art.url, dest, art.sha1);
       classpath[index] = dest;
+    } else if (art?.path) {
+      // Forge installers generate some artifacts locally (notably the patched
+      // client jar) and leave `url` empty in version.json. Use it if present.
+      const dest = path.join(LIBRARIES_DIR(), art.path);
+      if (fs.existsSync(dest)) {
+        classpath[index] = dest;
+      } else if (lib.url) {
+        const url = lib.url.replace(/\/?$/, "/") + art.path;
+        try {
+          await download(url, dest, art.sha1);
+          classpath[index] = dest;
+        } catch { /* skip unresolvable */ }
+      }
     } else if (lib.name) {
       // Loader libs sometimes provide only name+url (Fabric/Forge style), or
       // omit downloads.artifact while still being resolvable from a Maven repo.
