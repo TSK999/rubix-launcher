@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
-const { download } = require("./http.cjs");
+const { download, requestRaw } = require("./http.cjs");
 const {
   VERSIONS_DIR,
   VERSION_DIR,
@@ -50,11 +50,31 @@ function installerUrl(loader, mc, lv) {
   return null;
 }
 
+async function verifyInstallerUrl(loader, spec) {
+  // HEAD-style probe (GET; requestRaw handles redirects). Gives a clear
+  // "installer not found" message instead of a low-level 404 from download().
+  try {
+    const res = await requestRaw(spec.url, { method: "GET" });
+    if (res.status === 404) {
+      throw new Error(
+        `${loader} installer not found at ${spec.url}. The version may not exist or was removed upstream.`
+      );
+    }
+    if (res.status < 200 || res.status >= 400) {
+      throw new Error(`${loader} installer URL returned HTTP ${res.status}: ${spec.url}`);
+    }
+  } catch (e) {
+    if (e && e.message && e.message.startsWith(`${loader} installer`)) throw e;
+    throw new Error(`Could not reach ${loader} installer URL (${spec.url}): ${e.message || e}`);
+  }
+}
+
 async function cacheInstaller(loader, mc, lv) {
   const spec = installerUrl(loader, mc, lv);
   if (!spec) return null;
   ensureDir(INSTALLER_CACHE());
   const dest = path.join(INSTALLER_CACHE(), spec.file);
+  if (!fs.existsSync(dest)) await verifyInstallerUrl(loader, spec);
   await download(spec.url, dest);
   return dest;
 }
