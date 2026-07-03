@@ -560,7 +560,22 @@ async function curseforgeFile(modId: string, fileId: string) {
   });
   if (!r.ok) throw new Error(`CurseForge file HTTP ${r.status}`);
   const j: any = await r.json();
-  return j?.data ?? null;
+  const file = j?.data ?? null;
+  if (file && !file.downloadUrl) {
+    file.downloadUrl = await curseforgeDownloadUrl(modId, fileId);
+  }
+  return file;
+}
+
+async function curseforgeDownloadUrl(modId: string, fileId: string): Promise<string> {
+  if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
+  const r = await fetch(
+    `${CF_BASE}/mods/${encodeURIComponent(modId)}/files/${encodeURIComponent(fileId)}/download-url`,
+    { headers: { Accept: "application/json", "x-api-key": CF_KEY } },
+  );
+  if (!r.ok) return "";
+  const j: any = await r.json();
+  return typeof j?.data === "string" ? j.data : "";
 }
 
 async function curseforgeModRaw(modId: string) {
@@ -589,7 +604,9 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
     if (!mod) return;
     const { files } = await curseforgeMcFiles(modId, mcVersion, loader);
     const best = files[0];
-    if (!best || !best.downloadUrl) return;
+    if (!best) return;
+    const downloadUrl = best.downloadUrl || await curseforgeDownloadUrl(modId, String(best.id));
+    if (!downloadUrl) return;
     // Walk required deps first (relationType 3 = RequiredDependency)
     const reqDeps = (best.dependencies ?? []).filter((d: any) => d.relationType === 3);
     for (const d of reqDeps) {
@@ -598,7 +615,7 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
     ordered.push({
       modId: mod.id, modName: mod.name ?? `mod-${mod.id}`,
       fileId: best.id, fileName: best.fileName ?? `${best.id}.jar`,
-      downloadUrl: best.downloadUrl, required,
+      downloadUrl, required,
     });
   }
 
