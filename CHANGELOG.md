@@ -4,6 +4,15 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-07-03
+
+### Fixed
+- Adoptium JRE download failing with SHA1 mismatch — the API returns SHA-256
+  checksums, so verify the archive with SHA-256 instead of SHA-1.
+- `mods-api` and `ksp-mods` edge functions still returning 401 for anonymous
+  requests after v1.7.1 — removed the leftover in-code Bearer token checks so
+  `verify_jwt = false` in config.toml actually takes effect.
+
 ## [1.7.1] - 2026-07-03
 
 ### Fixed
