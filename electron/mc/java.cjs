@@ -88,7 +88,17 @@ async function downloadAdoptium(major, onProgress) {
   ensureDir(dir);
   const archive = path.join(dir, path.basename(asset.link));
   if (onProgress) onProgress({ phase: "java", done: 0, total: 1, current: `Downloading Java ${major}` });
-  await download(asset.link, archive, asset.checksum || null);
+  // Adoptium's `checksum` is SHA-256, not SHA-1 — download without hash and verify manually.
+  await download(asset.link, archive, null);
+  if (asset.checksum) {
+    const crypto = require("crypto");
+    const buf = fs.readFileSync(archive);
+    const got = crypto.createHash("sha256").update(buf).digest("hex");
+    if (got !== asset.checksum) {
+      try { fs.unlinkSync(archive); } catch { /* ignore */ }
+      throw new Error(`sha256 mismatch for JRE ${major} (want ${asset.checksum} got ${got})`);
+    }
+  }
 
   if (onProgress) onProgress({ phase: "java", done: 0, total: 1, current: `Extracting Java ${major}` });
   if (archive.endsWith(".zip")) {
