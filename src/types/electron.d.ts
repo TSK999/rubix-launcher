@@ -286,7 +286,17 @@ declare global {
         uninstallMod: (instance: string, projectId: number) => Promise<{ ok: boolean; error?: string }>;
         toggleMod: (instance: string, projectId: number, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
         importModpack: (instanceName?: string) => Promise<{ ok: boolean; canceled?: boolean; error?: string; instance?: string; mcVersion?: string; loader?: string; loaderVersion?: string; files?: Array<{ projectID: number; fileID: number; required: boolean }> }>;
-        launch: (name: string) => Promise<{ ok: boolean; error?: string; launched?: string; gameDir?: string; openedFolder?: boolean }>;
+        launch: (name: string) => Promise<{ ok: boolean; error?: string; needsSignIn?: boolean; pid?: number; logPath?: string; gameDir?: string }>;
+        whoami: () => Promise<{ ok: boolean; account: { uuid: string; name: string } | null; error?: string }>;
+        signInStart: () => Promise<{ ok: boolean; userCode?: string; verificationUri?: string; expiresIn?: number; error?: string }>;
+        signInCancel: () => Promise<{ ok: boolean }>;
+        signOut: () => Promise<{ ok: boolean }>;
+        onSignInComplete: (
+          cb: (data: { ok: boolean; account?: { uuid: string; name: string }; error?: string }) => void,
+        ) => () => void;
+        onProgress: (
+          cb: (data: { phase: string; done: number; total: number; current?: string; logPath?: string }) => void,
+        ) => () => void;
       };
     };
   }
