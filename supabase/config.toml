@@ -22,3 +22,8 @@ verify_jwt = false
 verify_jwt = false
 
 
+[functions.mods-api]
+verify_jwt = false
+
+[functions.ksp-mods]
+verify_jwt = false
