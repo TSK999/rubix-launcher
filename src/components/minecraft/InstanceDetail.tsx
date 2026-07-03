@@ -37,6 +37,7 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   const [renaming, setRenaming] = useState(false);
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [hasAccount, setHasAccount] = useState<boolean>(false);
 
   async function refresh() {
     setLoading(true);
