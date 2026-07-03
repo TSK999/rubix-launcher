@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
-const { download } = require("./http.cjs");
+const { download, requestRaw } = require("./http.cjs");
 const {
   VERSIONS_DIR,
   VERSION_DIR,
