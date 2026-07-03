@@ -121,12 +121,15 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={doLaunch} disabled={launching} size="lg">
+          <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />
+          <Button onClick={doLaunch} disabled={launching || !hasAccount} size="lg" title={!hasAccount ? "Sign in with Microsoft first" : ""}>
             {launching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
             Launch
           </Button>
         </div>
       </div>
+
+      <MinecraftLaunchProgress active={launching} />
 
       <div className="flex items-center gap-2 text-xs">
         <Button size="sm" variant="outline" onClick={() => openInstanceFolder(inst.name)}>
