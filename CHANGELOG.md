@@ -4,6 +4,16 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-07-03
+
+### Fixed
+- Microsoft device-code sign-in failing with `AADSTS700016` — swapped the legacy
+  Xbox client ID for PrismLauncher's registered Azure app so the `/consumers`
+  device-code endpoint accepts the request again.
+- `mods-api` and `ksp-mods` edge functions returning 401 — added the missing
+  `apikey` header to all Supabase function calls and disabled JWT verification
+  on these public browse proxies.
+
 ## [1.7.0] - 2026-07-03
 
 **RUBIX is now a full headless Minecraft launcher — no more "open the official Launcher" shim.**
