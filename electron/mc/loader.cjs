@@ -124,6 +124,19 @@ async function ensureLoader({ loader, mc, loaderVersion, javaBin, vanillaJson, o
     const mcRoot = ROOT();
     ensureDir(mcRoot);
 
+    // Forge/NeoForge installers refuse to run without a launcher_profiles.json
+    // in the target directory ("you need to run the launcher first!"). Write
+    // a stub so the headless install proceeds.
+    if (L === "forge" || L === "neoforge") {
+      const profilesPath = path.join(mcRoot, "launcher_profiles.json");
+      if (!fs.existsSync(profilesPath)) {
+        fs.writeFileSync(
+          profilesPath,
+          JSON.stringify({ profiles: {}, settings: {}, version: 3 }, null, 2)
+        );
+      }
+    }
+
     let args;
     if (L === "fabric" || L === "quilt") {
       args = ["-jar", installer,
