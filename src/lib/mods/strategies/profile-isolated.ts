@@ -77,7 +77,8 @@ export const profileIsolatedStrategy: ModStrategy = {
     const projectId = Number.parseInt(modId, 10);
     if (!Number.isFinite(projectId))
       return { ok: false, error: "Minecraft uninstall requires numeric projectId." };
-    const r = await b.uninstallMod("default", projectId);
+    const instance = _game.id.startsWith("minecraft-") ? _game.id.slice("minecraft-".length) : "default";
+    const r = await b.uninstallMod(instance, projectId);
     return { ok: r.ok, error: r.error };
   },
 

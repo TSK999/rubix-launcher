@@ -16,6 +16,7 @@ const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const https = require("https");
+const http = require("http");
 const { spawn, spawnSync } = require("child_process");
 
 // New launcher pipeline modules
@@ -71,11 +72,13 @@ function downloadTo(url, destPath, redirectsLeft = 5) {
     ensureDir(path.dirname(destPath));
     const tmp = destPath + ".part";
     const file = fs.createWriteStream(tmp);
-    https.get(url, { headers: { "User-Agent": "RUBIX/1.0" } }, (res) => {
+    const client = String(url).startsWith("http://") ? http : https;
+    client.get(url, { headers: { "User-Agent": "RUBIX/1.0" } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         file.close(); fs.unlink(tmp, () => {});
         if (redirectsLeft <= 0) return reject(new Error("Too many redirects"));
-        return resolve(downloadTo(res.headers.location, destPath, redirectsLeft - 1));
+        const next = new URL(res.headers.location, url).toString();
+        return resolve(downloadTo(next, destPath, redirectsLeft - 1));
       }
       if (res.statusCode < 200 || res.statusCode >= 300) {
         file.close(); fs.unlink(tmp, () => {});
