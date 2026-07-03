@@ -10,6 +10,7 @@ const { download, requestRaw, getJson } = require("./http.cjs");
 const {
   VERSIONS_DIR,
   VERSION_DIR,
+  LIBRARIES_DIR,
   ROOT,
   INSTALLER_CACHE,
   ensureDir,
@@ -191,6 +192,51 @@ function writeVersionJson(id, json) {
   fs.writeFileSync(versionJsonPath, JSON.stringify(json, null, 2), "utf-8");
 }
 
+function missingGeneratedArtifacts(versionJson) {
+  return (versionJson.libraries || [])
+    .map((lib) => lib?.downloads?.artifact)
+    .filter((art) => art?.path && !art?.url)
+    .map((art) => path.join(LIBRARIES_DIR(), art.path))
+    .filter((p) => !fs.existsSync(p));
+}
+
+async function runInstaller({ L, loader, mc, loaderVersion, javaBin }) {
+  const installer = await cacheInstaller(L, mc, loaderVersion);
+  if (!installer) throw new Error(`Cannot locate ${loader} installer for MC ${mc} / ${loaderVersion}`);
+  const mcRoot = ROOT();
+  ensureDir(mcRoot);
+
+  // Forge/NeoForge installers refuse to run without a launcher_profiles.json
+  // in the target directory ("you need to run the launcher first!"). Write
+  // a stub so the headless install proceeds.
+  if (L === "forge" || L === "neoforge") {
+    const profilesPath = path.join(mcRoot, "launcher_profiles.json");
+    if (!fs.existsSync(profilesPath)) {
+      fs.writeFileSync(
+        profilesPath,
+        JSON.stringify({ profiles: {}, settings: {}, version: 3 }, null, 2)
+      );
+    }
+  }
+
+  let args;
+  if (L === "fabric" || L === "quilt") {
+    args = ["-jar", installer,
+      "client",
+      "-dir", mcRoot,
+      "-mcversion", mc,
+      "-loader", loaderVersion || "",
+      "-noprofile",
+    ];
+  } else {
+    args = ["-jar", installer, "--installClient", mcRoot];
+  }
+  const r = await runJava(javaBin, args, mcRoot);
+  if (r.status !== 0) {
+    throw new Error(`${loader} installer failed (${r.status}): ${(r.err || r.out).slice(-400)}`);
+  }
+}
+
 // Ensure the loader version JSON exists. Returns the merged version JSON.
 async function ensureLoader({ loader, mc, loaderVersion, javaBin, vanillaJson, onProgress }) {
   const L = String(loader).toLowerCase();
@@ -218,47 +264,18 @@ async function ensureLoader({ loader, mc, loaderVersion, javaBin, vanillaJson, o
       }
     }
 
-    const installer = await cacheInstaller(L, mc, loaderVersion);
-    if (!installer) throw new Error(`Cannot locate ${loader} installer for MC ${mc} / ${loaderVersion}`);
-    const mcRoot = ROOT();
-    ensureDir(mcRoot);
-
-    // Forge/NeoForge installers refuse to run without a launcher_profiles.json
-    // in the target directory ("you need to run the launcher first!"). Write
-    // a stub so the headless install proceeds.
-    if (L === "forge" || L === "neoforge") {
-      const profilesPath = path.join(mcRoot, "launcher_profiles.json");
-      if (!fs.existsSync(profilesPath)) {
-        fs.writeFileSync(
-          profilesPath,
-          JSON.stringify({ profiles: {}, settings: {}, version: 3 }, null, 2)
-        );
-      }
-    }
-
-    let args;
-    if (L === "fabric" || L === "quilt") {
-      args = ["-jar", installer,
-        "client",
-        "-dir", mcRoot,
-        "-mcversion", mc,
-        "-loader", loaderVersion || "",
-        "-noprofile",
-      ];
-    } else {
-      // Forge / NeoForge legacy CLI
-      args = ["-jar", installer, "--installClient", mcRoot];
-    }
-    const r = await runJava(javaBin, args, mcRoot);
-    if (r.status !== 0) {
-      throw new Error(`${loader} installer failed (${r.status}): ${(r.err || r.out).slice(-400)}`);
-    }
+    await runInstaller({ L, loader, mc, loaderVersion, javaBin });
   }
 
   if (!fs.existsSync(versionJsonPath)) {
     throw new Error(`${loader} installer ran but did not create ${versionJsonPath}`);
   }
-  const child = JSON.parse(fs.readFileSync(versionJsonPath, "utf-8"));
+  let child = JSON.parse(fs.readFileSync(versionJsonPath, "utf-8"));
+  if ((L === "forge" || L === "neoforge") && missingGeneratedArtifacts(child).length > 0) {
+    if (onProgress) onProgress({ phase: "loader", done: 0, total: 1, current: `Repairing ${loader} ${loaderVersion || ""}` });
+    await runInstaller({ L, loader, mc, loaderVersion, javaBin });
+    child = JSON.parse(fs.readFileSync(versionJsonPath, "utf-8"));
+  }
   const merged = mergeVersionJson(child, vanillaJson);
   if (onProgress) onProgress({ phase: "loader", done: 1, total: 1, current: `${loader} ready` });
   return merged;
