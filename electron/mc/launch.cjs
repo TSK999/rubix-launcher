@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const { rulesAllow } = require("./mojang.cjs");
-const { INSTANCE_DIR, ASSETS_DIR, ensureDir } = require("./paths.cjs");
+const { INSTANCE_DIR, ASSETS_DIR, LIBRARIES_DIR, ensureDir } = require("./paths.cjs");
 
 // Expand ${var} placeholders using a values map.
 function expand(str, vars) {
@@ -61,6 +61,8 @@ async function launchGame({
     launcher_name: "RUBIX",
     launcher_version: "1.0",
     classpath: fullCp,
+    classpath_separator: cpSep,
+    library_directory: LIBRARIES_DIR(),
     user_properties: "{}",
   };
 
