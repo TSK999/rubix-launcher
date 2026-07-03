@@ -11,17 +11,32 @@
 //     installed-mods.json          ← { [projectId]: { projectId, fileId, fileName, name, dependencies:[ids] } }
 //     instance.json                ← per-instance metadata snapshot
 
-const { app, ipcMain, dialog, shell } = require("electron");
+const { app, ipcMain, dialog, shell, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const https = require("https");
 const { spawn, spawnSync } = require("child_process");
 
-const ROOT = () => path.join(app.getPath("home"), ".rubix", "minecraft");
-const INSTANCES_DIR = () => path.join(ROOT(), "instances");
+// New launcher pipeline modules
+const paths = require("./mc/paths.cjs");
+const mojang = require("./mc/mojang.cjs");
+const java = require("./mc/java.cjs");
+const loader = require("./mc/loader.cjs");
+const launcher = require("./mc/launch.cjs");
+const msal = require("./mc/msal.cjs");
+
+const ROOT = paths.ROOT;
+const INSTANCES_DIR = paths.INSTANCES_DIR;
 const REGISTRY = () => path.join(ROOT(), "instances.json");
-const INSTALLER_CACHE = () => path.join(ROOT(), "loader-installers");
+const INSTALLER_CACHE = paths.INSTALLER_CACHE;
+
+// Progress broadcast — main.cjs owns mainWindow, but any focused window works.
+function broadcastProgress(payload) {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send("mc:progress", payload);
+  }
+}
 
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
