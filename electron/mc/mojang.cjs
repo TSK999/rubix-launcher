@@ -48,21 +48,31 @@ function platformName() {
 }
 
 function ruleApplies(rule) {
-  // Feature-gated rules (is_demo_user, has_custom_resolution,
-  // has_quick_plays_*, etc.) — we never enable these features, so any rule
-  // that requires one does NOT apply. This prevents args like `--width ""`
-  // and `--demo` from leaking into the launch command line.
-  if (rule.features && Object.keys(rule.features).length > 0) {
-    return rule.action !== "allow";
-  }
-  if (!rule.os) return rule.action === "allow";
+  // This returns whether the rule CONDITIONS match the current launcher state;
+  // rulesAllow() applies the action. The previous implementation mixed action
+  // and condition logic, so a macOS-only disallow rule could disallow Windows,
+  // and feature-gated allow rules could leak empty args.
   const os = rule.os;
-  if (os.name && os.name !== platformName()) return rule.action !== "allow";
-  if (os.arch) {
-    const wantArch = os.arch === "x86" ? "ia32" : os.arch;
-    if (process.arch !== wantArch) return rule.action !== "allow";
+  if (os) {
+    if (os.name && os.name !== platformName()) return false;
+    if (os.arch) {
+      const wantArch = os.arch === "x86" ? "ia32" : os.arch;
+      if (process.arch !== wantArch) return false;
+    }
   }
-  return rule.action === "allow";
+
+  // We do not currently enable optional launcher features (demo user, custom
+  // resolution, quick-play, etc.). Treat all feature flags as false and only
+  // match rules whose requested feature values equal that state.
+  const features = rule.features || null;
+  if (features && Object.keys(features).length > 0) {
+    for (const [key, expected] of Object.entries(features)) {
+      const actual = false;
+      if (actual !== !!expected) return false;
+    }
+  }
+
+  return true;
 }
 
 function rulesAllow(rules) {
@@ -99,25 +109,39 @@ async function ensureLibraries(versionJson, onProgress) {
   const libs = (versionJson.libraries || []).filter((l) => rulesAllow(l.rules));
   const nativesDir = path.join(VERSION_DIR(versionJson.id), "natives");
   ensureDir(nativesDir);
-  const classpath = [];
+  const classpath = new Array(libs.length).fill(null);
   const total = libs.length;
   let done = 0;
 
-  await pool(libs, 8, async (lib) => {
+  await pool(libs.map((lib, index) => ({ lib, index })), 8, async ({ lib, index }) => {
     // Main artifact
     const art = lib.downloads?.artifact;
     if (art?.path && art?.url) {
       const dest = path.join(LIBRARIES_DIR(), art.path);
       await download(art.url, dest, art.sha1);
-      classpath.push(dest);
-    } else if (lib.name && !lib.downloads) {
-      // Loader libs sometimes provide only name+url (Fabric style)
+      classpath[index] = dest;
+    } else if (art?.path) {
+      // Forge installers generate some artifacts locally (notably the patched
+      // client jar) and leave `url` empty in version.json. Use it if present.
+      const dest = path.join(LIBRARIES_DIR(), art.path);
+      if (fs.existsSync(dest)) {
+        classpath[index] = dest;
+      } else if (lib.url) {
+        const url = lib.url.replace(/\/?$/, "/") + art.path;
+        try {
+          await download(url, dest, art.sha1);
+          classpath[index] = dest;
+        } catch { /* skip unresolvable */ }
+      }
+    } else if (lib.name) {
+      // Loader libs sometimes provide only name+url (Fabric/Forge style), or
+      // omit downloads.artifact while still being resolvable from a Maven repo.
       const cp = mavenPath(lib.name);
       const dest = path.join(LIBRARIES_DIR(), cp);
       const url = (lib.url || "https://libraries.minecraft.net/").replace(/\/?$/, "/") + cp;
       try {
         await download(url, dest);
-        classpath.push(dest);
+        classpath[index] = dest;
       } catch { /* skip unresolvable */ }
     }
 
@@ -137,7 +161,7 @@ async function ensureLibraries(versionJson, onProgress) {
     if (onProgress) onProgress({ phase: "libraries", done, total, current: lib.name });
   });
 
-  return { classpath, nativesDir };
+  return { classpath: classpath.filter(Boolean), nativesDir };
 }
 
 function extractNatives(jarPath, destDir, exclude) {
