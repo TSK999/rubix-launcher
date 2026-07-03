@@ -63,6 +63,7 @@ async function launchGame({
     classpath: fullCp,
     classpath_separator: cpSep,
     library_directory: LIBRARIES_DIR(),
+    arch: process.arch === "x64" ? "64" : process.arch === "ia32" ? "32" : process.arch,
     user_properties: "{}",
   };
 
