@@ -11,7 +11,10 @@ const { postForm, postJson, getJson, requestRaw } = require("./http.cjs");
 const { ACCOUNT_FILE, ensureDir, ROOT } = require("./paths.cjs");
 const path = require("path");
 
-const CLIENT_ID = "00000000402b5328";
+// Official Minecraft Launcher Azure app ID — supports device-code on the
+// /consumers tenant. The old Xbox "00000000402b5328" ID is rejected by
+// AAD on device-code (AADSTS700016).
+const CLIENT_ID = "389b1b32-b5d5-43b2-bddc-84ce938d6737";
 const SCOPE = "XboxLive.signin offline_access";
 
 async function startDeviceCode() {
