@@ -150,15 +150,17 @@ function mergeVersionJson(child, parent) {
   merged.releaseTime = child.releaseTime || parent.releaseTime;
   merged.time = child.time || parent.time;
 
-  // Libraries: loader libs go FIRST so their versions take precedence, then
-  // dedupe by "group:artifact" so we don't end up with e.g. asm 9.10.1 AND
-  // asm 9.6 both on the classpath (Fabric's Knot refuses to start in that case).
+  // Libraries: loader libs go FIRST so their versions take precedence. Dedupe
+  // unclassified duplicates by group:artifact (Fabric's Knot refuses duplicate
+  // ASM), but keep classified artifacts distinct (Forge needs both
+  // net.minecraftforge:forge:*:universal and :client).
   const parentLibs = parent.libraries || [];
   const childLibs = child.libraries || [];
   const seen = new Set();
   const gaOf = (name) => {
     if (!name || typeof name !== "string") return null;
     const parts = name.split(":");
+    if (parts.length >= 4) return `${parts[0]}:${parts[1]}:${parts[3]}`;
     return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : null;
   };
   merged.libraries = [];
