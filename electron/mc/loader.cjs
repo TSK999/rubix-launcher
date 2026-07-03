@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
-const { download, requestRaw } = require("./http.cjs");
+const { download, requestRaw, getJson } = require("./http.cjs");
 const {
   VERSIONS_DIR,
   VERSION_DIR,
@@ -70,7 +70,10 @@ async function verifyInstallerUrl(loader, spec) {
 }
 
 async function cacheInstaller(loader, mc, lv) {
-  const spec = installerUrl(loader, mc, lv);
+  let spec = installerUrl(loader, mc, lv);
+  if (String(loader).toLowerCase() === "forge") {
+    spec = await resolveForgeInstallerSpec(mc, lv);
+  }
   if (!spec) return null;
   ensureDir(INSTALLER_CACHE());
   const dest = path.join(INSTALLER_CACHE(), spec.file);
@@ -98,6 +101,42 @@ function loaderVersionId(loader, mc, lv) {
   if (L === "neoforge") return `neoforge-${lv}`;
   if (L === "forge") return `${mc}-forge-${lv}`;
   return null;
+}
+
+async function fetchFabricLikeVersionJson(loader, mc, lv) {
+  const L = String(loader).toLowerCase();
+  if (!lv) return null;
+  if (L === "fabric") {
+    return getJson(`https://meta.fabricmc.net/v2/versions/loader/${encodeURIComponent(mc)}/${encodeURIComponent(lv)}/profile/json`);
+  }
+  if (L === "quilt") {
+    return getJson(`https://meta.quiltmc.org/v3/versions/loader/${encodeURIComponent(mc)}/${encodeURIComponent(lv)}/profile/json`);
+  }
+  return null;
+}
+
+async function fetchText(url) {
+  const res = await requestRaw(url);
+  if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status} ${url}`);
+  return res.body.toString("utf-8");
+}
+
+async function resolveForgeInstallerSpec(mc, lv) {
+  if (!lv) return null;
+  const base = `https://maven.minecraftforge.net/net/minecraftforge/forge/${mc}-${lv}`;
+  try {
+    const xml = await fetchText(`${base}/maven-metadata.xml`);
+    const classifiers = [...xml.matchAll(/<classifier>([^<]+)<\/classifier>/g)].map((m) => m[1]);
+    const classifier =
+      ["installer", "installer-shim", "installer-slim"].find((c) => classifiers.includes(c)) ||
+      classifiers.find((c) => c.includes("installer"));
+    if (classifier) {
+      const file = `forge-${mc}-${lv}-${classifier}.jar`;
+      return { url: `${base}/${file}`, file };
+    }
+  } catch { /* legacy filename fallback */ }
+  const file = `forge-${mc}-${lv}-installer.jar`;
+  return { url: `${base}/${file}`, file };
 }
 
 // Merge a loader's version JSON with its parent (vanilla). Handles the common
@@ -146,6 +185,12 @@ function mergeVersionJson(child, parent) {
   return merged;
 }
 
+function writeVersionJson(id, json) {
+  const versionJsonPath = path.join(VERSION_DIR(id), `${id}.json`);
+  ensureDir(path.dirname(versionJsonPath));
+  fs.writeFileSync(versionJsonPath, JSON.stringify(json, null, 2), "utf-8");
+}
+
 // Ensure the loader version JSON exists. Returns the merged version JSON.
 async function ensureLoader({ loader, mc, loaderVersion, javaBin, vanillaJson, onProgress }) {
   const L = String(loader).toLowerCase();
@@ -157,6 +202,22 @@ async function ensureLoader({ loader, mc, loaderVersion, javaBin, vanillaJson, o
 
   if (!fs.existsSync(versionJsonPath)) {
     if (onProgress) onProgress({ phase: "loader", done: 0, total: 1, current: `Installing ${loader} ${loaderVersion || ""}` });
+
+    if (L === "fabric" || L === "quilt") {
+      try {
+        const metaJson = await fetchFabricLikeVersionJson(L, mc, loaderVersion);
+        if (metaJson?.id && metaJson?.mainClass) {
+          writeVersionJson(lvId, { ...metaJson, id: lvId, inheritsFrom: mc });
+        }
+      } catch { /* installer fallback below */ }
+      if (fs.existsSync(versionJsonPath)) {
+        const child = JSON.parse(fs.readFileSync(versionJsonPath, "utf-8"));
+        const merged = mergeVersionJson(child, vanillaJson);
+        if (onProgress) onProgress({ phase: "loader", done: 1, total: 1, current: `${loader} ready` });
+        return merged;
+      }
+    }
+
     const installer = await cacheInstaller(L, mc, loaderVersion);
     if (!installer) throw new Error(`Cannot locate ${loader} installer for MC ${mc} / ${loaderVersion}`);
     const mcRoot = ROOT();
