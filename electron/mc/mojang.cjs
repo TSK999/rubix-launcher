@@ -48,6 +48,13 @@ function platformName() {
 }
 
 function ruleApplies(rule) {
+  // Feature-gated rules (is_demo_user, has_custom_resolution,
+  // has_quick_plays_*, etc.) — we never enable these features, so any rule
+  // that requires one does NOT apply. This prevents args like `--width ""`
+  // and `--demo` from leaking into the launch command line.
+  if (rule.features && Object.keys(rule.features).length > 0) {
+    return rule.action !== "allow";
+  }
   if (!rule.os) return rule.action === "allow";
   const os = rule.os;
   if (os.name && os.name !== platformName()) return rule.action !== "allow";
