@@ -11,10 +11,10 @@ const { postForm, postJson, getJson, requestRaw } = require("./http.cjs");
 const { ACCOUNT_FILE, ensureDir, ROOT } = require("./paths.cjs");
 const path = require("path");
 
-// Official Minecraft Launcher Azure app ID — supports device-code on the
-// /consumers tenant. The old Xbox "00000000402b5328" ID is rejected by
-// AAD on device-code (AADSTS700016).
-const CLIENT_ID = "389b1b32-b5d5-43b2-bddc-84ce938d6737";
+// PrismLauncher's registered Azure app. Public client, multi-tenant, and
+// enabled for device-code on /consumers. Verified working; the older
+// "00000000402b5328" and "389b1b32-..." IDs both return AADSTS700016.
+const CLIENT_ID = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
 const SCOPE = "XboxLive.signin offline_access";
 
 async function startDeviceCode() {
