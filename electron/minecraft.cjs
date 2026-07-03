@@ -11,17 +11,32 @@
 //     installed-mods.json          ← { [projectId]: { projectId, fileId, fileName, name, dependencies:[ids] } }
 //     instance.json                ← per-instance metadata snapshot
 
-const { app, ipcMain, dialog, shell } = require("electron");
+const { app, ipcMain, dialog, shell, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const https = require("https");
 const { spawn, spawnSync } = require("child_process");
 
-const ROOT = () => path.join(app.getPath("home"), ".rubix", "minecraft");
-const INSTANCES_DIR = () => path.join(ROOT(), "instances");
+// New launcher pipeline modules
+const paths = require("./mc/paths.cjs");
+const mojang = require("./mc/mojang.cjs");
+const java = require("./mc/java.cjs");
+const loader = require("./mc/loader.cjs");
+const launcher = require("./mc/launch.cjs");
+const msal = require("./mc/msal.cjs");
+
+const ROOT = paths.ROOT;
+const INSTANCES_DIR = paths.INSTANCES_DIR;
 const REGISTRY = () => path.join(ROOT(), "instances.json");
-const INSTALLER_CACHE = () => path.join(ROOT(), "loader-installers");
+const INSTALLER_CACHE = paths.INSTALLER_CACHE;
+
+// Progress broadcast — main.cjs owns mainWindow, but any focused window works.
+function broadcastProgress(payload) {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send("mc:progress", payload);
+  }
+}
 
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
@@ -387,55 +402,129 @@ ipcMain.handle("mc:import-modpack", async (_e, { instanceName }) => {
   }
 });
 
-// ---------- IPC: launch ----------
-// Strategy: locate the official Minecraft Launcher and open it with the
-// instance directory as a game directory profile hint. If not found, open
-// the instance folder and surface guidance to the user.
-ipcMain.handle("mc:launch", async (_e, { name }) => {
-  const reg = readRegistry();
-  const inst = reg[name];
-  if (!inst) return { ok: false, error: "Instance not found" };
-  const dir = instanceDir(name);
-  const launcher = findMinecraftLauncher();
-  if (!launcher) {
-    await shell.openPath(dir);
-    return {
-      ok: false,
-      error: "Minecraft Launcher not found. Open the instance folder, then point your launcher's Game Directory at it.",
-      openedFolder: true,
-    };
-  }
+// ---------- IPC: Microsoft sign-in ----------
+ipcMain.handle("mc:whoami", async () => {
   try {
-    const child = spawn(launcher.path, launcher.args, { detached: true, stdio: "ignore" });
-    child.unref();
-    reg[name] = { ...inst, lastPlayed: new Date().toISOString() };
-    writeRegistry(reg);
-    return { ok: true, launched: launcher.path, gameDir: dir };
+    const acc = await msal.ensureValidAccount();
+    if (!acc) return { ok: true, account: null };
+    return { ok: true, account: { uuid: acc.uuid, name: acc.name } };
   } catch (err) {
     return { ok: false, error: String(err?.message || err) };
   }
 });
 
-function findMinecraftLauncher() {
-  const candidates = [];
-  if (process.platform === "win32") {
-    candidates.push("C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe");
-    candidates.push("C:\\Program Files\\Minecraft Launcher\\MinecraftLauncher.exe");
-    candidates.push(path.join(app.getPath("appData"), "..", "Local", "Packages", "Microsoft.4297127D64EC6_8wekyb3d8bbwe", "LocalCache", "Local", "runtime"));
-    // Xbox app version
-    candidates.push("C:\\XboxGames\\Minecraft Launcher\\Content\\Minecraft.exe");
-  } else if (process.platform === "darwin") {
-    candidates.push("/Applications/Minecraft.app/Contents/MacOS/launcher");
-    candidates.push("/Applications/Minecraft.app");
-  } else {
-    candidates.push("/usr/bin/minecraft-launcher");
-    candidates.push("/usr/local/bin/minecraft-launcher");
-    candidates.push("/snap/bin/mc-installer");
+let _activeSignIn = null;
+ipcMain.handle("mc:sign-in-start", async () => {
+  try {
+    const dc = await msal.startDeviceCode();
+    _activeSignIn = { deviceCode: dc.device_code, cancelled: false };
+    // Try to open the verification page for the user.
+    msal.openVerificationUrl(dc.verification_uri || "https://microsoft.com/link");
+
+    // Kick off polling in the background — result is delivered via IPC event.
+    (async () => {
+      try {
+        const tok = await msal.pollForMsToken(dc.device_code, dc.interval, dc.expires_in);
+        if (_activeSignIn?.cancelled) return;
+        const acc = await msal.finishSignIn(tok.access_token, tok.refresh_token, tok.expires_in);
+        broadcast("mc:sign-in-complete", { ok: true, account: { uuid: acc.uuid, name: acc.name } });
+      } catch (err) {
+        broadcast("mc:sign-in-complete", { ok: false, error: String(err?.message || err) });
+      } finally {
+        _activeSignIn = null;
+      }
+    })();
+
+    return {
+      ok: true,
+      userCode: dc.user_code,
+      verificationUri: dc.verification_uri || "https://microsoft.com/link",
+      expiresIn: dc.expires_in,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
   }
-  for (const c of candidates) {
-    try { if (fs.existsSync(c)) return { path: c, args: [] }; } catch (_e) { /* ignore */ }
+});
+
+ipcMain.handle("mc:sign-in-cancel", async () => {
+  if (_activeSignIn) _activeSignIn.cancelled = true;
+  _activeSignIn = null;
+  return { ok: true };
+});
+
+ipcMain.handle("mc:sign-out", async () => {
+  msal.clearAccount();
+  return { ok: true };
+});
+
+function broadcast(channel, payload) {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send(channel, payload);
   }
-  return null;
 }
+
+// ---------- IPC: launch (real headless launcher) ----------
+ipcMain.handle("mc:launch", async (_e, { name }) => {
+  const reg = readRegistry();
+  const inst = reg[name];
+  if (!inst) return { ok: false, error: "Instance not found" };
+
+  try {
+    // 1) Account
+    const account = await msal.ensureValidAccount();
+    if (!account) {
+      return { ok: false, error: "Sign in with Microsoft first.", needsSignIn: true };
+    }
+
+    // 2) Vanilla version (client + libs + assets)
+    broadcastProgress({ phase: "starting", done: 0, total: 1, current: `Preparing ${inst.mcVersion}` });
+    const ver = await mojang.ensureVersion(inst.mcVersion, broadcastProgress);
+
+    // 3) Java runtime
+    const jre = await java.ensureRuntime(ver.versionJson, inst.javaPath, broadcastProgress);
+
+    // 4) Loader install + merge (no-op for vanilla)
+    const finalJson = await loader.ensureLoader({
+      loader: inst.loader,
+      mc: inst.mcVersion,
+      loaderVersion: inst.loaderVersion,
+      javaBin: jre.path,
+      vanillaJson: ver.versionJson,
+      onProgress: broadcastProgress,
+    });
+
+    // If loader added libraries, download them too.
+    let classpath = ver.classpath;
+    if (finalJson !== ver.versionJson) {
+      const extra = await mojang.ensureLibraries(finalJson, broadcastProgress);
+      classpath = extra.classpath; // includes vanilla libs too because merge kept them
+    }
+
+    broadcastProgress({ phase: "launching", done: 1, total: 1, current: "Starting Minecraft" });
+
+    // 5) Spawn
+    const spawnRes = await launcher.launchGame({
+      javaBin: jre.path,
+      versionJson: finalJson,
+      clientJar: ver.clientJar,
+      classpath,
+      nativesDir: ver.nativesDir,
+      instanceName: name,
+      account,
+      ramMb: inst.ramMb || 2048,
+      onExit: (code, logPath) => {
+        broadcastProgress({ phase: "exited", done: 1, total: 1, current: `Exited (${code})`, logPath });
+      },
+    });
+
+    reg[name] = { ...inst, lastPlayed: new Date().toISOString() };
+    writeRegistry(reg);
+    return { ok: true, pid: spawnRes.pid, logPath: spawnRes.logPath, gameDir: paths.INSTANCE_DIR(name) };
+  } catch (err) {
+    const msg = String(err?.message || err);
+    broadcastProgress({ phase: "error", done: 0, total: 1, current: msg });
+    return { ok: false, error: msg };
+  }
+});
 
 module.exports = {};

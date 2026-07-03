@@ -1,79 +1,103 @@
-# Finish the Mod Strategies — Phase 3 completion + Phase 4
 
-Right now `installMod()` dispatches to 8 strategies, but only `DIRECT_COPY` (KSP) and `PROFILE_ISOLATED` (Minecraft) are real. The other 6 return `not implemented`, and the Setup Wizard is still KSP-shaped. This plan ships them all behind the existing dispatcher — no UI changes required at call sites.
+# Full Minecraft Launch Pipeline
 
-## Scope
+Replace the "spawn the official Launcher" shim with a real headless launcher: sign the user in with Microsoft, download the game from Mojang, run the loader installer, and spawn `java` ourselves.
 
-### 1. Strategy implementations (`src/lib/mods/strategies/`)
+## What we're building
 
-Each strategy implements `setup / verifyLoader / install / uninstall / validate` against the existing `window.rubix` Electron bridge. Renderer code stays untouched.
-
-- **bepinex.ts** — `BEPINEX_RUNTIME` (Lethal Company, Valheim, RoR2, DRG)
-  - `setup`: download correct BepInEx pack (x64 vs IL2CPP) from Thunderstore, extract to game root, first-launch to generate config.
-  - `install`: route `BepInExPack` archives → game root; everything else → `BepInEx/plugins/{author}-{name}/`.
-  - `verifyLoader`: check `winhttp.dll` + `BepInEx/core/BepInEx.dll`, read version from `BepInEx.cfg`.
-- **melonloader.ts** — `MELONLOADER_RUNTIME` (BONELAB, Blade & Sorcery)
-  - `setup`: run MelonLoader installer (bundled) or extract release zip.
-  - `install`: `.dll` → `Mods/`, `UserLibs/` passthrough, ignore source archives.
-- **smapi.ts** — Stardew Valley
-  - `setup`: run SMAPI installer (`install on Windows.bat`) headlessly, patch Steam launch options.
-  - `install`: each mod = its own folder under `Mods/{ModName}/` with `manifest.json` preserved.
-- **tmodloader.ts** — Terraria
-  - `setup`: ensure tModLoader installed via Steam (1.4) — detect, prompt if missing.
-  - `install`: `.tmod` files → `%UserProfile%/Documents/My Games/Terraria/tModLoader/Mods/`.
-- **addon-folder.ts** — WoW
-  - `setup`: validate `Interface/AddOns/` exists for chosen flavor (Retail/Classic/WotLK).
-  - `install`: extract addon zip directly into `Interface/AddOns/`, each top-level folder = one addon.
-- **modio.ts** — Ready or Not, Space Engineers, SnowRunner
-  - `setup`: OAuth/email-code link to user's mod.io account, store token in Electron safeStorage.
-  - `install`: call mod.io subscribe API; game's native sync handles the download. No file I/O.
-  - `uninstall`: unsubscribe.
-
-Each gets a matching IPC handler in `electron/main.cjs` (new file `electron/strategies/{name}.cjs` per strategy to keep `main.cjs` thin) and a typed bridge in `electron/preload.cjs` + `src/types/electron.d.ts`.
-
-### 2. Generic Setup Wizard (Phase 4)
-
-Replace `src/components/mods/GameSetupWizard.tsx` with a profile-driven wizard that reads `game.modSystemType` and renders steps from a per-strategy config:
-
-```ts
-interface SetupStepConfig {
-  id: 'pick-path' | 'install-loader' | 'verify-loader' | 'link-account' | 'pick-flavor';
-  title: string;
-  optional?: boolean;
-}
+```text
+Sign in (MSAL device code)
+  → Xbox Live → XSTS → Minecraft services token → profile (uuid + name)
+Download game (Mojang piston-meta)
+  → version manifest → version JSON → client.jar + libraries + asset index + assets
+Java runtime
+  → detect system java; if missing, download Adoptium Temurin JRE for the MC version
+Loader install (headless)
+  → java -jar <installer>.jar --installClient  (Fabric / Quilt / NeoForge / Forge)
+  → merge loader's version JSON into ours (extra libs + main class + args)
+Launch
+  → build classpath, expand argument templates, spawn java with auth + game dir
 ```
 
-Strategy exposes `getSetupSteps(): SetupStepConfig[]`. Wizard renders steps in order, calling `strategy.setup()` / `strategy.verifyLoader()` between them. WoW gets the flavor picker; Mod.io games get the account link step; everything else gets path + loader.
+## New files
 
-The current KSP wizard becomes the `DIRECT_COPY` case (path-pick only). Minecraft keeps its dedicated instance wizard — it's not a setup wizard, it's per-instance.
+**`electron/mc/msal.cjs`** — Microsoft device-code login
+- Client ID `00000000402b5328` (Xbox community client used by every third-party launcher)
+- `POST devicecode` → return user_code + verification_uri, open in browser
+- Poll `POST token` until success → MS access token + refresh token
+- Xbox Live auth (`user.auth.xboxlive.com/user/authenticate`)
+- XSTS (`xsts.auth.xboxlive.com/xsts/authorize`) — handle 401 with XErr codes (child account, no Xbox account) with friendly errors
+- Minecraft services (`api.minecraftservices.com/authentication/login_with_xbox`)
+- Profile (`api.minecraftservices.com/minecraft/profile`) → `{ uuid, name, accessToken }`
+- Persist encrypted token blob at `<userData>/rubix/mc/account.json` (Electron `safeStorage`), auto-refresh on expiry
 
-### 3. Registry + dispatcher updates
+**`electron/mc/mojang.cjs`** — Mojang asset pipeline
+- `version_manifest_v2.json` → resolve version id → fetch version JSON
+- Download `client.jar` → `<root>/versions/<id>/<id>.jar` (sha1 verify)
+- Walk `libraries[]`, honour `rules` (os/arch), skip natives we don't need (modern MC bundles LWJGL natives via classifiers — download + extract to `<root>/versions/<id>/natives/`)
+- Fetch asset index → `<root>/assets/indexes/<idx>.json`
+- Download every object into `<root>/assets/objects/<xx>/<hash>` — parallel with a small pool (8 workers), skip existing by sha1
+- Progress reporter → IPC event `mc:progress` `{ phase, done, total, current }`
 
-- `strategies/index.ts`: replace 6 `notImplemented` entries with the new modules.
-- `profiles.ts`: already covers all 6 system types; no changes needed.
-- Mark each strategy with a `capabilities` flag (`requiresAccount`, `requiresLoaderInstall`, `requiresGameVersion`) consumed by the wizard.
+**`electron/mc/java.cjs`** — Java runtime
+- If `detectJava()` returns a version compatible with the MC version (17+ for 1.18+, 8 for ≤1.16), use it
+- Else fetch Adoptium API: `https://api.adoptium.net/v3/assets/latest/<major>/hotspot?os=<os>&architecture=<arch>&image_type=jre`
+- Download `.tar.gz` / `.zip` to `<root>/runtime/jre-<major>/`, extract, return path to `bin/java(.exe)`
+- Cache by major version
 
-### 4. Tests
+**`electron/mc/loader.cjs`** — Headless loader install
+- Fabric / Quilt: `java -jar installer.jar client -dir <root> -mcversion <mc> -loader <lv> -noprofile`
+- NeoForge / Forge: `java -jar installer.jar --installClient <root>` (writes a `<mc>-forge-<lv>` version JSON that inherits from vanilla)
+- Read the resulting loader version JSON, merge `libraries` + `mainClass` + `arguments` into the vanilla version JSON in memory → cache as `<id>-rubix.json`
+- Report progress; surface installer stderr on failure
 
-Extend `src/test/mods.strategies.test.ts`:
-- Each strategy's `install()` is called with the right archive layout (mocked bridge).
-- Wizard step generation per `ModSystemType`.
-- Guardrails still block when loader is missing (verified per strategy).
+**`electron/mc/launch.cjs`** — Actually launch
+- Build classpath: all lib jars + client.jar (or loader-merged jars)
+- Expand Mojang argument templates: `${auth_player_name} ${version_name} ${game_directory} ${assets_root} ${assets_index_name} ${auth_uuid} ${auth_access_token} ${user_type} ${version_type} ${natives_directory} ${launcher_name} ${launcher_version} ${classpath}`
+- JVM args: `-Xmx<ramMb>M -Djava.library.path=<natives> -cp <cp>` + version JSON jvm args
+- Spawn detached `java`, pipe stdout/stderr to `<instance>/logs/latest.log`
+- Non-zero exit → emit crash event with tail of log
 
-Target: 30+ tests passing.
+**`electron/mc/paths.cjs`** — Shared path helpers so all mc/*.cjs modules agree on ROOT, versions dir, assets dir, libraries dir, runtime dir.
 
-### 5. Out of scope
+## Files to edit
 
-- New UI surfaces beyond the wizard (KspMods page and Minecraft browser already route through `installMod`).
-- Nexus auth — Nexus stays "manual download" until they grant API access.
-- Version bump — happens at the end as v1.6.0 once Phase 4 lands and QA passes.
+**`electron/minecraft.cjs`**
+- Remove `findMinecraftLauncher()` + `mc:launch` external-spawn body
+- New `mc:launch` calls `mojang.ensureVersion() → loader.ensureLoader() → java.ensureRuntime() → launch.spawn()`
+- New IPC handlers: `mc:signIn`, `mc:signOut`, `mc:whoami`, `mc:refreshAccount`
+- Wire `mc:progress` events (BrowserWindow.webContents.send)
 
-## Deliverable order
+**`electron/preload.cjs`**
+- Expose `rubix.minecraft.signIn/signOut/whoami/onProgress`
 
-1. `bepinex` + `melonloader` (highest demand, ~10 games covered).
-2. `smapi` + `tmodloader` (single-game each, but big communities).
-3. `addon-folder` (WoW) + `modio` (3 games, account-linked).
-4. Generic Setup Wizard refactor.
-5. Tests + v1.6.0 cut.
+**`src/lib/minecraft/bridge.ts`**
+- Add `signIn / signOut / whoami / onProgress` wrappers
 
-Each step is independently shippable — if anything blocks (e.g. mod.io OAuth setup), the rest still lands.
+**`src/components/minecraft/InstanceDetail.tsx`** (or new `AccountBadge.tsx`)
+- Header shows signed-in MS account + "Sign in with Microsoft" button
+- Launch button disabled until signed in
+- Progress bar bound to `onProgress`, with phase label ("Downloading assets 812/1400")
+
+**`src/types/electron.d.ts`** — new bridge methods
+
+## Technical notes
+
+- **No secrets to add.** The Xbox community client ID is public; no Azure registration, no `add_secret`. Mojang + Adoptium APIs are unauthenticated.
+- **Piracy check:** if `POST /authentication/login_with_xbox` returns 200 but `/minecraft/profile` returns 404, the account doesn't own Minecraft. Return a clean error, not a crash.
+- **Concurrency:** asset download uses a bounded pool (8) — Mojang's CDN handles this fine, and we already do it for CF mods.
+- **Retries:** every HTTP call gets 3 retries with exponential backoff. Existing `downloadTo()` gets a sha1-verify variant.
+- **Cache is shared across instances.** `versions/`, `libraries/`, `assets/`, `runtime/` live under `<userData>/rubix/mc/`, not per-instance. Only the world/mods/config are per-instance (already the case).
+- **Legacy assets** (pre-1.6, virtual assets): out of scope — we launch 1.13+ only. Guard in `createInstance`.
+- **Token storage:** Electron `safeStorage.encryptString` (OS keychain-backed). Falls back to plaintext with a warning on unsupported Linux setups.
+
+## Out of scope for this pass
+
+- Skin rendering / cape support (needs GL, not worth it in-launcher)
+- Server-list import
+- Microsoft account switching UI beyond sign-in / sign-out
+- Legacy Mojang-account login (Yggdrasil) — Microsoft-migration deadline has long passed
+
+## Rollout
+
+One PR. `pnpm/npm run build && npm run electron:package` still works — no new native deps. Bump to **1.7.0** — this is a genuinely new capability.

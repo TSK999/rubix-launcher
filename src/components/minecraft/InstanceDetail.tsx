@@ -19,6 +19,8 @@ import {
   type Instance, type InstalledMod,
 } from "@/lib/minecraft/bridge";
 import { MinecraftModBrowser } from "./MinecraftModBrowser";
+import { MinecraftAccountBadge } from "./MinecraftAccountBadge";
+import { MinecraftLaunchProgress } from "./MinecraftLaunchProgress";
 import { formatBytes } from "@/lib/minecraft/api";
 
 type Props = {
@@ -35,6 +37,7 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   const [renaming, setRenaming] = useState(false);
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [hasAccount, setHasAccount] = useState<boolean>(false);
 
   async function refresh() {
     setLoading(true);
@@ -60,7 +63,8 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   async function doLaunch() {
     setLaunching(true);
     const r = await launch(inst!.name);
-    setLaunching(false);
+    // Keep the progress banner visible for a moment after success/failure.
+    setTimeout(() => setLaunching(false), r.ok ? 4000 : 1500);
     if (r.ok) toast.success(`Launched ${inst!.name}`);
     else toast.error(r.error || "Launch failed");
   }
@@ -117,12 +121,15 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={doLaunch} disabled={launching} size="lg">
+          <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />
+          <Button onClick={doLaunch} disabled={launching || !hasAccount} size="lg" title={!hasAccount ? "Sign in with Microsoft first" : ""}>
             {launching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
             Launch
           </Button>
         </div>
       </div>
+
+      <MinecraftLaunchProgress active={launching} />
 
       <div className="flex items-center gap-2 text-xs">
         <Button size="sm" variant="outline" onClick={() => openInstanceFolder(inst.name)}>
@@ -200,9 +207,9 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
               </p>
             </div>
             <div className="text-xs text-muted-foreground">
-              <b>Note:</b> launching opens the official Minecraft Launcher pointed at this instance's
-              game directory. Mojang authentication and Java sandboxing remain handled by the
-              official launcher.
+              <b>Note:</b> RUBIX now runs Minecraft directly — no external launcher required.
+              Missing assets, libraries, loader jars, and (if needed) a Java runtime are
+              downloaded automatically on first launch and shared across instances.
             </div>
             {inst.installerPath && (
               <div className="text-xs text-muted-foreground">

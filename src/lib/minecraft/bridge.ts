@@ -89,3 +89,26 @@ export async function importModpack(instanceName?: string) {
 export async function launch(name: string) {
   return api()?.launch(name) ?? fail();
 }
+
+// ---------- Microsoft auth + progress ----------
+export type McAccount = { uuid: string; name: string };
+export type McProgress = { phase: string; done: number; total: number; current?: string; logPath?: string };
+
+export async function whoami(): Promise<{ ok: boolean; account: McAccount | null; error?: string }> {
+  return api()?.whoami() ?? { ok: false, account: null, error: "Desktop required" };
+}
+export async function signInStart() {
+  return api()?.signInStart() ?? fail();
+}
+export async function signInCancel() {
+  return api()?.signInCancel() ?? fail();
+}
+export async function signOut() {
+  return api()?.signOut() ?? fail();
+}
+export function onSignInComplete(cb: (data: { ok: boolean; account?: McAccount; error?: string }) => void) {
+  return api()?.onSignInComplete(cb) ?? (() => {});
+}
+export function onProgress(cb: (data: McProgress) => void) {
+  return api()?.onProgress(cb) ?? (() => {});
+}
