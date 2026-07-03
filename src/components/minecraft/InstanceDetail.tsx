@@ -63,7 +63,8 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   async function doLaunch() {
     setLaunching(true);
     const r = await launch(inst!.name);
-    setLaunching(false);
+    // Keep the progress banner visible for a moment after success/failure.
+    setTimeout(() => setLaunching(false), r.ok ? 4000 : 1500);
     if (r.ok) toast.success(`Launched ${inst!.name}`);
     else toast.error(r.error || "Launch failed");
   }
