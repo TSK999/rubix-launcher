@@ -207,9 +207,9 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
               </p>
             </div>
             <div className="text-xs text-muted-foreground">
-              <b>Note:</b> launching opens the official Minecraft Launcher pointed at this instance's
-              game directory. Mojang authentication and Java sandboxing remain handled by the
-              official launcher.
+              <b>Note:</b> RUBIX now runs Minecraft directly — no external launcher required.
+              Missing assets, libraries, loader jars, and (if needed) a Java runtime are
+              downloaded automatically on first launch and shared across instances.
             </div>
             {inst.installerPath && (
               <div className="text-xs text-muted-foreground">
