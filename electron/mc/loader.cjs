@@ -18,14 +18,16 @@ const {
 function installerUrl(loader, mc, lv) {
   const L = String(loader).toLowerCase();
   if (L === "fabric") {
-    const v = lv || "1.0.1";
+    // Pinned fabric-installer release. The loader version (`lv`) is passed to
+    // the installer via `-loader` separately — it is NOT the installer version.
+    const v = "1.0.1";
     return {
       url: `https://maven.fabricmc.net/net/fabricmc/fabric-installer/${v}/fabric-installer-${v}.jar`,
       file: `fabric-installer-${v}.jar`,
     };
   }
   if (L === "quilt") {
-    const v = lv || "0.9.2";
+    const v = "0.9.2";
     return {
       url: `https://maven.quiltmc.org/repository/release/org/quiltmc/quilt-installer/${v}/quilt-installer-${v}.jar`,
       file: `quilt-installer-${v}.jar`,
