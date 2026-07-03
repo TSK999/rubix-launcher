@@ -4,6 +4,40 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-07-03
+
+**RUBIX is now a full headless Minecraft launcher — no more "open the official Launcher" shim.**
+
+### Added
+- Microsoft device-code sign-in (MSAL → Xbox Live → XSTS → Minecraft services).
+  No API keys needed — uses the public Xbox community client ID.
+- Persistent, OS-keychain-encrypted session with auto-refresh on expiry.
+- Native Mojang asset pipeline: downloads `client.jar`, libraries (with OS/arch
+  rule filtering), asset indexes, and every game asset — parallel pool (8 workers),
+  SHA1-verified, fully resumable.
+- Automatic Java runtime provisioning: detects system Java; if missing or wrong
+  version, downloads the correct Adoptium Temurin JRE (8, 17, 21+) and caches it.
+- Headless loader install for Fabric, Quilt, NeoForge and Forge — runs the
+  official installer in the background, merges the resulting version JSON into
+  vanilla, and caches the merged manifest.
+- Native game launch: builds classpath, expands Mojang argument templates,
+  spawns `java` detached with auth + instance game directory, and pipes logs to
+  `<instance>/logs/latest.log`.
+- Real-time launch progress UI (`mc:progress` IPC) showing current phase,
+  counts and throughput.
+- Minecraft account badge in the instance header with sign-in / sign-out and
+  active gamertag display.
+- Piracy check: clean error if the Microsoft account does not own Minecraft.
+
+### Changed
+- Replaced external-launcher-spawn flow with fully native launch pipeline.
+- Cache structure moved under `<userData>/rubix/mc/` — versions, libraries,
+  assets and runtimes are shared across all instances.
+
+### Fixed
+- "Not allowed to load local resource" error when attempting Minecraft launch
+  without the external launcher present.
+
 ## [1.6.0] - 2026-06-28
 
 **The Mod Manager is now fully operational across every supported game.**
