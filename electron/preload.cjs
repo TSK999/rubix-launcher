@@ -108,5 +108,19 @@ contextBridge.exposeInMainWorld("rubix", {
     toggleMod: (instance, projectId, enabled) => ipcRenderer.invoke("mc:toggle-mod", { instance, projectId, enabled }),
     importModpack: (instanceName) => ipcRenderer.invoke("mc:import-modpack", { instanceName }),
     launch: (name) => ipcRenderer.invoke("mc:launch", { name }),
+    whoami: () => ipcRenderer.invoke("mc:whoami"),
+    signInStart: () => ipcRenderer.invoke("mc:sign-in-start"),
+    signInCancel: () => ipcRenderer.invoke("mc:sign-in-cancel"),
+    signOut: () => ipcRenderer.invoke("mc:sign-out"),
+    onSignInComplete: (cb) => {
+      const handler = (_e, data) => cb(data);
+      ipcRenderer.on("mc:sign-in-complete", handler);
+      return () => ipcRenderer.removeListener("mc:sign-in-complete", handler);
+    },
+    onProgress: (cb) => {
+      const handler = (_e, data) => cb(data);
+      ipcRenderer.on("mc:progress", handler);
+      return () => ipcRenderer.removeListener("mc:progress", handler);
+    },
   },
 });
