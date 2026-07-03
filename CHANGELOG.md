@@ -4,6 +4,21 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-07-03
+
+### Fixed
+- Minecraft failing to launch with `NumberFormatException: For input string: ""`
+  on Forge (and empty `--width`/`--demo`/`--quickPlay*` args on Fabric) — the
+  version-JSON rule evaluator now rejects any rule gated by `features`
+  (`is_demo_user`, `has_custom_resolution`, `has_quick_plays_*`), so those args
+  are no longer emitted with empty values.
+- Fabric refusing to start with `duplicate ASM classes found on classpath`
+  (e.g. `asm-9.10.1` alongside vanilla's `asm-9.6`) — merged libraries are now
+  deduplicated by Maven `group:artifact`, keeping the loader's version.
+- Launch exit `-1` was opaque — the launcher now captures spawn errors, keeps
+  a rolling stderr tail, and surfaces the real reason in the progress UI and
+  in `latest.log`.
+
 ## [1.7.3] - 2026-07-03
 
 ### Fixed
