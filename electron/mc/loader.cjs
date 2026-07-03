@@ -110,10 +110,26 @@ function mergeVersionJson(child, parent) {
   merged.releaseTime = child.releaseTime || parent.releaseTime;
   merged.time = child.time || parent.time;
 
-  // Libraries: loader libs go FIRST so their versions take precedence.
+  // Libraries: loader libs go FIRST so their versions take precedence, then
+  // dedupe by "group:artifact" so we don't end up with e.g. asm 9.10.1 AND
+  // asm 9.6 both on the classpath (Fabric's Knot refuses to start in that case).
   const parentLibs = parent.libraries || [];
   const childLibs = child.libraries || [];
-  merged.libraries = [...childLibs, ...parentLibs];
+  const seen = new Set();
+  const gaOf = (name) => {
+    if (!name || typeof name !== "string") return null;
+    const parts = name.split(":");
+    return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : null;
+  };
+  merged.libraries = [];
+  for (const lib of [...childLibs, ...parentLibs]) {
+    const ga = gaOf(lib?.name);
+    if (ga) {
+      if (seen.has(ga)) continue;
+      seen.add(ga);
+    }
+    merged.libraries.push(lib);
+  }
 
   // Arguments merge (Mojang 1.13+ arguments.game / arguments.jvm arrays)
   if (parent.arguments || child.arguments) {
