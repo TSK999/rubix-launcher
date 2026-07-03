@@ -4,6 +4,17 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-07-03
+
+### Fixed
+- Forge / NeoForge installer failing with "you need to run the launcher first!"
+  — writes a stub `launcher_profiles.json` before the headless install so the
+  official installer proceeds.
+- Fabric installer 404 — pinned the installer to the stable Maven release
+  (`1.0.1` for Fabric, `0.9.2` for Quilt) instead of using the loader version.
+- Installer download now verifies the URL with a HEAD request first, so a 404
+  surfaces a clear user-friendly error instead of a raw HTTP failure.
+
 ## [1.7.2] - 2026-07-03
 
 ### Fixed
