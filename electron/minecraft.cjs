@@ -512,8 +512,15 @@ ipcMain.handle("mc:launch", async (_e, { name }) => {
       instanceName: name,
       account,
       ramMb: inst.ramMb || 2048,
-      onExit: (code, logPath) => {
-        broadcastProgress({ phase: "exited", done: 1, total: 1, current: `Exited (${code})`, logPath });
+      onExit: (code, logPath, extra) => {
+        const detail = extra?.spawnError
+          ? `spawn failed: ${extra.spawnError}`
+          : extra?.signal
+            ? `killed by ${extra.signal}`
+            : `code ${code}`;
+        const tail = (extra?.stderrTail || "").trim().split(/\r?\n/).slice(-6).join(" | ");
+        const current = tail ? `Exited (${detail}) — ${tail}` : `Exited (${detail})`;
+        broadcastProgress({ phase: "exited", done: 1, total: 1, current, logPath });
       },
     });
 
