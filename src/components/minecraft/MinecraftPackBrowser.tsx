@@ -243,16 +243,72 @@ export function MinecraftPackBrowser({ instance, kind }: Props) {
         </Button>
       </form>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">MC {instance.mcVersion}</Badge>
-          <span>Modrinth • filtered by project_type=<code>{facetType}</code></span>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">MC {instance.mcVersion}</Badge>
+            <span>Modrinth • project_type=<code>{facetType}</code></span>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={hideInstalled} onCheckedChange={(v) => setHideInstalled(!!v)} />
+              Hide installed
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={showIncompatible} onCheckedChange={(v) => setShowIncompatible(!!v)} />
+              Show incompatible
+            </label>
+          </div>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox checked={showIncompatible} onCheckedChange={(v) => setShowIncompatible(!!v)} />
-          Show incompatible versions
-        </label>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Sort</span>
+          {SORTS.map((s) => (
+            <button
+              key={s.k}
+              onClick={() => setSort(s.k)}
+              className={
+                "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all " +
+                (sort === s.k
+                  ? "bg-primary/15 border-primary/40 text-primary"
+                  : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border")
+              }
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Categories</span>
+          {catList.map((c) => {
+            const on = selectedCats.has(c);
+            return (
+              <button
+                key={c}
+                onClick={() => toggleCat(c)}
+                className={
+                  "px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all " +
+                  (on
+                    ? "bg-primary/15 border-primary/40 text-primary"
+                    : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border")
+                }
+              >
+                {c}
+              </button>
+            );
+          })}
+          {selectedCats.size > 0 && (
+            <button
+              onClick={() => setSelectedCats(new Set())}
+              className="px-2 py-0.5 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2"
+            >
+              clear
+            </button>
+          )}
+        </div>
       </div>
+
 
       {installed.length > 0 && (
         <div>
