@@ -352,3 +352,17 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
     </div>
   );
 }
+
+function ActionButton({
+  icon, children, onClick,
+}: { icon: React.ReactNode; children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-card/40 border border-border/50 text-[11px] font-black uppercase tracking-[0.1em] text-foreground/80 hover:bg-card/60 hover:border-border transition-all backdrop-blur"
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      {children}
+    </button>
+  );
+}
