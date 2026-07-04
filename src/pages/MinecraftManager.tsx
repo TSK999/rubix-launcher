@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -14,6 +19,17 @@ import { CreateInstanceWizard } from "@/components/minecraft/CreateInstanceWizar
 import { InstanceDetail } from "@/components/minecraft/InstanceDetail";
 import { cfMcFile, formatBytes } from "@/lib/minecraft/api";
 import { cn } from "@/lib/utils";
+
+const BG_KEY = "rubix:mc:instance-bg";
+
+function loadBackgrounds(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(BG_KEY) || "{}"); } catch { return {}; }
+}
+function saveBackgrounds(map: Record<string, string>) {
+  try { localStorage.setItem(BG_KEY, JSON.stringify(map)); } catch (e) {
+    toast.error("Couldn't save background (storage full — try a smaller image or a URL).");
+  }
+}
 
 const LAST_KEY = "rubix:mc:last-instance";
 
