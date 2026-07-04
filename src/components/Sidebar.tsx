@@ -59,8 +59,11 @@ export const Sidebar = ({
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
 
-  const isActive = (to: string) =>
-    to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
+  const isActive = (to: string) => {
+    if (to === "/") return location.pathname === "/";
+    if (to === "/mods") return location.pathname === "/mods" || (location.pathname.startsWith("/mods/") && !location.pathname.startsWith("/mods/minecraft"));
+    return location.pathname === to || location.pathname.startsWith(to + "/");
+  };
 
   const items: { id: Collection; label: string; icon: typeof Library; count: number }[] = [
     { id: "all", label: "All games", icon: Library, count: counts.all },
