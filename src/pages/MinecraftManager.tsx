@@ -394,6 +394,81 @@ export default function MinecraftManager() {
             onOpenChange={setShowCreate}
             onCreated={(name) => { refresh(); setSelected(name); }}
           />
+
+          <Dialog open={!!bgEditing} onOpenChange={(o) => !o && setBgEditing(null)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Custom background</DialogTitle>
+                <DialogDescription>
+                  Add a GIF or image for <span className="text-foreground font-medium">{bgEditing}</span>. Paste a URL or upload a file (max 4&nbsp;MB).
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bg-url">Image or GIF URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="bg-url"
+                      placeholder="https://example.com/cover.gif"
+                      value={bgUrlDraft}
+                      onChange={(e) => setBgUrlDraft(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => {
+                        if (!bgEditing || !bgUrlDraft.trim()) return;
+                        setInstanceBackground(bgEditing, bgUrlDraft.trim());
+                        setBgEditing(null);
+                        toast.success("Background updated");
+                      }}
+                      disabled={!bgUrlDraft.trim()}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
+                  <div className="relative flex justify-center text-xs uppercase tracking-wider">
+                    <span className="bg-background px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onBgFilePicked(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full"
+                >
+                  <Upload className="h-4 w-4 mr-2" /> Upload image / GIF
+                </Button>
+              </div>
+
+              <DialogFooter className="sm:justify-between gap-2">
+                {bgEditing && backgrounds[bgEditing] ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => { setInstanceBackground(bgEditing!, null); setBgEditing(null); toast.success("Background removed"); }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Remove
+                  </Button>
+                ) : <span />}
+                <Button variant="secondary" onClick={() => setBgEditing(null)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
