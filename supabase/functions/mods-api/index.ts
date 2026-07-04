@@ -737,6 +737,11 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
     }
   }
 
+  // Fabric API is a hard requirement for virtually every Fabric mod.
+  // Auto-inject it so users don't have to install it manually.
+  if (loader.toLowerCase() === "fabric") {
+    await walk("306612", true);
+  }
   await walk(rootModId, true);
   const ok = issues.length === 0;
   return { install: ordered, optional, incompatible, issues, ok };
