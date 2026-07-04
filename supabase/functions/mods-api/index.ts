@@ -761,7 +761,11 @@ Deno.serve(async (req) => {
         const fileId = url.searchParams.get("fileId") ?? "";
         body = { file: await curseforgeFile(id, fileId) };
       } else {
-        body = action === "mod" ? await curseforgeMod(game, id) : await curseforgeBrowse(game, q, page, count, sort);
+        const mcBrowse = url.searchParams.get("mcVersion") ?? undefined;
+        const loaderBrowse = url.searchParams.get("loader") ?? undefined;
+        body = action === "mod"
+          ? await curseforgeMod(game, id)
+          : await curseforgeBrowse(game, q, page, count, sort, mcBrowse, loaderBrowse);
       }
     } else {
       return new Response(JSON.stringify({ error: `unknown provider: ${provider}` }), {
