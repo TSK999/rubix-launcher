@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, Film, Flame, Gamepad2, Heart, MessageCircle, Sparkles, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRubixAuth } from "@/hooks/useRubixAuth";
-import { publicUrl, type SharedClip } from "@/lib/clip-share";
+import { useClipUrl, type SharedClip } from "@/lib/clip-share";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
