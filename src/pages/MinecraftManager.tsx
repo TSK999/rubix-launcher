@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles, Image as ImageIcon, Trash2, Tag, Palette } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
