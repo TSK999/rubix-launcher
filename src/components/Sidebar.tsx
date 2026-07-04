@@ -51,6 +51,7 @@ export const Sidebar = ({
 
   const navItems: { to: string; label: string; icon: typeof Library; show: boolean; badge?: string }[] = [
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
+    { to: "/mods/minecraft", label: "Minecraft", icon: Boxes, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
     { to: "/mods", label: "Mod Manager", icon: Package, show: true },
