@@ -109,65 +109,89 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
   const installedIncompat = planState?.plan.incompatible.filter((i) => installedIds.has(i.modId)) ?? [];
 
   return (
-    <div className="space-y-3">
-      <form onSubmit={(e) => { e.preventDefault(); search(); }} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-5">
+      <form onSubmit={(e) => { e.preventDefault(); search(); }} className="flex gap-3">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            className="pl-9"
+            className="pl-12 h-14 rounded-2xl bg-card/40 border-border/50 backdrop-blur-xl focus-visible:border-primary/50 focus-visible:bg-card/60 placeholder:text-muted-foreground/50"
             placeholder="Search CurseForge mods…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <Button type="submit" disabled={loading}>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-sm"
+        >
           {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Search
         </Button>
       </form>
 
-      <div className="text-xs text-muted-foreground flex items-center gap-2">
-        <Badge variant="outline">{instance.loader}</Badge>
-        <Badge variant="outline">MC {instance.mcVersion}</Badge>
-        <span>Results filtered by CurseForge to this instance's loader and version.</span>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary">
+          {instance.loader}
+        </span>
+        <span className="px-3 py-1 rounded-lg bg-card/40 border border-border/50 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+          MC {instance.mcVersion}
+        </span>
+        <span className="text-xs text-muted-foreground italic ml-1">
+          Results filtered by CurseForge to this instance's loader and version
+        </span>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-3">
         {results.map((m) => {
           const already = installedIds.has(m.id);
           const isResolving = resolving === m.id;
           return (
-            <Card key={m.id} className="p-3 flex items-start gap-3">
-              {m.background ? (
-                <img src={m.background} alt="" className="h-12 w-12 rounded-md object-cover" />
-              ) : (
-                <div className="h-12 w-12 rounded-md bg-muted" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className="font-medium truncate">{m.name}</div>
-                  {m.author && <Badge variant="outline" className="text-[10px]">{m.author}</Badge>}
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{m.short_description}</p>
+            <Card
+              key={m.id}
+              className="group relative p-4 flex items-center gap-5 rounded-2xl bg-card/40 border-border/50 backdrop-blur-xl hover:border-primary/30 hover:bg-card/60 transition-all duration-300"
+            >
+              <div className="relative w-16 h-16 shrink-0 rounded-2xl overflow-hidden border border-border/50 bg-muted">
+                {m.background
+                  ? <img src={m.background} alt="" className="h-full w-full object-cover" />
+                  : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-fuchsia-500/20" />}
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none" />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="font-bold truncate group-hover:text-primary transition-colors">{m.name}</div>
+                  {m.author && (
+                    <span className="px-2 py-0.5 rounded bg-muted/60 text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground shrink-0">
+                      {m.author}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{m.short_description}</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
                 {m.url && (
-                  <a href={m.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
+                  <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
-                <Button
-                  size="sm"
-                  variant={already ? "secondary" : "default"}
+                <button
                   disabled={already || isResolving}
                   onClick={() => preview(m)}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+                    already
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground",
+                  )}
                 >
-                  {isResolving ? <Loader2 className="h-4 w-4 animate-spin" /> :
-                    already ? "Installed" : <><Download className="h-4 w-4 mr-1" /> Install</>}
-                </Button>
+                  {isResolving ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : already ? "Installed"
+                    : <><Download className="h-4 w-4" /> Install</>}
+                </button>
               </div>
             </Card>
           );
         })}
+
         {!loading && results.length === 0 && (
           <div className="text-center py-12 text-sm text-muted-foreground">
             <AlertTriangle className="h-6 w-6 mx-auto mb-2 opacity-50" />
