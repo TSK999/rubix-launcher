@@ -121,12 +121,22 @@ export async function cfMcFiles(modId: number | string, mcVersion: string, loade
   ) as Promise<{ files: any[] }>;
 }
 
+export type CfResolveItem = {
+  modId: number; modName: string; fileId: number; fileName: string;
+  downloadUrl: string; required: boolean;
+};
+export type CfResolveIssue = { modId: number; modName: string; code: string; message: string };
+export type CfResolveResult = {
+  install: CfResolveItem[];
+  optional: CfResolveItem[];
+  incompatible: Array<{ modId: number; modName: string }>;
+  issues: CfResolveIssue[];
+  ok: boolean;
+};
 export async function cfMcResolve(modId: number | string, mcVersion: string, loader: Loader) {
   return fnGet(
     `provider=curseforge&game=minecraft&action=mc-resolve&id=${encodeURIComponent(String(modId))}&mcVersion=${encodeURIComponent(mcVersion)}&loader=${encodeURIComponent(loader)}`,
-  ) as Promise<{
-    install: Array<{ modId: number; modName: string; fileId: number; fileName: string; downloadUrl: string; required: boolean }>;
-  }>;
+  ) as Promise<CfResolveResult>;
 }
 
 export async function cfMcFile(modId: number | string, fileId: number | string) {
