@@ -4,6 +4,21 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-07-04
+
+### Changed
+- CurseForge integration now behaves as a deterministic package manager:
+  the API is the single source of truth for mod metadata, version
+  compatibility, and dependency resolution.
+- `mods-api` edge function resolves the full dependency graph recursively
+  before any install begins, validating Minecraft version and mod-loader
+  matches on every file.
+- Required dependencies are auto-queued in the correct order; optional
+  dependencies are shown as opt-in checkboxes in the plan dialog.
+- Incompatible mods already installed are flagged before install proceeds.
+- Install is blocked if no compatible file exists, a required dependency is
+  missing, or the author disabled third-party downloads.
+
 ## [1.8.0] - 2026-07-04
 
 ### Added
