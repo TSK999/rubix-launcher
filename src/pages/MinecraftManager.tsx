@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Play, Plus, Package, Boxes, Loader2, ArrowLeft, Upload, Clock, HardDrive, Sparkles, Image as ImageIcon, Trash2, Tag, Palette } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -460,12 +461,25 @@ export default function MinecraftManager() {
               <DialogHeader>
                 <DialogTitle>Customize card</DialogTitle>
                 <DialogDescription>
-                  Set a background image/GIF or tweak the gradient colors for <span className="text-foreground font-medium">{bgEditing}</span>.
+                  Personalize the card for <span className="text-foreground font-medium">{bgEditing}</span>.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
+              <Tabs defaultValue="name" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="name" className="gap-1.5">
+                    <Tag className="h-3.5 w-3.5" /> Name
+                  </TabsTrigger>
+                  <TabsTrigger value="background" className="gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" /> Background
+                  </TabsTrigger>
+                  <TabsTrigger value="gradient" className="gap-1.5">
+                    <Palette className="h-3.5 w-3.5" /> Gradient
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* NAME */}
+                <TabsContent value="name" className="mt-4 space-y-3">
                   <Label htmlFor="display-name">Display name</Label>
                   <div className="flex gap-2">
                     <Input
@@ -486,151 +500,158 @@ export default function MinecraftManager() {
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Only changes the label shown on the card. The underlying instance folder stays <span className="font-mono">{bgEditing}</span>.
+                    Only changes the label shown on the card. The underlying instance folder stays{" "}
+                    <span className="font-mono">{bgEditing}</span>.
                   </p>
-                </div>
-
-                <div className="h-px bg-border/60" />
-
-                <div className="space-y-2">
-                  <Label htmlFor="bg-url">Image or GIF URL</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="bg-url"
-                      placeholder="https://example.com/cover.gif"
-                      value={bgUrlDraft}
-                      onChange={(e) => setBgUrlDraft(e.target.value)}
-                    />
+                  {bgEditing && names[bgEditing] && (
                     <Button
-                      onClick={() => {
-                        if (!bgEditing || !bgUrlDraft.trim()) return;
-                        setInstanceBackground(bgEditing, bgUrlDraft.trim());
-                        setBgEditing(null);
-                        toast.success("Background updated");
-                      }}
-                      disabled={!bgUrlDraft.trim()}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setInstanceName(bgEditing!, null); setNameDraft(""); toast.success("Name reset"); }}
+                      className="text-destructive hover:text-destructive px-0"
                     >
-                      Apply
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
-                  <div className="relative flex justify-center text-xs uppercase tracking-wider">
-                    <span className="bg-background px-2 text-muted-foreground">or</span>
-                  </div>
-                </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,image/gif"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onBgFilePicked(f);
-                    e.target.value = "";
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                >
-                  <Upload className="h-4 w-4 mr-2" /> Upload image / GIF
-                </Button>
-              </div>
-
-              <div className="mt-6 pt-5 border-t border-border/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Gradient colors</Label>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Used when no image is set
-                  </span>
-                </div>
-
-                <div
-                  aria-hidden
-                  className="h-14 w-full rounded-lg border border-border/60"
-                  style={{ backgroundImage: `linear-gradient(to bottom right, ${gradDraft.from}, ${gradDraft.to})` }}
-                />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="grad-from" className="text-xs text-muted-foreground">From</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="grad-from"
-                        type="color"
-                        value={gradDraft.from}
-                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
-                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
-                      />
-                      <Input
-                        value={gradDraft.from}
-                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="grad-to" className="text-xs text-muted-foreground">To</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="grad-to"
-                        type="color"
-                        value={gradDraft.to}
-                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
-                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
-                      />
-                      <Input
-                        value={gradDraft.to}
-                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      if (!bgEditing) return;
-                      setInstanceGradient(bgEditing, gradDraft);
-                      toast.success("Gradient updated");
-                    }}
-                    className="flex-1"
-                  >
-                    Apply gradient
-                  </Button>
-                  {bgEditing && gradients[bgEditing] && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setInstanceGradient(bgEditing!, null);
-                        const inst = instances.find((i) => i.name === bgEditing);
-                        const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
-                        setGradDraft(fallback);
-                        toast.success("Reset to loader default");
-                      }}
-                    >
-                      Reset
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Reset to original
                     </Button>
                   )}
-                </div>
-              </div>
+                </TabsContent>
 
-              <DialogFooter className="sm:justify-between gap-2 mt-2">
-                {bgEditing && backgrounds[bgEditing] ? (
-                  <Button
-                    variant="ghost"
-                    onClick={() => { setInstanceBackground(bgEditing!, null); setBgEditing(null); toast.success("Background removed"); }}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Remove image
+                {/* BACKGROUND */}
+                <TabsContent value="background" className="mt-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bg-url">Image or GIF URL</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="bg-url"
+                        placeholder="https://example.com/cover.gif"
+                        value={bgUrlDraft}
+                        onChange={(e) => setBgUrlDraft(e.target.value)}
+                      />
+                      <Button
+                        onClick={() => {
+                          if (!bgEditing || !bgUrlDraft.trim()) return;
+                          setInstanceBackground(bgEditing, bgUrlDraft.trim());
+                          toast.success("Background updated");
+                        }}
+                        disabled={!bgUrlDraft.trim()}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
+                    <div className="relative flex justify-center text-xs uppercase tracking-wider">
+                      <span className="bg-background px-2 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onBgFilePicked(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                    <Upload className="h-4 w-4 mr-2" /> Upload image / GIF (max 4 MB)
                   </Button>
-                ) : <span />}
+
+                  {bgEditing && backgrounds[bgEditing] && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setInstanceBackground(bgEditing!, null); toast.success("Background removed"); }}
+                      className="text-destructive hover:text-destructive w-full justify-center"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Remove background
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* GRADIENT */}
+                <TabsContent value="gradient" className="mt-4 space-y-3">
+                  <p className="text-[11px] text-muted-foreground">
+                    Used as the card wash when no background image is set.
+                  </p>
+
+                  <div
+                    aria-hidden
+                    className="h-14 w-full rounded-lg border border-border/60"
+                    style={{ backgroundImage: `linear-gradient(to bottom right, ${gradDraft.from}, ${gradDraft.to})` }}
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="grad-from" className="text-xs text-muted-foreground">From</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="grad-from"
+                          type="color"
+                          value={gradDraft.from}
+                          onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                          className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                        />
+                        <Input
+                          value={gradDraft.from}
+                          onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="grad-to" className="text-xs text-muted-foreground">To</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="grad-to"
+                          type="color"
+                          value={gradDraft.to}
+                          onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                          className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                        />
+                        <Input
+                          value={gradDraft.to}
+                          onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (!bgEditing) return;
+                        setInstanceGradient(bgEditing, gradDraft);
+                        toast.success("Gradient updated");
+                      }}
+                      className="flex-1"
+                    >
+                      Apply gradient
+                    </Button>
+                    {bgEditing && gradients[bgEditing] && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setInstanceGradient(bgEditing!, null);
+                          const inst = instances.find((i) => i.name === bgEditing);
+                          const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
+                          setGradDraft(fallback);
+                          toast.success("Reset to loader default");
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter className="mt-2">
                 <Button variant="secondary" onClick={() => setBgEditing(null)}>Close</Button>
               </DialogFooter>
             </DialogContent>
