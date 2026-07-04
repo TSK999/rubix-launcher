@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type Visibility = "public" | "unlisted" | "private";
@@ -24,11 +25,32 @@ export type SharedClip = {
   created_at: string;
 };
 
-export const publicUrl = (path: string | null | undefined): string => {
+/** Get a time-limited signed URL for a shared-clips storage path. */
+export const signedClipUrl = async (
+  path: string | null | undefined,
+  expiresInSeconds = 60 * 60,
+): Promise<string> => {
   if (!path) return "";
-  const { data } = supabase.storage.from("shared-clips").getPublicUrl(path);
-  return data.publicUrl;
+  const { data } = await supabase.storage
+    .from("shared-clips")
+    .createSignedUrl(path, expiresInSeconds);
+  return data?.signedUrl ?? "";
 };
+
+/** React hook returning a signed URL for a shared-clips path (empty until ready). */
+export const useClipUrl = (path: string | null | undefined): string => {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let alive = true;
+    if (!path) { setUrl(""); return; }
+    void signedClipUrl(path).then((u) => { if (alive) setUrl(u); });
+    return () => { alive = false; };
+  }, [path]);
+  return url;
+};
+
+/** @deprecated Use `useClipUrl` or `signedClipUrl` — the shared-clips bucket is private. */
+export const publicUrl = (_path: string | null | undefined): string => "";
 
 export const shareLinkFor = (slug: string): string => {
   if (typeof window === "undefined") return `/clip/${slug}`;
