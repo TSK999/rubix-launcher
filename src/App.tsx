@@ -67,6 +67,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route
             path="/"
             element={
