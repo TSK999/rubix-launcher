@@ -79,15 +79,20 @@ export type CfMod = {
   downloads: number; background: string | null; url: string;
 };
 
-const AUTH_HEADERS = {
-  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-};
+async function authHeaders(): Promise<Record<string, string>> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
+  return {
+    Authorization: `Bearer ${token}`,
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+  };
+}
 
 export async function cfBrowseMinecraft(query: string, page = 1, sort: "popular" | "downloads" | "updated" | "name" = "popular") {
   const base = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${FN}`;
   const u = `${base}?provider=curseforge&game=minecraft&query=${encodeURIComponent(query)}&page=${page}&sort=${sort}`;
-  const r = await fetch(u, { headers: AUTH_HEADERS });
+  const r = await fetch(u, { headers: await authHeaders() });
   if (!r.ok) throw new Error(`Browse failed (${r.status})`);
   return r.json();
 }
@@ -97,7 +102,7 @@ function fnUrl(qs: string) {
   return `${base}?${qs}`;
 }
 async function fnGet(qs: string) {
-  const r = await fetch(fnUrl(qs), { headers: AUTH_HEADERS });
+  const r = await fetch(fnUrl(qs), { headers: await authHeaders() });
   if (!r.ok) throw new Error(`Request failed (${r.status})`);
   return r.json();
 }
