@@ -21,28 +21,28 @@ const LAST_KEY = "rubix:mc:last-instance";
 // without pretending you can actually launch Minecraft from a browser.
 const DEMO_INSTANCES: Instance[] = [
   {
-    name: "Fabric 1.21.9", mcVersion: "1.21.9", loader: "fabric", loaderVersion: "0.19.3",
+    name: "Fabric 1.21.9", mcVersion: "1.21.9", loader: "Fabric", loaderVersion: "0.19.3",
     createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString(),
     ramMb: 4096, javaPath: "", dir: "", modCount: 0, sizeBytes: 31 * 1024 * 1024,
   },
   {
-    name: "Forge 1.21.8", mcVersion: "1.21.8", loader: "forge", loaderVersion: "58.1.0",
+    name: "Forge 1.21.8", mcVersion: "1.21.8", loader: "Forge", loaderVersion: "58.1.0",
     createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString(),
     ramMb: 4096, javaPath: "", dir: "", modCount: 0, sizeBytes: 20 * 1024,
   },
   {
-    name: "Vanilla 26.2", mcVersion: "26.2", loader: "vanilla", loaderVersion: "",
+    name: "Vanilla 26.2", mcVersion: "26.2", loader: "Vanilla", loaderVersion: "",
     createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString(),
     ramMb: 4096, javaPath: "", dir: "", modCount: 0, sizeBytes: 22 * 1024 * 1024,
   },
 ];
 
 const loaderAccent: Record<string, string> = {
-  fabric: "from-violet-500/25 to-fuchsia-500/10 border-violet-500/30",
-  forge: "from-amber-500/20 to-orange-500/10 border-amber-500/25",
-  neoforge: "from-rose-500/20 to-red-500/10 border-rose-500/25",
-  quilt: "from-purple-500/20 to-indigo-500/10 border-purple-500/25",
-  vanilla: "from-emerald-500/20 to-teal-500/10 border-emerald-500/25",
+  Fabric: "from-violet-500/25 to-fuchsia-500/10 border-violet-500/30",
+  Forge: "from-amber-500/20 to-orange-500/10 border-amber-500/25",
+  NeoForge: "from-rose-500/20 to-red-500/10 border-rose-500/25",
+  Quilt: "from-purple-500/20 to-indigo-500/10 border-purple-500/25",
+  Vanilla: "from-emerald-500/20 to-teal-500/10 border-emerald-500/25",
 };
 
 const loaderLabel: Record<string, string> = {
