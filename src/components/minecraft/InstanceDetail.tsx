@@ -150,6 +150,8 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
       <Tabs defaultValue="browse">
         <TabsList>
           <TabsTrigger value="browse">Browse Mods</TabsTrigger>
+          <TabsTrigger value="resourcepacks">Resource Packs</TabsTrigger>
+          <TabsTrigger value="shaders">Shader Packs</TabsTrigger>
           <TabsTrigger value="installed">Installed ({Object.keys(installed).length})</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -157,6 +159,15 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
         <TabsContent value="browse">
           <MinecraftModBrowser instance={inst} installedIds={installedIds} onChanged={refresh} />
         </TabsContent>
+
+        <TabsContent value="resourcepacks">
+          <MinecraftPackBrowser instance={inst} kind="resourcepack" />
+        </TabsContent>
+
+        <TabsContent value="shaders">
+          <MinecraftPackBrowser instance={inst} kind="shader" />
+        </TabsContent>
+
 
         <TabsContent value="installed" className="space-y-2">
           {Object.values(installed).length === 0 && (
