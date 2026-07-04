@@ -141,20 +141,47 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
         </Button>
       </form>
 
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary">
           {instance.loader}
         </span>
         <span className="px-3 py-1 rounded-lg bg-card/40 border border-border/50 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
           MC {instance.mcVersion}
         </span>
-        <span className="text-xs text-muted-foreground italic ml-1">
-          Results filtered by CurseForge to this instance's loader and version
-        </span>
+
+        <div className="flex items-center gap-1 ml-auto">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Sort</span>
+          {SORTS.map((s) => (
+            <button
+              key={s.k}
+              onClick={() => setSort(s.k)}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+                sort === s.k
+                  ? "bg-primary/15 border-primary/40 text-primary"
+                  : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setHideInstalled((v) => !v)}
+            className={cn(
+              "ml-2 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+              hideInstalled
+                ? "bg-primary/15 border-primary/40 text-primary"
+                : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border",
+            )}
+          >
+            Hide installed
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3">
-        {results.map((m) => {
+        {results.filter((m) => !hideInstalled || !installedIds.has(m.id)).map((m) => {
+
           const already = installedIds.has(m.id);
           const isResolving = resolving === m.id;
           return (
