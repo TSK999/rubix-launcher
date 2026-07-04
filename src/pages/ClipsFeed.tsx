@@ -206,7 +206,6 @@ const ClipsFeed = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {sorted.map((c) => {
               const up = uploaders.get(c.user_id);
-              const thumb = publicUrl(c.thumbnail_path);
               return (
                 <Link
                   key={c.id}
@@ -214,18 +213,7 @@ const ClipsFeed = () => {
                   className="group relative rounded-2xl overflow-hidden bg-card/60 border border-border/50 hover:border-primary/50 transition-all hover:-translate-y-0.5 hover:shadow-[var(--glow-primary)]"
                 >
                   <div className="relative aspect-video bg-secondary/40 overflow-hidden">
-                    {thumb ? (
-                      <img
-                        src={thumb}
-                        alt={c.title}
-                        loading="lazy"
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="h-full w-full grid place-items-center text-muted-foreground/60">
-                        <Film className="h-8 w-8" />
-                      </div>
-                    )}
+                    <ClipThumb path={c.thumbnail_path} title={c.title} />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
                     {c.duration_seconds != null && (
                       <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-background/80 backdrop-blur text-[10px] font-mono">
