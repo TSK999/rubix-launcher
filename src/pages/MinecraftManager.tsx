@@ -45,9 +45,7 @@ const loaderAccent: Record<string, string> = {
   Vanilla: "from-emerald-500/20 to-teal-500/10 border-emerald-500/25",
 };
 
-const loaderLabel: Record<string, string> = {
-  fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt", vanilla: "Vanilla",
-};
+
 
 export default function MinecraftManager() {
   const [instances, setInstances] = useState<Instance[]>([]);
