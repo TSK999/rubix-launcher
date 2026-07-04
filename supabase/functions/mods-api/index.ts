@@ -463,10 +463,17 @@ function cfToSummary(m: any): ModSummary {
   };
 }
 
-async function curseforgeBrowse(gameKey: string, q: string | null, page: number, count: number, sort: SortKey = "popular"): Promise<BrowseResponse> {
+// CurseForge modLoaderType enum: 1=Forge, 4=Fabric, 5=Quilt, 6=NeoForge.
+const CF_LOADER_ID: Record<string, number> = {
+  forge: 1, fabric: 4, quilt: 5, neoforge: 6,
+};
+
+async function curseforgeBrowse(
+  gameKey: string, q: string | null, page: number, count: number, sort: SortKey = "popular",
+  mcVersion?: string, loader?: string,
+): Promise<BrowseResponse> {
   if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
   const gameId = await resolveCurseforgeGameId(gameKey);
-  // sortField: 1=Featured, 2=Popularity, 3=LastUpdated, 4=Name, 6=TotalDownloads
   const sortField =
     sort === "downloads" ? 6 :
     sort === "updated" ? 3 :
@@ -480,6 +487,13 @@ async function curseforgeBrowse(gameKey: string, q: string | null, page: number,
     sortOrder,
   });
   if (q && q.trim()) params.set("searchFilter", q.trim());
+  if (gameKey.toLowerCase() === "minecraft") {
+    if (mcVersion) params.set("gameVersion", mcVersion);
+    const lk = (loader ?? "").toLowerCase();
+    if (CF_LOADER_ID[lk] !== undefined) params.set("modLoaderType", String(CF_LOADER_ID[lk]));
+    // Class 6 = Mods (excludes resource packs, worlds, modpacks, etc.)
+    params.set("classId", "6");
+  }
   const r = await fetch(`${CF_BASE}/mods/search?${params}`, {
     headers: { Accept: "application/json", "x-api-key": CF_KEY },
   });
