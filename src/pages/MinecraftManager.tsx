@@ -436,7 +436,6 @@ export default function MinecraftManager() {
           <Dialog open={!!bgEditing} onOpenChange={(o) => !o && setBgEditing(null)}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Custom background</DialogTitle>
                 <DialogTitle>Customize card</DialogTitle>
                 <DialogDescription>
                   Set a background image/GIF or tweak the gradient colors for <span className="text-foreground font-medium">{bgEditing}</span>.
