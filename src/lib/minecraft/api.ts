@@ -89,10 +89,17 @@ async function authHeaders(): Promise<Record<string, string>> {
   };
 }
 
-export async function cfBrowseMinecraft(query: string, page = 1, sort: "popular" | "downloads" | "updated" | "name" = "popular") {
+export async function cfBrowseMinecraft(
+  query: string, page = 1, sort: "popular" | "downloads" | "updated" | "name" = "popular",
+  mcVersion?: string, loader?: Loader,
+) {
   const base = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${FN}`;
-  const u = `${base}?provider=curseforge&game=minecraft&query=${encodeURIComponent(query)}&page=${page}&sort=${sort}`;
-  const r = await fetch(u, { headers: await authHeaders() });
+  const params = new URLSearchParams({
+    provider: "curseforge", game: "minecraft", query, page: String(page), sort,
+  });
+  if (mcVersion) params.set("mcVersion", mcVersion);
+  if (loader) params.set("loader", loader);
+  const r = await fetch(`${base}?${params}`, { headers: await authHeaders() });
   if (!r.ok) throw new Error(`Browse failed (${r.status})`);
   return r.json();
 }
