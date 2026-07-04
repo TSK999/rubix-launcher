@@ -442,9 +442,10 @@ export default function MinecraftManager() {
             </div>
           )}
 
-          {desktop && selected && (
+          {selected && (
             <InstanceDetail
               name={selected}
+              demoInstance={!desktop ? instances.find((i) => i.name === selected) : undefined}
               onBack={() => setSelected(null)}
               onMutated={refresh}
             />
