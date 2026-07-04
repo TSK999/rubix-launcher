@@ -237,8 +237,7 @@ const ClipViewer = () => {
     );
   }
 
-  const stream = publicUrl(clip.stream_path);
-  const thumb = publicUrl(clip.thumbnail_path);
+
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
