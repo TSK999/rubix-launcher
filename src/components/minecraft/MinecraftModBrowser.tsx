@@ -200,8 +200,18 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
                       return (
                         <div key={it.modId} className="flex items-center gap-2 p-2">
                           <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                          <span className="flex-1 truncate">{it.modName}</span>
-                          <span className="text-xs text-muted-foreground truncate max-w-[40%]">{it.fileName}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate">{it.modName}</div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Badge variant={it.mcVersionMatched ? "outline" : "destructive"} className="text-[9px] px-1 py-0">
+                                MC {instance.mcVersion} {it.mcVersionMatched ? "✓" : "✗"}
+                              </Badge>
+                              <Badge variant={it.loaderMatched ? "outline" : "destructive"} className="text-[9px] px-1 py-0">
+                                {instance.loader} {it.loaderMatched ? "✓" : "✗"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate max-w-[30%]">{it.fileName}</span>
                           {already
                             ? <Badge variant="secondary" className="text-[10px]">already</Badge>
                             : it.required
@@ -210,6 +220,7 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
                         </div>
                       );
                     })}
+
                   </div>
                 </div>
 

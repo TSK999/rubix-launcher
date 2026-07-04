@@ -474,6 +474,10 @@ async function curseforgeBrowse(
 ): Promise<BrowseResponse> {
   if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
   const gameId = await resolveCurseforgeGameId(gameKey);
+  // Spec: use "relevance" ordering when the user provides a searchFilter.
+  // CurseForge treats an omitted sortField as relevance-ranked when
+  // searchFilter is set; otherwise fall back to the requested sort.
+  const hasQuery = !!(q && q.trim());
   const sortField =
     sort === "downloads" ? 6 :
     sort === "updated" ? 3 :
@@ -483,10 +487,10 @@ async function curseforgeBrowse(
     gameId: String(gameId),
     pageSize: String(count),
     index: String((page - 1) * count),
-    sortField: String(sortField),
     sortOrder,
   });
-  if (q && q.trim()) params.set("searchFilter", q.trim());
+  if (!hasQuery) params.set("sortField", String(sortField));
+  if (hasQuery) params.set("searchFilter", q!.trim());
   if (gameKey.toLowerCase() === "minecraft") {
     if (mcVersion) params.set("gameVersion", mcVersion);
     const lk = (loader ?? "").toLowerCase();
@@ -494,6 +498,7 @@ async function curseforgeBrowse(
     // Class 6 = Mods (excludes resource packs, worlds, modpacks, etc.)
     params.set("classId", "6");
   }
+
   const r = await fetch(`${CF_BASE}/mods/search?${params}`, {
     headers: { Accept: "application/json", "x-api-key": CF_KEY },
   });
@@ -612,10 +617,19 @@ async function curseforgeModRaw(modId: string) {
 type ResolveItem = {
   modId: number; modName: string; fileId: number;
   fileName: string; downloadUrl: string; required: boolean;
+  mcVersionMatched: boolean; loaderMatched: boolean;
+  gameVersions: string[];
 };
 type ResolveIssue = {
   modId: number; modName: string; code: string; message: string;
 };
+
+function fileMatches(file: any, mcVersion: string, loader: string) {
+  const gv = (file.gameVersions ?? []).map((s: string) => String(s).toLowerCase());
+  const mcMatch = !mcVersion || gv.includes(mcVersion.toLowerCase());
+  const loaderMatch = loader.toLowerCase() === "vanilla" || gv.includes(loader.toLowerCase());
+  return { mcMatch, loaderMatch, gv };
+}
 
 async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader: string) {
   const seen = new Set<string>();
@@ -646,7 +660,9 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
       });
       return;
     }
-    const downloadUrl = best.downloadUrl || await curseforgeDownloadUrl(modId, String(best.id));
+    // Spec: /files/{fileId} is the PRIMARY source for dependency resolution.
+    const fileDetail = await curseforgeFile(modId, String(best.id)) ?? best;
+    const downloadUrl = fileDetail.downloadUrl || await curseforgeDownloadUrl(modId, String(best.id));
     if (!downloadUrl) {
       issues.push({
         modId: mod.id, modName: mod.name ?? `mod-${mod.id}`,
@@ -655,38 +671,41 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
       });
       return;
     }
+    const { mcMatch, loaderMatch, gv } = fileMatches(fileDetail, mcVersion, loader);
 
     // Walk required deps first so they land earlier in install order.
-    const deps = (best.dependencies ?? []) as Array<{ modId: number; relationType: number }>;
+    const deps = (fileDetail.dependencies ?? []) as Array<{ modId: number; relationType: number }>;
     for (const d of deps.filter((x) => x.relationType === 3)) {
       await walk(String(d.modId), true, mod.name);
     }
-    // Track incompatibilities against the same instance.
     for (const d of deps.filter((x) => x.relationType === 5)) {
       const incMod = await curseforgeModRaw(String(d.modId));
       if (incMod) incompatible.push({ modId: incMod.id, modName: incMod.name ?? `mod-${incMod.id}` });
     }
 
-    const item: ResolveItem = {
+    ordered.push({
       modId: mod.id, modName: mod.name ?? `mod-${mod.id}`,
-      fileId: best.id, fileName: best.fileName ?? `${best.id}.jar`,
-      downloadUrl, required,
-    };
-    ordered.push(item);
+      fileId: fileDetail.id, fileName: fileDetail.fileName ?? `${fileDetail.id}.jar`,
+      downloadUrl, required, mcVersionMatched: mcMatch, loaderMatched: loaderMatch,
+      gameVersions: gv,
+    });
 
-    // Surface optional deps for the UI to offer as opt-ins (do not auto-install).
     for (const d of deps.filter((x) => x.relationType === 2)) {
       const optMod = await curseforgeModRaw(String(d.modId));
       if (!optMod) continue;
       const { files: of } = await curseforgeMcFiles(String(d.modId), mcVersion, loader);
       const ob = of[0];
       if (!ob) continue;
-      const ourl = ob.downloadUrl || await curseforgeDownloadUrl(String(d.modId), String(ob.id));
+      const oDetail = await curseforgeFile(String(d.modId), String(ob.id)) ?? ob;
+      const ourl = oDetail.downloadUrl || await curseforgeDownloadUrl(String(d.modId), String(ob.id));
       if (!ourl) continue;
+      const om = fileMatches(oDetail, mcVersion, loader);
       optional.push({
         modId: optMod.id, modName: optMod.name ?? `mod-${optMod.id}`,
-        fileId: ob.id, fileName: ob.fileName ?? `${ob.id}.jar`,
+        fileId: oDetail.id, fileName: oDetail.fileName ?? `${oDetail.id}.jar`,
         downloadUrl: ourl, required: false,
+        mcVersionMatched: om.mcMatch, loaderMatched: om.loaderMatch,
+        gameVersions: om.gv,
       });
     }
   }
@@ -695,6 +714,7 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
   const ok = issues.length === 0;
   return { install: ordered, optional, incompatible, issues, ok };
 }
+
 
 // ---------- HTTP entrypoint ----------
 Deno.serve(async (req) => {
