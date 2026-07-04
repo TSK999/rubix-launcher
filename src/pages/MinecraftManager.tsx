@@ -225,8 +225,8 @@ export default function MinecraftManager() {
           {!loading && !selected && instances.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {instances.map((inst) => {
-                const accent = loaderAccent[inst.loader] ?? loaderAccent.vanilla;
-                const label = loaderLabel[inst.loader] ?? inst.loader;
+                const accent = loaderAccent[inst.loader] ?? loaderAccent.Vanilla;
+                const label = inst.loader;
                 const isLaunching = launchingName === inst.name;
                 return (
                   <Card
