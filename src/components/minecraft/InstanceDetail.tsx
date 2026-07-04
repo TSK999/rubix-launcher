@@ -51,6 +51,7 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasAccount, setHasAccount] = useState<boolean>(false);
+  const [tab, setTab] = useState<TabId>("browse");
   const isDemo = !!demoInstance;
 
   async function refresh() {
