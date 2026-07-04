@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -11,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Play, FolderOpen, Trash2, Copy, Pencil, ArrowLeft, Loader2 } from "lucide-react";
+import { Play, FolderOpen, Trash2, Copy, Pencil, ArrowLeft, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   getInstance, launch, openInstanceFolder, uninstallMod, toggleMod,
@@ -23,6 +21,17 @@ import { MinecraftPackBrowser } from "./MinecraftPackBrowser";
 import { MinecraftAccountBadge } from "./MinecraftAccountBadge";
 import { MinecraftLaunchProgress } from "./MinecraftLaunchProgress";
 import { formatBytes } from "@/lib/minecraft/api";
+import { cn } from "@/lib/utils";
+
+const TABS = [
+  { id: "browse", label: "Browse Mods" },
+  { id: "resourcepacks", label: "Resource Packs" },
+  { id: "shaders", label: "Shader Packs" },
+  { id: "installed", label: "Installed" },
+  { id: "settings", label: "Settings" },
+] as const;
+type TabId = typeof TABS[number]["id"];
+
 
 type Props = {
   name: string;
@@ -42,6 +51,7 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasAccount, setHasAccount] = useState<boolean>(false);
+  const [tab, setTab] = useState<TabId>("browse");
   const isDemo = !!demoInstance;
 
   async function refresh() {
@@ -111,112 +121,167 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
     else toast.error(r.error || "Uninstall failed");
   }
 
+  const eyebrowChip = "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur";
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <Button variant="ghost" size="sm" onClick={onBack} className="mb-2">
-            <ArrowLeft className="h-4 w-4 mr-1" /> All instances
-          </Button>
-          <h2 className="text-2xl font-bold">{inst.name}</h2>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-            <Badge>{inst.loader}{inst.loaderVersion ? ` ${inst.loaderVersion}` : ""}</Badge>
-            <Badge variant="outline">MC {inst.mcVersion}</Badge>
-            <Badge variant="outline">{inst.modCount} mod{inst.modCount === 1 ? "" : "s"}</Badge>
-            <Badge variant="outline">{formatBytes(inst.sizeBytes)}</Badge>
+    <div className="relative space-y-8">
+      {/* Back link */}
+      <button
+        onClick={onBack}
+        className="group inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+        <span className="text-[10px] uppercase tracking-[0.25em] font-black">All instances</span>
+      </button>
+
+      {/* Hero header */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="space-y-4 min-w-0">
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-foreground to-foreground/50 bg-clip-text text-transparent">
+            {inst.name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className={cn(eyebrowChip, "bg-primary/10 border border-primary/30 text-primary")}>
+              {inst.loader}{inst.loaderVersion ? ` ${inst.loaderVersion}` : ""}
+            </span>
+            <span className={cn(eyebrowChip, "bg-card/40 border border-border/50 text-muted-foreground")}>
+              MC {inst.mcVersion}
+            </span>
+            <span className={cn(eyebrowChip, "bg-card/40 border border-border/50 text-muted-foreground")}>
+              {inst.modCount} mod{inst.modCount === 1 ? "" : "s"}
+            </span>
+            <span className={cn(eyebrowChip, "bg-card/40 border border-border/50 text-muted-foreground")}>
+              {formatBytes(inst.sizeBytes)}
+            </span>
             {inst.lastPlayed && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70 font-medium ml-1">
                 Last played {new Date(inst.lastPlayed).toLocaleString()}
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-3 shrink-0">
           {!isDemo && <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />}
-          <Button
+          <button
             onClick={doLaunch}
             disabled={launching || (!isDemo && !hasAccount)}
-            size="lg"
             title={isDemo ? "Launching requires the RUBIX desktop app" : (!hasAccount ? "Sign in with Microsoft first" : "")}
+            className="relative group disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {launching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-            Launch
-          </Button>
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-fuchsia-500 rounded-2xl blur-md opacity-40 group-hover:opacity-75 group-disabled:opacity-20 transition duration-500" />
+            <div className="relative px-10 py-4 bg-gradient-to-r from-primary to-fuchsia-500 rounded-2xl font-black text-primary-foreground text-base flex items-center gap-3 transition-transform group-active:scale-95">
+              {launching
+                ? <Loader2 className="h-5 w-5 animate-spin" />
+                : <Play className="h-5 w-5 fill-current" />}
+              <span className="uppercase tracking-widest text-sm">Launch</span>
+            </div>
+          </button>
         </div>
       </div>
 
       {isDemo && (
-        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs text-muted-foreground">
-          Web preview — this is a demo instance for exploring the UI. Install the RUBIX desktop app to launch, mod, and manage real instances.
+        <div className="w-full p-4 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-xl flex items-center gap-4">
+          <div className="flex-shrink-0 grid place-items-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
+            <Info className="h-4 w-4 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <span className="text-foreground font-bold uppercase tracking-wider mr-2 text-[11px]">Web preview</span>
+            This is a demo instance for exploring the UI. Install the <span className="text-primary font-bold underline decoration-primary/40 underline-offset-4">RUBIX desktop app</span> to launch, mod, and manage real instances.
+          </p>
         </div>
       )}
 
       <MinecraftLaunchProgress active={launching} />
 
-      <div className="flex items-center gap-2 text-xs">
-        <Button size="sm" variant="outline" onClick={() => openInstanceFolder(inst.name)}>
-          <FolderOpen className="h-3.5 w-3.5 mr-1" /> Open folder
-        </Button>
-        <Button size="sm" variant="outline" onClick={handleDuplicate}>
-          <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => { setRenameTo(inst.name); setRenaming(true); }}>
-          <Pencil className="h-3.5 w-3.5 mr-1" /> Rename
-        </Button>
-        <Button size="sm" variant="destructive" onClick={() => setConfirmDelete(true)}>
-          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
-        </Button>
+      {/* Action toolbar */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <ActionButton icon={<FolderOpen className="h-4 w-4" />} onClick={() => openInstanceFolder(inst.name)}>
+          Open folder
+        </ActionButton>
+        <ActionButton icon={<Copy className="h-4 w-4" />} onClick={handleDuplicate}>
+          Duplicate
+        </ActionButton>
+        <ActionButton icon={<Pencil className="h-4 w-4" />} onClick={() => { setRenameTo(inst.name); setRenaming(true); }}>
+          Rename
+        </ActionButton>
+        <button
+          onClick={() => setConfirmDelete(true)}
+          className="ml-auto flex items-center gap-2.5 px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-[11px] font-black uppercase tracking-[0.1em] text-destructive hover:bg-destructive/20 transition-all"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
       </div>
 
-      <Tabs defaultValue="browse">
-        <TabsList>
-          <TabsTrigger value="browse">Browse Mods</TabsTrigger>
-          <TabsTrigger value="resourcepacks">Resource Packs</TabsTrigger>
-          <TabsTrigger value="shaders">Shader Packs</TabsTrigger>
-          <TabsTrigger value="installed">Installed ({Object.keys(installed).length})</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+      {/* Custom pill tabs */}
+      <div className="space-y-6">
+        <div className="flex flex-wrap p-1.5 rounded-[22px] bg-card/40 border border-border/50 backdrop-blur-xl w-fit gap-1">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            const label = t.id === "installed" ? `Installed (${Object.keys(installed).length})` : t.label;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "px-6 py-2.5 rounded-[16px] text-[11px] font-black uppercase tracking-widest transition-all",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-xl shadow-primary/30"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-        <TabsContent value="browse">
+        {tab === "browse" && (
           <MinecraftModBrowser instance={inst} installedIds={installedIds} onChanged={refresh} />
-        </TabsContent>
+        )}
 
-        <TabsContent value="resourcepacks">
+        {tab === "resourcepacks" && (
           <MinecraftPackBrowser instance={inst} kind="resourcepack" />
-        </TabsContent>
+        )}
 
-        <TabsContent value="shaders">
+        {tab === "shaders" && (
           <MinecraftPackBrowser instance={inst} kind="shader" />
-        </TabsContent>
+        )}
 
-
-        <TabsContent value="installed" className="space-y-2">
-          {Object.values(installed).length === 0 && (
-            <div className="text-center py-10 text-muted-foreground text-sm">No mods installed yet.</div>
-          )}
-          {Object.values(installed).map((m) => (
-            <Card key={m.projectId} className="p-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{m.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{m.fileName}</div>
+        {tab === "installed" && (
+          <div className="space-y-2">
+            {Object.values(installed).length === 0 && (
+              <div className="text-center py-16 text-muted-foreground text-sm rounded-2xl border border-dashed border-border/50 bg-card/20">
+                No mods installed yet.
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 text-xs">
-                  <Switch checked={m.enabled} onCheckedChange={(v) => handleToggle(m, v)} />
-                  {m.enabled ? "On" : "Off"}
+            )}
+            {Object.values(installed).map((m) => (
+              <Card key={m.projectId} className="p-4 flex items-center gap-4 rounded-2xl bg-card/40 border-border/50 backdrop-blur-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{m.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{m.fileName}</div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => handleUninstall(m)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </TabsContent>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-muted-foreground">
+                    <Switch checked={m.enabled} onCheckedChange={(v) => handleToggle(m, v)} />
+                    {m.enabled ? "On" : "Off"}
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => handleUninstall(m)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card className="p-4 space-y-3">
-            <div>
-              <Label>RAM allocation ({inst.ramMb} MB)</Label>
+        {tab === "settings" && (
+          <Card className="p-6 space-y-5 rounded-2xl bg-card/40 border-border/50 backdrop-blur-xl">
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-widest font-black text-muted-foreground">
+                RAM allocation · {inst.ramMb} MB
+              </Label>
               <Slider
                 value={[inst.ramMb]}
                 min={1024} max={16384} step={512}
@@ -226,8 +291,10 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
                 }}
               />
             </div>
-            <div>
-              <Label>Custom Java path</Label>
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-widest font-black text-muted-foreground">
+                Custom Java path
+              </Label>
               <Input
                 defaultValue={inst.javaPath}
                 onBlur={async (e) => {
@@ -239,8 +306,8 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
                 Leave as <code>java</code> to use system Java.
               </p>
             </div>
-            <div className="text-xs text-muted-foreground">
-              <b>Note:</b> RUBIX now runs Minecraft directly — no external launcher required.
+            <div className="text-xs text-muted-foreground border-t border-border/50 pt-4">
+              <b>Note:</b> RUBIX runs Minecraft directly — no external launcher required.
               Missing assets, libraries, loader jars, and (if needed) a Java runtime are
               downloaded automatically on first launch and shared across instances.
             </div>
@@ -250,8 +317,9 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
               </div>
             )}
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
+
 
       <AlertDialog open={renaming} onOpenChange={setRenaming}>
         <AlertDialogContent>
@@ -282,5 +350,19 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function ActionButton({
+  icon, children, onClick,
+}: { icon: React.ReactNode; children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-card/40 border border-border/50 text-[11px] font-black uppercase tracking-[0.1em] text-foreground/80 hover:bg-card/60 hover:border-border transition-all backdrop-blur"
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      {children}
+    </button>
   );
 }
