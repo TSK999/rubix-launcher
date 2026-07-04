@@ -4,6 +4,13 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-07-04
+
+### Fixed
+- Fabric API failing to resolve for Minecraft 1.21.9 and other edge versions — `mods-api` now uses server-side CurseForge filtering with paginated fetching (up to 200 files) so every compatible build is considered, not just the latest 50.
+- Fabric API missing from installs when no CurseForge build exists for the target version — added a Modrinth fallback for Fabric API and Quilted Fabric API, pulling from `api.modrinth.com` as a secondary source.
+- Manual Fabric API dependency resolution no longer required — the installer automatically queues Fabric API (or Quilted Fabric API for Quilt) as a required dependency for every Fabric / Quilt instance.
+
 ## [1.8.1] - 2026-07-04
 
 ### Changed
