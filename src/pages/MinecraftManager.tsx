@@ -41,6 +41,13 @@ function loadGradients(): Record<string, Gradient> {
 function saveGradients(map: Record<string, Gradient>) {
   try { localStorage.setItem(GRAD_KEY, JSON.stringify(map)); } catch {}
 }
+const NAME_KEY = "rubix:mc:instance-name";
+function loadNames(): Record<string, string> {
+  return loadJson(NAME_KEY, {} as Record<string, string>);
+}
+function saveNames(map: Record<string, string>) {
+  try { localStorage.setItem(NAME_KEY, JSON.stringify(map)); } catch {}
+}
 
 const LAST_KEY = "rubix:mc:last-instance";
 
@@ -88,9 +95,11 @@ export default function MinecraftManager() {
   const [launchingName, setLaunchingName] = useState<string | null>(null);
   const [backgrounds, setBackgrounds] = useState<Record<string, string>>(() => loadBackgrounds());
   const [gradients, setGradients] = useState<Record<string, Gradient>>(() => loadGradients());
+  const [names, setNames] = useState<Record<string, string>>(() => loadNames());
   const [bgEditing, setBgEditing] = useState<string | null>(null);
   const [bgUrlDraft, setBgUrlDraft] = useState("");
   const [gradDraft, setGradDraft] = useState<Gradient>({ from: "#8b5cf6", to: "#e879f9" });
+  const [nameDraft, setNameDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktop = isDesktop();
 
@@ -112,12 +121,22 @@ export default function MinecraftManager() {
     });
   }
 
+  function setInstanceName(name: string, value: string | null) {
+    setNames((prev) => {
+      const next = { ...prev };
+      if (value && value.trim()) next[name] = value.trim(); else delete next[name];
+      saveNames(next);
+      return next;
+    });
+  }
+
   function openBgDialog(name: string) {
     setBgEditing(name);
     setBgUrlDraft(backgrounds[name] && backgrounds[name].startsWith("http") ? backgrounds[name] : "");
     const inst = instances.find((i) => i.name === name);
     const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
     setGradDraft(gradients[name] ?? fallback);
+    setNameDraft(names[name] ?? "");
   }
 
   async function onBgFilePicked(file: File) {
@@ -373,7 +392,10 @@ export default function MinecraftManager() {
                     <div className="relative p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1 pr-16">
-                          <div className="text-lg font-semibold truncate drop-shadow-sm">{inst.name}</div>
+                          <div className="text-lg font-semibold truncate drop-shadow-sm">{names[inst.name] || inst.name}</div>
+                          {names[inst.name] && (
+                            <div className="text-[11px] text-muted-foreground truncate mt-0.5">{inst.name}</div>
+                          )}
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             <Badge className="rounded-full bg-primary/15 text-primary hover:bg-primary/20 border-0">
                               {label}{inst.loaderVersion ? ` ${inst.loaderVersion}` : ""}
@@ -443,6 +465,33 @@ export default function MinecraftManager() {
               </DialogHeader>
 
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="display-name">Display name</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="display-name"
+                      placeholder={bgEditing ?? "Instance name"}
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      maxLength={60}
+                    />
+                    <Button
+                      onClick={() => {
+                        if (!bgEditing) return;
+                        setInstanceName(bgEditing, nameDraft);
+                        toast.success(nameDraft.trim() ? "Name updated" : "Name reset");
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Only changes the label shown on the card. The underlying instance folder stays <span className="font-mono">{bgEditing}</span>.
+                  </p>
+                </div>
+
+                <div className="h-px bg-border/60" />
+
                 <div className="space-y-2">
                   <Label htmlFor="bg-url">Image or GIF URL</Label>
                   <div className="flex gap-2">
