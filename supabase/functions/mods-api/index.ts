@@ -658,6 +658,36 @@ function fileMatches(file: any, mcVersion: string, loader: string) {
   return { mcMatch, loaderMatch, gv };
 }
 
+// Modrinth fallback: some mods (Fabric API in particular) ship on Modrinth
+// before/instead of CurseForge for new MC versions. Map known CurseForge
+// project IDs → Modrinth slugs.
+const CF_TO_MODRINTH: Record<string, string> = {
+  "306612": "fabric-api",
+  "634179": "quilted-fabric-api",
+};
+
+async function modrinthFallback(cfModId: string, mcVersion: string, loader: string):
+  Promise<{ fileId: number; fileName: string; downloadUrl: string } | null> {
+  const slug = CF_TO_MODRINTH[cfModId];
+  if (!slug) return null;
+  const params = new URLSearchParams({
+    loaders: JSON.stringify([loader.toLowerCase()]),
+    game_versions: JSON.stringify([mcVersion]),
+  });
+  const r = await fetch(`https://api.modrinth.com/v2/project/${slug}/version?${params}`, {
+    headers: { Accept: "application/json", "User-Agent": "RUBIX-ModManager/1.0" },
+  });
+  if (!r.ok) return null;
+  const versions: any[] = await r.json();
+  const v = versions[0];
+  const file = v?.files?.find((f: any) => f.primary) ?? v?.files?.[0];
+  if (!file?.url) return null;
+  // Synthesize a numeric fileId from Modrinth's version id string.
+  let hash = 0;
+  for (const c of String(v.id)) hash = ((hash << 5) - hash + c.charCodeAt(0)) | 0;
+  return { fileId: Math.abs(hash), fileName: file.filename, downloadUrl: file.url };
+}
+
 async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader: string) {
   const seen = new Set<string>();
   const ordered: ResolveItem[] = [];
