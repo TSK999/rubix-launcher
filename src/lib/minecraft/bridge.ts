@@ -86,6 +86,43 @@ export async function toggleMod(instance: string, projectId: number, enabled: bo
 export async function importModpack(instanceName?: string) {
   return api()?.importModpack(instanceName) ?? fail();
 }
+
+// ---------- Resource / shader packs ----------
+export type PackKind = "resourcepack" | "shader";
+export type InstalledPack = {
+  projectId: string | null;
+  versionId: string | null;
+  fileName: string;
+  name: string;
+  installedAt: string;
+  enabled: boolean;
+  kind: PackKind;
+};
+export async function listPacks(
+  instance: string, kind: PackKind,
+): Promise<{ ok: boolean; packs: InstalledPack[]; folder?: string; error?: string }> {
+  return api()?.listPacks(instance, kind) ?? { ok: false, packs: [], error: "Desktop required" };
+}
+export async function installPack(p: {
+  instance: string; kind: PackKind;
+  projectId?: string | null; versionId?: string | null;
+  fileName: string; name: string; downloadUrl: string;
+  replace?: "replace" | "keep-both";
+}): Promise<{ ok: boolean; conflict?: boolean; fileName?: string; error?: string }> {
+  return api()?.installPack(p) ?? fail();
+}
+export async function uninstallPack(instance: string, kind: PackKind, key: string) {
+  return api()?.uninstallPack(instance, kind, key) ?? fail();
+}
+export async function togglePack(instance: string, kind: PackKind, key: string, enabled: boolean) {
+  return api()?.togglePack(instance, kind, key, enabled) ?? fail();
+}
+export async function detectShaderRenderer(
+  instance: string,
+): Promise<{ ok: boolean; hasRenderer: boolean; renderers: string[]; error?: string }> {
+  return api()?.detectShaderRenderer(instance) ?? { ok: false, hasRenderer: false, renderers: [] };
+}
+
 export async function launch(name: string) {
   return api()?.launch(name) ?? fail();
 }

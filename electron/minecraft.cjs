@@ -466,6 +466,147 @@ function broadcast(channel, payload) {
   }
 }
 
+// ---------- IPC: resource packs & shader packs (Modrinth) ----------
+// Packs are downloaded as .zip files and placed directly into the
+// instance's resourcepacks/ or shaderpacks/ directory. They are NEVER
+// extracted — Minecraft reads them as archives.
+
+function packSubdir(kind) {
+  if (kind === "resourcepack") return "resourcepacks";
+  if (kind === "shader") return "shaderpacks";
+  throw new Error(`Unknown pack kind: ${kind}`);
+}
+function packManifestPath(dir, kind) {
+  return path.join(dir, kind === "shader" ? "installed-shaders.json" : "installed-resourcepacks.json");
+}
+
+ipcMain.handle("mc:list-packs", async (_e, { instance, kind }) => {
+  try {
+    const dir = instanceDir(instance);
+    if (!fs.existsSync(dir)) return { ok: false, error: "Instance not found" };
+    const sub = packSubdir(kind);
+    const folder = path.join(dir, sub);
+    ensureDir(folder);
+    const manifest = readJson(packManifestPath(dir, kind), {});
+    const filesOnDisk = new Set(
+      fs.readdirSync(folder).filter((f) => f.toLowerCase().endsWith(".zip") || f.toLowerCase().endsWith(".zip.disabled")),
+    );
+    // Prune manifest entries whose file has been deleted externally.
+    let dirty = false;
+    for (const key of Object.keys(manifest)) {
+      const e = manifest[key];
+      if (!filesOnDisk.has(e.fileName) && !filesOnDisk.has(e.fileName + ".disabled")) {
+        delete manifest[key];
+        dirty = true;
+      }
+    }
+    if (dirty) writeJson(packManifestPath(dir, kind), manifest);
+    return { ok: true, packs: Object.values(manifest), folder };
+  } catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
+ipcMain.handle("mc:install-pack", async (_e, payload) => {
+  try {
+    const { instance, kind, projectId, versionId, fileName, name, downloadUrl, replace } = payload || {};
+    if (!instance || !kind || !downloadUrl || !fileName) {
+      return { ok: false, error: "Missing fields" };
+    }
+    const dir = instanceDir(instance);
+    if (!fs.existsSync(dir)) return { ok: false, error: "Instance not found" };
+    const folder = path.join(dir, packSubdir(kind));
+    ensureDir(folder);
+
+    let finalName = fileName;
+    const dest = path.join(folder, finalName);
+    if (fs.existsSync(dest) || fs.existsSync(dest + ".disabled")) {
+      if (replace === "replace") {
+        try { fs.unlinkSync(dest); } catch (_e) { /* ignore */ }
+        try { fs.unlinkSync(dest + ".disabled"); } catch (_e) { /* ignore */ }
+      } else if (replace === "keep-both") {
+        const parsed = path.parse(finalName);
+        let i = 2;
+        while (
+          fs.existsSync(path.join(folder, `${parsed.name} (${i})${parsed.ext}`)) ||
+          fs.existsSync(path.join(folder, `${parsed.name} (${i})${parsed.ext}.disabled`))
+        ) i++;
+        finalName = `${parsed.name} (${i})${parsed.ext}`;
+      } else {
+        return { ok: false, conflict: true, error: "A pack with this filename already exists." };
+      }
+    }
+
+    const finalDest = path.join(folder, finalName);
+    await downloadTo(downloadUrl, finalDest);
+
+    const manifest = readJson(packManifestPath(dir, kind), {});
+    const key = String(projectId || versionId || finalName);
+    manifest[key] = {
+      projectId: projectId || null,
+      versionId: versionId || null,
+      fileName: finalName,
+      name: name || finalName,
+      installedAt: new Date().toISOString(),
+      enabled: true,
+      kind,
+    };
+    writeJson(packManifestPath(dir, kind), manifest);
+    return { ok: true, fileName: finalName };
+  } catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
+ipcMain.handle("mc:uninstall-pack", async (_e, { instance, kind, key }) => {
+  try {
+    const dir = instanceDir(instance);
+    const manifest = readJson(packManifestPath(dir, kind), {});
+    const entry = manifest[String(key)];
+    if (!entry) return { ok: false, error: "Not installed" };
+    const folder = path.join(dir, packSubdir(kind));
+    for (const ext of ["", ".disabled"]) {
+      const f = path.join(folder, entry.fileName + ext);
+      try { fs.unlinkSync(f); } catch (_e) { /* ignore */ }
+    }
+    delete manifest[String(key)];
+    writeJson(packManifestPath(dir, kind), manifest);
+    return { ok: true };
+  } catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
+ipcMain.handle("mc:toggle-pack", async (_e, { instance, kind, key, enabled }) => {
+  try {
+    const dir = instanceDir(instance);
+    const manifest = readJson(packManifestPath(dir, kind), {});
+    const entry = manifest[String(key)];
+    if (!entry) return { ok: false, error: "Not installed" };
+    const folder = path.join(dir, packSubdir(kind));
+    const onPath = path.join(folder, entry.fileName);
+    const offPath = onPath + ".disabled";
+    if (enabled && fs.existsSync(offPath)) fs.renameSync(offPath, onPath);
+    if (!enabled && fs.existsSync(onPath)) fs.renameSync(onPath, offPath);
+    entry.enabled = !!enabled;
+    manifest[String(key)] = entry;
+    writeJson(packManifestPath(dir, kind), manifest);
+    return { ok: true };
+  } catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
+// Detect shader renderers by scanning installed mods for known keywords.
+ipcMain.handle("mc:detect-shader-renderer", async (_e, { instance }) => {
+  try {
+    const dir = instanceDir(instance);
+    const installed = readJson(path.join(dir, "installed-mods.json"), {});
+    const KEYS = ["iris", "optifine", "oculus", "sodium"];
+    const found = new Set();
+    for (const m of Object.values(installed)) {
+      const hay = `${m.name || ""} ${m.fileName || ""}`.toLowerCase();
+      for (const k of KEYS) if (hay.includes(k)) found.add(k);
+    }
+    const hasRenderer =
+      found.has("iris") || found.has("optifine") || found.has("oculus") ||
+      (found.has("sodium") && found.has("iris"));
+    return { ok: true, hasRenderer, renderers: Array.from(found) };
+  } catch (err) { return { ok: false, error: String(err?.message || err) }; }
+});
+
 // ---------- IPC: launch (real headless launcher) ----------
 ipcMain.handle("mc:launch", async (_e, { name }) => {
   const reg = readRegistry();
