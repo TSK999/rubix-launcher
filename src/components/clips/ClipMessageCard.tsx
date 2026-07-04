@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Film, Play } from "lucide-react";
-import { fetchSharedClipBySlug, publicUrl, type SharedClip } from "@/lib/clip-share";
+import { fetchSharedClipBySlug, useClipUrl, type SharedClip } from "@/lib/clip-share";
 import { cn } from "@/lib/utils";
 
 const fmtTime = (s: number | null | undefined) => {
@@ -36,14 +36,14 @@ export const ClipMessageCard = ({ slug }: { slug: string }) => {
     }
   }, [hover, expanded]);
 
+  const stream = useClipUrl(clip?.stream_path);
+  const thumb = useClipUrl(clip?.thumbnail_path);
+
   if (!clip) {
     return (
       <div className="w-72 h-40 rounded-xl bg-secondary animate-pulse" />
     );
   }
-
-  const stream = publicUrl(clip.stream_path);
-  const thumb = publicUrl(clip.thumbnail_path);
 
   return (
     <div

@@ -19,7 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchSharedClipBySlug,
-  publicUrl,
+  signedClipUrl,
+  useClipUrl,
   shareLinkFor,
   trackClipShare,
   trackClipView,
@@ -56,6 +57,8 @@ const ClipViewer = () => {
   const [reportOpen, setReportOpen] = useState(false);
   const [me, setMe] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const stream = useClipUrl(clip?.stream_path);
+  const thumb = useClipUrl(clip?.thumbnail_path);
 
   const goFullscreen = () => {
     const v = videoRef.current;
@@ -194,7 +197,7 @@ const ClipViewer = () => {
   const downloadClip = async () => {
     if (!clip?.stream_path) return;
     try {
-      const url = publicUrl(clip.stream_path);
+      const url = await signedClipUrl(clip.stream_path);
       const r = await fetch(url);
       const blob = await r.blob();
       const ext = (blob.type.split("/")[1] || "mp4").split(";")[0];
@@ -234,8 +237,7 @@ const ClipViewer = () => {
     );
   }
 
-  const stream = publicUrl(clip.stream_path);
-  const thumb = publicUrl(clip.thumbnail_path);
+
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">

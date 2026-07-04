@@ -628,9 +628,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Public browse proxy — no auth required. verify_jwt = false in config.toml.
-
-
     const url = new URL(req.url);
     const provider = (url.searchParams.get("provider") ?? "spacedock").toLowerCase();
     const action = url.searchParams.get("action") ?? "browse";
@@ -641,6 +638,32 @@ Deno.serve(async (req) => {
     const id = url.searchParams.get("id") ?? "";
     const sortRaw = (url.searchParams.get("sort") ?? "popular").toLowerCase();
     const sort: SortKey = (["popular","downloads","updated","name"].includes(sortRaw) ? sortRaw : "popular") as SortKey;
+
+    // Providers backed by paid API keys require an authenticated caller
+    // to prevent quota drain / cost abuse. SpaceDock and Thunderstore
+    // remain open since they don't consume our API keys.
+    if (provider === "modio" || provider === "curseforge") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const supa = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data, error } = await supa.auth.getClaims(token);
+      if (error || !data?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     let body: unknown;
     if (provider === "spacedock") {
