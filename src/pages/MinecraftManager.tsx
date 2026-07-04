@@ -95,9 +95,11 @@ export default function MinecraftManager() {
   const [launchingName, setLaunchingName] = useState<string | null>(null);
   const [backgrounds, setBackgrounds] = useState<Record<string, string>>(() => loadBackgrounds());
   const [gradients, setGradients] = useState<Record<string, Gradient>>(() => loadGradients());
+  const [names, setNames] = useState<Record<string, string>>(() => loadNames());
   const [bgEditing, setBgEditing] = useState<string | null>(null);
   const [bgUrlDraft, setBgUrlDraft] = useState("");
   const [gradDraft, setGradDraft] = useState<Gradient>({ from: "#8b5cf6", to: "#e879f9" });
+  const [nameDraft, setNameDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktop = isDesktop();
 
@@ -119,12 +121,22 @@ export default function MinecraftManager() {
     });
   }
 
+  function setInstanceName(name: string, value: string | null) {
+    setNames((prev) => {
+      const next = { ...prev };
+      if (value && value.trim()) next[name] = value.trim(); else delete next[name];
+      saveNames(next);
+      return next;
+    });
+  }
+
   function openBgDialog(name: string) {
     setBgEditing(name);
     setBgUrlDraft(backgrounds[name] && backgrounds[name].startsWith("http") ? backgrounds[name] : "");
     const inst = instances.find((i) => i.name === name);
     const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
     setGradDraft(gradients[name] ?? fallback);
+    setNameDraft(names[name] ?? "");
   }
 
   async function onBgFilePicked(file: File) {
