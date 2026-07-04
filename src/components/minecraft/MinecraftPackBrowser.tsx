@@ -52,6 +52,30 @@ type Version = {
 const MODRINTH = "https://api.modrinth.com/v2";
 const UA = "RUBIX-Launcher (github.com/rubix)";
 
+type SortKey = "relevance" | "downloads" | "follows" | "newest" | "updated";
+const SORTS: { k: SortKey; label: string }[] = [
+  { k: "relevance", label: "Relevance" },
+  { k: "downloads", label: "Downloads" },
+  { k: "follows", label: "Follows" },
+  { k: "newest", label: "Newest" },
+  { k: "updated", label: "Updated" },
+];
+
+// Curated subset of Modrinth's supported category facets, split per project_type.
+const CATEGORIES: Record<"resourcepack" | "shader", string[]> = {
+  resourcepack: [
+    "8x-", "16x", "32x", "48x", "64x", "128x", "256x", "512x+",
+    "realistic", "simplistic", "vanilla-like", "themed", "tweaks",
+    "combat", "decoration", "gui", "items", "blocks", "entities", "mobs",
+    "environment", "fonts", "audio", "models", "modded", "cursed",
+  ],
+  shader: [
+    "vanilla-like", "semi-realistic", "realistic", "fantasy", "cartoon", "cursed",
+    "atmosphere", "bloom", "colored-lighting", "foliage", "path-tracing", "pbr",
+    "reflections", "shadows", "potato", "low", "medium", "high", "screenshot",
+  ],
+};
+
 async function modrinth<T>(path: string): Promise<T> {
   const r = await fetch(`${MODRINTH}${path}`, { headers: { "User-Agent": UA } });
   if (!r.ok) throw new Error(`Modrinth ${r.status}`);
@@ -68,9 +92,13 @@ export function MinecraftPackBrowser({ instance, kind }: Props) {
   const [hasRenderer, setHasRenderer] = useState<boolean>(true);
   const [renderers, setRenderers] = useState<string[]>([]);
   const [conflict, setConflict] = useState<{ hit: Hit; version: Version } | null>(null);
+  const [sort, setSort] = useState<SortKey>("relevance");
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set());
+  const [hideInstalled, setHideInstalled] = useState(false);
 
   const labelPlural = kind === "shader" ? "shader packs" : "resource packs";
   const facetType = kind === "shader" ? "shader" : "resourcepack";
+  const catList = CATEGORIES[facetType as "resourcepack" | "shader"];
 
   async function refreshInstalled() {
     const r = await listPacks(instance.name, kind);
@@ -89,17 +117,17 @@ export function MinecraftPackBrowser({ instance, kind }: Props) {
   async function search(q = query) {
     setLoading(true);
     try {
-      // Facets: project_type + game version. Loader is intentionally not
-      // filtered here — resource packs are loader-agnostic, and shader packs
-      // are handled by whichever renderer the user has installed.
-      const facets = [
-        [`project_type:${facetType}`],
-        showIncompatible ? undefined : [`versions:${instance.mcVersion}`],
-      ].filter(Boolean);
+      // Facets: project_type + game version + selected categories.
+      // Loader is intentionally not filtered here — resource packs are
+      // loader-agnostic, and shaders are handled by whichever renderer
+      // the user has installed.
+      const facets: string[][] = [[`project_type:${facetType}`]];
+      if (!showIncompatible) facets.push([`versions:${instance.mcVersion}`]);
+      for (const c of selectedCats) facets.push([`categories:${c}`]);
       const params = new URLSearchParams({
         query: q,
         limit: "30",
-        index: "relevance",
+        index: sort,
         facets: JSON.stringify(facets),
       });
       const data = await modrinth<{ hits: Hit[] }>(`/search?${params}`);
@@ -114,7 +142,16 @@ export function MinecraftPackBrowser({ instance, kind }: Props) {
     refreshRenderer();
     search("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instance.name, kind, instance.mcVersion, showIncompatible]);
+  }, [instance.name, kind, instance.mcVersion, showIncompatible, sort, selectedCats]);
+
+  function toggleCat(c: string) {
+    setSelectedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c); else next.add(c);
+      return next;
+    });
+  }
+
 
   async function pickVersion(hit: Hit): Promise<Version | null> {
     const versions = await modrinth<Version[]>(
