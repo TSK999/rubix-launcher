@@ -19,6 +19,7 @@ import {
   type Instance, type InstalledMod,
 } from "@/lib/minecraft/bridge";
 import { MinecraftModBrowser } from "./MinecraftModBrowser";
+import { MinecraftPackBrowser } from "./MinecraftPackBrowser";
 import { MinecraftAccountBadge } from "./MinecraftAccountBadge";
 import { MinecraftLaunchProgress } from "./MinecraftLaunchProgress";
 import { formatBytes } from "@/lib/minecraft/api";
