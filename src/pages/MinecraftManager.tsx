@@ -437,8 +437,9 @@ export default function MinecraftManager() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Custom background</DialogTitle>
+                <DialogTitle>Customize card</DialogTitle>
                 <DialogDescription>
-                  Add a GIF or image for <span className="text-foreground font-medium">{bgEditing}</span>. Paste a URL or upload a file (max 4&nbsp;MB).
+                  Set a background image/GIF or tweak the gradient colors for <span className="text-foreground font-medium">{bgEditing}</span>.
                 </DialogDescription>
               </DialogHeader>
 
