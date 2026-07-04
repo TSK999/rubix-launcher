@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Film, Play } from "lucide-react";
-import { fetchSharedClipBySlug, publicUrl, type SharedClip } from "@/lib/clip-share";
+import { fetchSharedClipBySlug, useClipUrl, type SharedClip } from "@/lib/clip-share";
 import { cn } from "@/lib/utils";
 
 const fmtTime = (s: number | null | undefined) => {
