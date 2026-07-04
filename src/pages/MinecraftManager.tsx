@@ -333,10 +333,10 @@ export default function MinecraftManager() {
                 return (
                   <Card
                     key={inst.name}
-                    onClick={() => desktop && setSelected(inst.name)}
+                    onClick={() => setSelected(inst.name)}
                     className={cn(
                       "group relative overflow-hidden rounded-2xl border bg-card/50 backdrop-blur transition-all min-h-[180px]",
-                      desktop && "cursor-pointer hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.5)]",
+                      "cursor-pointer hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.5)]",
                     )}
                   >
                     {customBg ? (
