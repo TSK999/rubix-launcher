@@ -48,7 +48,7 @@ const ClipThumb = ({ path, title }: { path: string | null; title: string }) => {
     />
   );
 };
-};
+
 
 const ClipsFeed = () => {
   const { user } = useRubixAuth();
