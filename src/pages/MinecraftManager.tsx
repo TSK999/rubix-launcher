@@ -493,14 +493,93 @@ export default function MinecraftManager() {
                 </Button>
               </div>
 
-              <DialogFooter className="sm:justify-between gap-2">
+              <div className="mt-6 pt-5 border-t border-border/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Gradient colors</Label>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Used when no image is set
+                  </span>
+                </div>
+
+                <div
+                  aria-hidden
+                  className="h-14 w-full rounded-lg border border-border/60"
+                  style={{ backgroundImage: `linear-gradient(to bottom right, ${gradDraft.from}, ${gradDraft.to})` }}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="grad-from" className="text-xs text-muted-foreground">From</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="grad-from"
+                        type="color"
+                        value={gradDraft.from}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                      />
+                      <Input
+                        value={gradDraft.from}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="grad-to" className="text-xs text-muted-foreground">To</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="grad-to"
+                        type="color"
+                        value={gradDraft.to}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                      />
+                      <Input
+                        value={gradDraft.to}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      if (!bgEditing) return;
+                      setInstanceGradient(bgEditing, gradDraft);
+                      toast.success("Gradient updated");
+                    }}
+                    className="flex-1"
+                  >
+                    Apply gradient
+                  </Button>
+                  {bgEditing && gradients[bgEditing] && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setInstanceGradient(bgEditing!, null);
+                        const inst = instances.find((i) => i.name === bgEditing);
+                        const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
+                        setGradDraft(fallback);
+                        toast.success("Reset to loader default");
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="sm:justify-between gap-2 mt-2">
                 {bgEditing && backgrounds[bgEditing] ? (
                   <Button
                     variant="ghost"
                     onClick={() => { setInstanceBackground(bgEditing!, null); setBgEditing(null); toast.success("Background removed"); }}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" /> Remove
+                    <Trash2 className="h-4 w-4 mr-2" /> Remove image
                   </Button>
                 ) : <span />}
                 <Button variant="secondary" onClick={() => setBgEditing(null)}>Close</Button>
