@@ -21,14 +21,25 @@ import { cfMcFile, formatBytes } from "@/lib/minecraft/api";
 import { cn } from "@/lib/utils";
 
 const BG_KEY = "rubix:mc:instance-bg";
+const GRAD_KEY = "rubix:mc:instance-grad";
 
+function loadJson<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; } catch { return fallback; }
+}
 function loadBackgrounds(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(BG_KEY) || "{}"); } catch { return {}; }
+  return loadJson(BG_KEY, {} as Record<string, string>);
 }
 function saveBackgrounds(map: Record<string, string>) {
   try { localStorage.setItem(BG_KEY, JSON.stringify(map)); } catch (e) {
     toast.error("Couldn't save background (storage full — try a smaller image or a URL).");
   }
+}
+type Gradient = { from: string; to: string };
+function loadGradients(): Record<string, Gradient> {
+  return loadJson(GRAD_KEY, {} as Record<string, Gradient>);
+}
+function saveGradients(map: Record<string, Gradient>) {
+  try { localStorage.setItem(GRAD_KEY, JSON.stringify(map)); } catch {}
 }
 
 const LAST_KEY = "rubix:mc:last-instance";
@@ -61,7 +72,13 @@ const loaderAccent: Record<string, string> = {
   Vanilla: "from-emerald-500/20 to-teal-500/10 border-emerald-500/25",
 };
 
-
+const loaderGradientDefaults: Record<string, Gradient> = {
+  Fabric: { from: "#8b5cf6", to: "#e879f9" },
+  Forge: { from: "#f59e0b", to: "#f97316" },
+  NeoForge: { from: "#f43f5e", to: "#ef4444" },
+  Quilt: { from: "#a855f7", to: "#6366f1" },
+  Vanilla: { from: "#10b981", to: "#14b8a6" },
+};
 
 export default function MinecraftManager() {
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -70,10 +87,21 @@ export default function MinecraftManager() {
   const [selected, setSelected] = useState<string | null>(null);
   const [launchingName, setLaunchingName] = useState<string | null>(null);
   const [backgrounds, setBackgrounds] = useState<Record<string, string>>(() => loadBackgrounds());
+  const [gradients, setGradients] = useState<Record<string, Gradient>>(() => loadGradients());
   const [bgEditing, setBgEditing] = useState<string | null>(null);
   const [bgUrlDraft, setBgUrlDraft] = useState("");
+  const [gradDraft, setGradDraft] = useState<Gradient>({ from: "#8b5cf6", to: "#e879f9" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktop = isDesktop();
+
+  function setInstanceGradient(name: string, value: Gradient | null) {
+    setGradients((prev) => {
+      const next = { ...prev };
+      if (value) next[name] = value; else delete next[name];
+      saveGradients(next);
+      return next;
+    });
+  }
 
   function setInstanceBackground(name: string, value: string | null) {
     setBackgrounds((prev) => {
@@ -87,6 +115,9 @@ export default function MinecraftManager() {
   function openBgDialog(name: string) {
     setBgEditing(name);
     setBgUrlDraft(backgrounds[name] && backgrounds[name].startsWith("http") ? backgrounds[name] : "");
+    const inst = instances.find((i) => i.name === name);
+    const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
+    setGradDraft(gradients[name] ?? fallback);
   }
 
   async function onBgFilePicked(file: File) {
@@ -278,6 +309,7 @@ export default function MinecraftManager() {
                 const label = inst.loader;
                 const isLaunching = launchingName === inst.name;
                 const customBg = backgrounds[inst.name];
+                const customGrad = gradients[inst.name];
                 return (
                   <Card
                     key={inst.name}
@@ -298,6 +330,12 @@ export default function MinecraftManager() {
                         {/* Legibility scrim */}
                         <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/30" />
                       </>
+                    ) : customGrad ? (
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-80"
+                        style={{ backgroundImage: `linear-gradient(to bottom, ${customGrad.from}, ${customGrad.to})` }}
+                      />
                     ) : (
                       <div
                         aria-hidden
@@ -398,9 +436,9 @@ export default function MinecraftManager() {
           <Dialog open={!!bgEditing} onOpenChange={(o) => !o && setBgEditing(null)}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Custom background</DialogTitle>
+                <DialogTitle>Customize card</DialogTitle>
                 <DialogDescription>
-                  Add a GIF or image for <span className="text-foreground font-medium">{bgEditing}</span>. Paste a URL or upload a file (max 4&nbsp;MB).
+                  Set a background image/GIF or tweak the gradient colors for <span className="text-foreground font-medium">{bgEditing}</span>.
                 </DialogDescription>
               </DialogHeader>
 
@@ -455,14 +493,93 @@ export default function MinecraftManager() {
                 </Button>
               </div>
 
-              <DialogFooter className="sm:justify-between gap-2">
+              <div className="mt-6 pt-5 border-t border-border/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Gradient colors</Label>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Used when no image is set
+                  </span>
+                </div>
+
+                <div
+                  aria-hidden
+                  className="h-14 w-full rounded-lg border border-border/60"
+                  style={{ backgroundImage: `linear-gradient(to bottom right, ${gradDraft.from}, ${gradDraft.to})` }}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="grad-from" className="text-xs text-muted-foreground">From</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="grad-from"
+                        type="color"
+                        value={gradDraft.from}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                      />
+                      <Input
+                        value={gradDraft.from}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, from: e.target.value }))}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="grad-to" className="text-xs text-muted-foreground">To</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="grad-to"
+                        type="color"
+                        value={gradDraft.to}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                        className="h-9 w-10 rounded-md border border-border/60 bg-transparent cursor-pointer"
+                      />
+                      <Input
+                        value={gradDraft.to}
+                        onChange={(e) => setGradDraft((g) => ({ ...g, to: e.target.value }))}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      if (!bgEditing) return;
+                      setInstanceGradient(bgEditing, gradDraft);
+                      toast.success("Gradient updated");
+                    }}
+                    className="flex-1"
+                  >
+                    Apply gradient
+                  </Button>
+                  {bgEditing && gradients[bgEditing] && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setInstanceGradient(bgEditing!, null);
+                        const inst = instances.find((i) => i.name === bgEditing);
+                        const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
+                        setGradDraft(fallback);
+                        toast.success("Reset to loader default");
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="sm:justify-between gap-2 mt-2">
                 {bgEditing && backgrounds[bgEditing] ? (
                   <Button
                     variant="ghost"
                     onClick={() => { setInstanceBackground(bgEditing!, null); setBgEditing(null); toast.success("Background removed"); }}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" /> Remove
+                    <Trash2 className="h-4 w-4 mr-2" /> Remove image
                   </Button>
                 ) : <span />}
                 <Button variant="secondary" onClick={() => setBgEditing(null)}>Close</Button>
