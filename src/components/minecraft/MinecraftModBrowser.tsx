@@ -30,6 +30,14 @@ type PlanState = {
   picked: Record<number, boolean>; // optional deps -> include?
 };
 
+type SortKey = "popular" | "downloads" | "updated" | "name";
+const SORTS: { k: SortKey; label: string }[] = [
+  { k: "popular", label: "Popular" },
+  { k: "downloads", label: "Downloads" },
+  { k: "updated", label: "Recently updated" },
+  { k: "name", label: "Name" },
+];
+
 export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,20 +45,23 @@ export function MinecraftModBrowser({ instance, installedIds, onChanged }: Props
   const [resolving, setResolving] = useState<number | null>(null);
   const [installing, setInstalling] = useState(false);
   const [planState, setPlanState] = useState<PlanState | null>(null);
+  const [sort, setSort] = useState<SortKey>("popular");
+  const [hideInstalled, setHideInstalled] = useState(false);
 
-  async function search(q = query) {
+  async function search(q = query, s: SortKey = sort) {
     setLoading(true);
     try {
       // CurseForge filters results server-side to the instance's MC + loader.
-      const data = await cfBrowseMinecraft(q, 1, "popular", instance.mcVersion, instance.loader);
+      const data = await cfBrowseMinecraft(q, 1, s, instance.mcVersion, instance.loader);
       setResults(data.result || []);
     } catch (e: any) {
       toast.error("Browse failed", { description: e?.message });
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { search(""); /* refetch when instance changes */ /* eslint-disable-next-line react-hooks/exhaustive-deps */ },
-    [instance.name, instance.mcVersion, instance.loader]);
+  useEffect(() => { search(""); /* refetch when instance/sort changes */ /* eslint-disable-next-line react-hooks/exhaustive-deps */ },
+    [instance.name, instance.mcVersion, instance.loader, sort]);
+
 
   async function preview(mod: any) {
     setResolving(mod.id);
