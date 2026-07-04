@@ -492,6 +492,7 @@ export default function MinecraftManager() {
 
                 <div className="h-px bg-border/60" />
 
+                <div className="space-y-2">
                   <Label htmlFor="bg-url">Image or GIF URL</Label>
                   <div className="flex gap-2">
                     <Input
