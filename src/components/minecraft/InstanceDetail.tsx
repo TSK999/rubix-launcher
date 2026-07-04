@@ -28,9 +28,12 @@ type Props = {
   name: string;
   onBack: () => void;
   onMutated: () => void;
+  /** When set, InstanceDetail skips the desktop bridge and renders this
+   * instance directly. Used by the web preview so users can browse the UI. */
+  demoInstance?: Instance;
 };
 
-export function InstanceDetail({ name, onBack, onMutated }: Props) {
+export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props) {
   const [inst, setInst] = useState<Instance | null>(null);
   const [installed, setInstalled] = useState<Record<string, InstalledMod>>({});
   const [loading, setLoading] = useState(true);
@@ -39,8 +42,15 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasAccount, setHasAccount] = useState<boolean>(false);
+  const isDemo = !!demoInstance;
 
   async function refresh() {
+    if (demoInstance) {
+      setInst(demoInstance);
+      setInstalled({});
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const r = await getInstance(name);
     if (r.ok && r.instance) {
@@ -49,7 +59,7 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
     }
     setLoading(false);
   }
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [name]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [name, demoInstance?.name]);
 
   if (loading || !inst) {
     return (
@@ -122,13 +132,24 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />
-          <Button onClick={doLaunch} disabled={launching || !hasAccount} size="lg" title={!hasAccount ? "Sign in with Microsoft first" : ""}>
+          {!isDemo && <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />}
+          <Button
+            onClick={doLaunch}
+            disabled={launching || (!isDemo && !hasAccount)}
+            size="lg"
+            title={isDemo ? "Launching requires the RUBIX desktop app" : (!hasAccount ? "Sign in with Microsoft first" : "")}
+          >
             {launching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
             Launch
           </Button>
         </div>
       </div>
+
+      {isDemo && (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+          Web preview — this is a demo instance for exploring the UI. Install the RUBIX desktop app to launch, mod, and manage real instances.
+        </div>
+      )}
 
       <MinecraftLaunchProgress active={launching} />
 
