@@ -57,6 +57,8 @@ const ClipViewer = () => {
   const [reportOpen, setReportOpen] = useState(false);
   const [me, setMe] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const stream = useClipUrl(clip?.stream_path);
+  const thumb = useClipUrl(clip?.thumbnail_path);
 
   const goFullscreen = () => {
     const v = videoRef.current;
