@@ -286,6 +286,11 @@ declare global {
         uninstallMod: (instance: string, projectId: number) => Promise<{ ok: boolean; error?: string }>;
         toggleMod: (instance: string, projectId: number, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
         importModpack: (instanceName?: string) => Promise<{ ok: boolean; canceled?: boolean; error?: string; instance?: string; mcVersion?: string; loader?: string; loaderVersion?: string; files?: Array<{ projectID: number; fileID: number; required: boolean }> }>;
+        listPacks: (instance: string, kind: "resourcepack" | "shader") => Promise<{ ok: boolean; packs: any[]; folder?: string; error?: string }>;
+        installPack: (payload: { instance: string; kind: "resourcepack" | "shader"; projectId?: string | null; versionId?: string | null; fileName: string; name: string; downloadUrl: string; replace?: "replace" | "keep-both" }) => Promise<{ ok: boolean; conflict?: boolean; fileName?: string; error?: string }>;
+        uninstallPack: (instance: string, kind: "resourcepack" | "shader", key: string) => Promise<{ ok: boolean; error?: string }>;
+        togglePack: (instance: string, kind: "resourcepack" | "shader", key: string, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+        detectShaderRenderer: (instance: string) => Promise<{ ok: boolean; hasRenderer: boolean; renderers: string[]; error?: string }>;
         launch: (name: string) => Promise<{ ok: boolean; error?: string; needsSignIn?: boolean; pid?: number; logPath?: string; gameDir?: string }>;
         whoami: () => Promise<{ ok: boolean; account: { uuid: string; name: string } | null; error?: string }>;
         signInStart: () => Promise<{ ok: boolean; userCode?: string; verificationUri?: string; expiresIn?: number; error?: string }>;
