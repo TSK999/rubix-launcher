@@ -132,13 +132,24 @@ export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props)
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />
-          <Button onClick={doLaunch} disabled={launching || !hasAccount} size="lg" title={!hasAccount ? "Sign in with Microsoft first" : ""}>
+          {!isDemo && <MinecraftAccountBadge onAccount={(a) => setHasAccount(!!a)} />}
+          <Button
+            onClick={doLaunch}
+            disabled={launching || (!isDemo && !hasAccount)}
+            size="lg"
+            title={isDemo ? "Launching requires the RUBIX desktop app" : (!hasAccount ? "Sign in with Microsoft first" : "")}
+          >
             {launching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
             Launch
           </Button>
         </div>
       </div>
+
+      {isDemo && (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+          Web preview — this is a demo instance for exploring the UI. Install the RUBIX desktop app to launch, mod, and manage real instances.
+        </div>
+      )}
 
       <MinecraftLaunchProgress active={launching} />
 
