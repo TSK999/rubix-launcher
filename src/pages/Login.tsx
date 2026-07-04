@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
