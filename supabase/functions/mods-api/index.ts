@@ -556,18 +556,45 @@ async function curseforgeMod(_gameKey: string, id: string): Promise<ModDetail | 
 // "Fabric" | "Forge" | "NeoForge" | "Quilt".
 async function curseforgeMcFiles(modId: string, mcVersion: string, loader: string) {
   if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
-  const r = await fetch(`${CF_BASE}/mods/${encodeURIComponent(modId)}/files?pageSize=50&index=0`, {
-    headers: { Accept: "application/json", "x-api-key": CF_KEY },
-  });
-  if (!r.ok) throw new Error(`CurseForge files HTTP ${r.status}`);
-  const j: any = await r.json();
   const wantLoader = loader.toLowerCase();
-  const files = (j?.data ?? []).filter((f: any) => {
-    const gv = (f.gameVersions ?? []).map((s: string) => s.toLowerCase());
-    const hasMc = !mcVersion || gv.includes(mcVersion.toLowerCase());
-    const hasLoader = wantLoader === "vanilla" || gv.includes(wantLoader);
-    return hasMc && hasLoader;
+  const loaderId = CF_LOADER_ID[wantLoader];
+
+  // Use CurseForge server-side filters so we don't miss files hidden past
+  // the pagination window (Fabric API has hundreds of releases).
+  async function fetchFiltered(params: URLSearchParams): Promise<any[]> {
+    const out: any[] = [];
+    for (let page = 0; page < 4; page++) {
+      params.set("index", String(page * 50));
+      params.set("pageSize", "50");
+      const r = await fetch(`${CF_BASE}/mods/${encodeURIComponent(modId)}/files?${params}`, {
+        headers: { Accept: "application/json", "x-api-key": CF_KEY },
+      });
+      if (!r.ok) throw new Error(`CurseForge files HTTP ${r.status}`);
+      const j: any = await r.json();
+      const batch = j?.data ?? [];
+      out.push(...batch);
+      if (batch.length < 50) break;
+    }
+    return out;
+  }
+
+  const params = new URLSearchParams();
+  if (mcVersion) params.set("gameVersion", mcVersion);
+  if (wantLoader !== "vanilla" && loaderId !== undefined) {
+    params.set("modLoaderType", String(loaderId));
+  }
+
+  let files = await fetchFiltered(params);
+
+  // Client-side belt-and-suspenders: CurseForge occasionally returns files
+  // whose gameVersions strings don't include the loader tag even though the
+  // API's modLoaderType filter matched. Trust the server filter for loader
+  // and only re-check mcVersion.
+  files = files.filter((f: any) => {
+    const gv = (f.gameVersions ?? []).map((s: string) => String(s).toLowerCase());
+    return !mcVersion || gv.includes(mcVersion.toLowerCase());
   });
+
   files.sort((a: any, b: any) => new Date(b.fileDate).getTime() - new Date(a.fileDate).getTime());
   return { files };
 }
