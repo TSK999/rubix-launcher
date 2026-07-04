@@ -69,7 +69,40 @@ export default function MinecraftManager() {
   const [showCreate, setShowCreate] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [launchingName, setLaunchingName] = useState<string | null>(null);
+  const [backgrounds, setBackgrounds] = useState<Record<string, string>>(() => loadBackgrounds());
+  const [bgEditing, setBgEditing] = useState<string | null>(null);
+  const [bgUrlDraft, setBgUrlDraft] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const desktop = isDesktop();
+
+  function setInstanceBackground(name: string, value: string | null) {
+    setBackgrounds((prev) => {
+      const next = { ...prev };
+      if (value) next[name] = value; else delete next[name];
+      saveBackgrounds(next);
+      return next;
+    });
+  }
+
+  function openBgDialog(name: string) {
+    setBgEditing(name);
+    setBgUrlDraft(backgrounds[name] && backgrounds[name].startsWith("http") ? backgrounds[name] : "");
+  }
+
+  async function onBgFilePicked(file: File) {
+    if (!bgEditing) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image too large — please choose a file under 4 MB or use a URL.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setInstanceBackground(bgEditing, String(reader.result));
+      setBgEditing(null);
+      toast.success("Background updated");
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function refresh() {
     if (!desktop) {
