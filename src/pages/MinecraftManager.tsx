@@ -21,14 +21,25 @@ import { cfMcFile, formatBytes } from "@/lib/minecraft/api";
 import { cn } from "@/lib/utils";
 
 const BG_KEY = "rubix:mc:instance-bg";
+const GRAD_KEY = "rubix:mc:instance-grad";
 
+function loadJson<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; } catch { return fallback; }
+}
 function loadBackgrounds(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(BG_KEY) || "{}"); } catch { return {}; }
+  return loadJson(BG_KEY, {} as Record<string, string>);
 }
 function saveBackgrounds(map: Record<string, string>) {
   try { localStorage.setItem(BG_KEY, JSON.stringify(map)); } catch (e) {
     toast.error("Couldn't save background (storage full — try a smaller image or a URL).");
   }
+}
+type Gradient = { from: string; to: string };
+function loadGradients(): Record<string, Gradient> {
+  return loadJson(GRAD_KEY, {} as Record<string, Gradient>);
+}
+function saveGradients(map: Record<string, Gradient>) {
+  try { localStorage.setItem(GRAD_KEY, JSON.stringify(map)); } catch {}
 }
 
 const LAST_KEY = "rubix:mc:last-instance";
