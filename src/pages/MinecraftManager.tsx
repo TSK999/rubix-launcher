@@ -392,7 +392,10 @@ export default function MinecraftManager() {
                     <div className="relative p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1 pr-16">
-                          <div className="text-lg font-semibold truncate drop-shadow-sm">{inst.name}</div>
+                          <div className="text-lg font-semibold truncate drop-shadow-sm">{names[inst.name] || inst.name}</div>
+                          {names[inst.name] && (
+                            <div className="text-[11px] text-muted-foreground truncate mt-0.5">{inst.name}</div>
+                          )}
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             <Badge className="rounded-full bg-primary/15 text-primary hover:bg-primary/20 border-0">
                               {label}{inst.loaderVersion ? ` ${inst.loaderVersion}` : ""}
