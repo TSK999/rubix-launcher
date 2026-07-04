@@ -4,6 +4,41 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-07-04
+
+### Added
+- Minecraft instances now have their own dedicated entry in the sidebar,
+  directly below the Launcher — no more digging through Mod Manager.
+- Per-instance card customization via a new "Customize" dialog with three
+  tabs:
+  - **Name** — set a custom display label for each instance (the underlying
+    folder name stays untouched).
+  - **Background** — attach a custom image or GIF as the card cover, either
+    from a URL or a local upload (up to 4 MB).
+  - **Gradient** — pick your own two-color gradient wash to replace the
+    loader-tinted default.
+- All customizations persist locally per instance and are reflected on the
+  Minecraft manager cards immediately.
+- Minecraft manager is now browsable in the web preview using demo instances,
+  so the UI can be reviewed without building a new desktop installer.
+
+### Security
+- `mods-api` edge function now requires an authenticated caller for the
+  paid providers (CurseForge, mod.io) to prevent quota drain / cost abuse.
+  Client requests attach the current session token automatically.
+- `user_presence` visibility is restricted to the owner and friends only;
+  community-membership bypass has been removed.
+- `conversation_members` self-join loophole closed — only the conversation
+  creator or an existing admin can add members, and non-admins can no longer
+  promote themselves via update.
+- Shared clips are now served through short-lived signed URLs gated by the
+  clip's visibility, instead of relying on public bucket reads.
+
+### Fixed
+- `mods-api` returning 500 (`getClaims is not a function`) on CurseForge /
+  mod.io browse — switched the auth check to `getUser(token)` which is
+  available in the pinned `@supabase/supabase-js` build.
+
 ## [1.7.4] - 2026-07-03
 
 ### Fixed
