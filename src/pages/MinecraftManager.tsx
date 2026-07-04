@@ -115,6 +115,9 @@ export default function MinecraftManager() {
   function openBgDialog(name: string) {
     setBgEditing(name);
     setBgUrlDraft(backgrounds[name] && backgrounds[name].startsWith("http") ? backgrounds[name] : "");
+    const inst = instances.find((i) => i.name === name);
+    const fallback = (inst && loaderGradientDefaults[inst.loader]) || loaderGradientDefaults.Vanilla;
+    setGradDraft(gradients[name] ?? fallback);
   }
 
   async function onBgFilePicked(file: File) {
