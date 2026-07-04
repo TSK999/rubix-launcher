@@ -124,7 +124,10 @@ export async function cfMcFiles(modId: number | string, mcVersion: string, loade
 export type CfResolveItem = {
   modId: number; modName: string; fileId: number; fileName: string;
   downloadUrl: string; required: boolean;
+  mcVersionMatched: boolean; loaderMatched: boolean;
+  gameVersions: string[];
 };
+
 export type CfResolveIssue = { modId: number; modName: string; code: string; message: string };
 export type CfResolveResult = {
   install: CfResolveItem[];
