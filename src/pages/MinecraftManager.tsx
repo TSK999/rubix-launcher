@@ -466,6 +466,32 @@ export default function MinecraftManager() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="display-name">Display name</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="display-name"
+                      placeholder={bgEditing ?? "Instance name"}
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      maxLength={60}
+                    />
+                    <Button
+                      onClick={() => {
+                        if (!bgEditing) return;
+                        setInstanceName(bgEditing, nameDraft);
+                        toast.success(nameDraft.trim() ? "Name updated" : "Name reset");
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Only changes the label shown on the card. The underlying instance folder stays <span className="font-mono">{bgEditing}</span>.
+                  </p>
+                </div>
+
+                <div className="h-px bg-border/60" />
+
                   <Label htmlFor="bg-url">Image or GIF URL</Label>
                   <div className="flex gap-2">
                     <Input
