@@ -72,7 +72,13 @@ const loaderAccent: Record<string, string> = {
   Vanilla: "from-emerald-500/20 to-teal-500/10 border-emerald-500/25",
 };
 
-
+const loaderGradientDefaults: Record<string, Gradient> = {
+  Fabric: { from: "#8b5cf6", to: "#e879f9" },
+  Forge: { from: "#f59e0b", to: "#f97316" },
+  NeoForge: { from: "#f43f5e", to: "#ef4444" },
+  Quilt: { from: "#a855f7", to: "#6366f1" },
+  Vanilla: { from: "#10b981", to: "#14b8a6" },
+};
 
 export default function MinecraftManager() {
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -81,10 +87,21 @@ export default function MinecraftManager() {
   const [selected, setSelected] = useState<string | null>(null);
   const [launchingName, setLaunchingName] = useState<string | null>(null);
   const [backgrounds, setBackgrounds] = useState<Record<string, string>>(() => loadBackgrounds());
+  const [gradients, setGradients] = useState<Record<string, Gradient>>(() => loadGradients());
   const [bgEditing, setBgEditing] = useState<string | null>(null);
   const [bgUrlDraft, setBgUrlDraft] = useState("");
+  const [gradDraft, setGradDraft] = useState<Gradient>({ from: "#8b5cf6", to: "#e879f9" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const desktop = isDesktop();
+
+  function setInstanceGradient(name: string, value: Gradient | null) {
+    setGradients((prev) => {
+      const next = { ...prev };
+      if (value) next[name] = value; else delete next[name];
+      saveGradients(next);
+      return next;
+    });
+  }
 
   function setInstanceBackground(name: string, value: string | null) {
     setBackgrounds((prev) => {
