@@ -30,6 +30,26 @@ const timeAgo = (iso: string) => {
   return `${Math.floor(s / 86400)}d`;
 };
 
+const ClipThumb = ({ path, title }: { path: string | null; title: string }) => {
+  const url = useClipUrl(path);
+  if (!url) {
+    return (
+      <div className="h-full w-full grid place-items-center text-muted-foreground/60">
+        <Film className="h-8 w-8" />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={title}
+      loading="lazy"
+      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+    />
+  );
+};
+};
+
 const ClipsFeed = () => {
   const { user } = useRubixAuth();
   const nav = useNavigate();
