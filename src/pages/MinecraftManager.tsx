@@ -277,62 +277,102 @@ export default function MinecraftManager() {
                 const accent = loaderAccent[inst.loader] ?? loaderAccent.Vanilla;
                 const label = inst.loader;
                 const isLaunching = launchingName === inst.name;
+                const customBg = backgrounds[inst.name];
                 return (
                   <Card
                     key={inst.name}
                     onClick={() => desktop && setSelected(inst.name)}
                     className={cn(
-                      "group relative overflow-hidden rounded-2xl border bg-card/50 backdrop-blur transition-all",
+                      "group relative overflow-hidden rounded-2xl border bg-card/50 backdrop-blur transition-all min-h-[180px]",
                       desktop && "cursor-pointer hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.5)]",
                     )}
                   >
-                    {/* Loader-tinted top wash */}
-                    <div
-                      aria-hidden
-                      className={cn(
-                        "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b opacity-80",
-                        accent,
+                    {customBg ? (
+                      <>
+                        <img
+                          src={customBg}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                        />
+                        {/* Legibility scrim */}
+                        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/30" />
+                      </>
+                    ) : (
+                      <div
+                        aria-hidden
+                        className={cn(
+                          "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b opacity-80",
+                          accent,
+                        )}
+                      />
+                    )}
+
+                    {/* Background controls (top-right, above launch button area) */}
+                    <div className="absolute top-3 right-3 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        onClick={(e) => { e.stopPropagation(); openBgDialog(inst.name); }}
+                        aria-label="Set background"
+                        className="h-7 w-7 rounded-full bg-background/70 backdrop-blur border border-border/60 hover:bg-background"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                      </Button>
+                      {customBg && (
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          onClick={(e) => { e.stopPropagation(); setInstanceBackground(inst.name, null); toast.success("Background removed"); }}
+                          aria-label="Remove background"
+                          className="h-7 w-7 rounded-full bg-background/70 backdrop-blur border border-border/60 hover:bg-background"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       )}
-                    />
+                    </div>
+
                     <div className="relative p-5">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-lg font-semibold truncate">{inst.name}</div>
+                        <div className="min-w-0 flex-1 pr-16">
+                          <div className="text-lg font-semibold truncate drop-shadow-sm">{inst.name}</div>
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             <Badge className="rounded-full bg-primary/15 text-primary hover:bg-primary/20 border-0">
                               {label}{inst.loaderVersion ? ` ${inst.loaderVersion}` : ""}
                             </Badge>
-                            <Badge variant="outline" className="rounded-full border-border/60">
+                            <Badge variant="outline" className="rounded-full border-border/60 bg-background/50 backdrop-blur">
                               MC {inst.mcVersion}
                             </Badge>
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-16 flex items-end justify-between gap-3">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5" />
+                            {inst.modCount} mods
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <HardDrive className="h-3.5 w-3.5" />
+                            {formatBytes(inst.sizeBytes)}
+                          </span>
+                          {inst.lastPlayed && (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5" />
+                              {new Date(inst.lastPlayed).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                         <Button
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); quickLaunch(inst.name); }}
                           disabled={isLaunching}
                           aria-label={`Launch ${inst.name}`}
-                          className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-primary-foreground shadow-[0_10px_25px_-8px_hsl(var(--primary)/0.8)] hover:scale-105 transition-transform ring-1 ring-primary/40"
+                          className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-primary-foreground shadow-[0_10px_25px_-8px_hsl(var(--primary)/0.8)] hover:scale-105 transition-transform ring-1 ring-primary/40 shrink-0"
                         >
                           {isLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current translate-x-[1px]" />}
                         </Button>
-                      </div>
-
-                      <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5">
-                          <Package className="h-3.5 w-3.5" />
-                          {inst.modCount} mods
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <HardDrive className="h-3.5 w-3.5" />
-                          {formatBytes(inst.sizeBytes)}
-                        </span>
-                        {inst.lastPlayed && (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5" />
-                            {new Date(inst.lastPlayed).toLocaleDateString()}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </Card>
