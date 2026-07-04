@@ -309,6 +309,7 @@ export default function MinecraftManager() {
                 const label = inst.loader;
                 const isLaunching = launchingName === inst.name;
                 const customBg = backgrounds[inst.name];
+                const customGrad = gradients[inst.name];
                 return (
                   <Card
                     key={inst.name}
@@ -329,6 +330,12 @@ export default function MinecraftManager() {
                         {/* Legibility scrim */}
                         <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/30" />
                       </>
+                    ) : customGrad ? (
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-80"
+                        style={{ backgroundImage: `linear-gradient(to bottom, ${customGrad.from}, ${customGrad.to})` }}
+                      />
                     ) : (
                       <div
                         aria-hidden
