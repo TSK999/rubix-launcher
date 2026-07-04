@@ -350,7 +350,8 @@ export function MinecraftPackBrowser({ instance, kind }: Props) {
       )}
 
       <div className="grid gap-2">
-        {results.map((h) => {
+        {results.filter((h) => !hideInstalled || !installedByProject.has(h.project_id)).map((h) => {
+
           const already = installedByProject.has(h.project_id);
           const busy = installingId === h.project_id;
           return (
