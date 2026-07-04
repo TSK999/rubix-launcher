@@ -195,7 +195,7 @@ const ClipViewer = () => {
   const downloadClip = async () => {
     if (!clip?.stream_path) return;
     try {
-      const url = publicUrl(clip.stream_path);
+      const url = await signedClipUrl(clip.stream_path);
       const r = await fetch(url);
       const blob = await r.blob();
       const ext = (blob.type.split("/")[1] || "mp4").split(";")[0];
