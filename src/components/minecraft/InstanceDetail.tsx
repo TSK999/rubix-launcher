@@ -28,9 +28,12 @@ type Props = {
   name: string;
   onBack: () => void;
   onMutated: () => void;
+  /** When set, InstanceDetail skips the desktop bridge and renders this
+   * instance directly. Used by the web preview so users can browse the UI. */
+  demoInstance?: Instance;
 };
 
-export function InstanceDetail({ name, onBack, onMutated }: Props) {
+export function InstanceDetail({ name, onBack, onMutated, demoInstance }: Props) {
   const [inst, setInst] = useState<Instance | null>(null);
   const [installed, setInstalled] = useState<Record<string, InstalledMod>>({});
   const [loading, setLoading] = useState(true);
@@ -39,8 +42,15 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
   const [renameTo, setRenameTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasAccount, setHasAccount] = useState<boolean>(false);
+  const isDemo = !!demoInstance;
 
   async function refresh() {
+    if (demoInstance) {
+      setInst(demoInstance);
+      setInstalled({});
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const r = await getInstance(name);
     if (r.ok && r.instance) {
@@ -49,7 +59,7 @@ export function InstanceDetail({ name, onBack, onMutated }: Props) {
     }
     setLoading(false);
   }
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [name]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [name, demoInstance?.name]);
 
   if (loading || !inst) {
     return (
