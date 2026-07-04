@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -11,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Play, FolderOpen, Trash2, Copy, Pencil, ArrowLeft, Loader2 } from "lucide-react";
+import { Play, FolderOpen, Trash2, Copy, Pencil, ArrowLeft, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   getInstance, launch, openInstanceFolder, uninstallMod, toggleMod,
@@ -23,6 +21,17 @@ import { MinecraftPackBrowser } from "./MinecraftPackBrowser";
 import { MinecraftAccountBadge } from "./MinecraftAccountBadge";
 import { MinecraftLaunchProgress } from "./MinecraftLaunchProgress";
 import { formatBytes } from "@/lib/minecraft/api";
+import { cn } from "@/lib/utils";
+
+const TABS = [
+  { id: "browse", label: "Browse Mods" },
+  { id: "resourcepacks", label: "Resource Packs" },
+  { id: "shaders", label: "Shader Packs" },
+  { id: "installed", label: "Installed" },
+  { id: "settings", label: "Settings" },
+] as const;
+type TabId = typeof TABS[number]["id"];
+
 
 type Props = {
   name: string;
