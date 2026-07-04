@@ -474,6 +474,10 @@ async function curseforgeBrowse(
 ): Promise<BrowseResponse> {
   if (!CF_KEY) throw new Error("CURSEFORGE_API_KEY is not configured");
   const gameId = await resolveCurseforgeGameId(gameKey);
+  // Spec: use "relevance" ordering when the user provides a searchFilter.
+  // CurseForge treats an omitted sortField as relevance-ranked when
+  // searchFilter is set; otherwise fall back to the requested sort.
+  const hasQuery = !!(q && q.trim());
   const sortField =
     sort === "downloads" ? 6 :
     sort === "updated" ? 3 :
@@ -483,10 +487,10 @@ async function curseforgeBrowse(
     gameId: String(gameId),
     pageSize: String(count),
     index: String((page - 1) * count),
-    sortField: String(sortField),
     sortOrder,
   });
-  if (q && q.trim()) params.set("searchFilter", q.trim());
+  if (!hasQuery) params.set("sortField", String(sortField));
+  if (hasQuery) params.set("searchFilter", q!.trim());
   if (gameKey.toLowerCase() === "minecraft") {
     if (mcVersion) params.set("gameVersion", mcVersion);
     const lk = (loader ?? "").toLowerCase();
@@ -494,6 +498,7 @@ async function curseforgeBrowse(
     // Class 6 = Mods (excludes resource packs, worlds, modpacks, etc.)
     params.set("classId", "6");
   }
+
   const r = await fetch(`${CF_BASE}/mods/search?${params}`, {
     headers: { Accept: "application/json", "x-api-key": CF_KEY },
   });
