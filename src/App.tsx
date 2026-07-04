@@ -17,6 +17,7 @@ import Login from "./pages/Login.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import OAuthConsent from "./pages/OAuthConsent.tsx";
 import RubixProfile from "./pages/RubixProfile.tsx";
 import Messages from "./pages/Messages.tsx";
 import Store from "./pages/Store.tsx";
@@ -66,6 +67,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route
             path="/"
             element={

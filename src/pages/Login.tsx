@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ import { STORAGE_KEY, type Game } from "@/lib/game-types";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,12 +22,20 @@ const Login = () => {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [recovering, setRecovering] = useState(false);
 
+  // Same-origin relative next path (e.g. /.lovable/oauth/consent?authorization_id=...).
+  const nextPath = useMemo(() => {
+    const raw = searchParams.get("next");
+    if (!raw) return "/";
+    if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+    return raw;
+  }, [searchParams]);
+
   useEffect(() => {
     document.title = "Sign in — RUBIX";
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/", { replace: true });
+      if (data.session) navigate(nextPath, { replace: true });
     });
-  }, [navigate]);
+  }, [navigate, nextPath]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +47,7 @@ const Login = () => {
       return;
     }
     toast.success("Welcome back!");
-    navigate("/", { replace: true });
+    navigate(nextPath, { replace: true });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -54,7 +63,7 @@ const Login = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}${nextPath}`,
         data: { username, display_name: username },
       },
     });
