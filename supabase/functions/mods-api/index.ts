@@ -680,6 +680,20 @@ async function curseforgeMcResolve(rootModId: string, mcVersion: string, loader:
     const { files } = await curseforgeMcFiles(modId, mcVersion, loader);
     const best = files[0];
     if (!best) {
+      // Fallback: try Modrinth for known mods that also live there.
+      // Fabric API (CF 306612) is the canonical case — Modrinth ships newer
+      // MC-version builds faster than CurseForge sometimes.
+      const fb = await modrinthFallback(String(modId), mcVersion, loader);
+      if (fb) {
+        ordered.push({
+          modId: mod.id, modName: mod.name ?? `mod-${mod.id}`,
+          fileId: fb.fileId, fileName: fb.fileName,
+          downloadUrl: fb.downloadUrl, required,
+          mcVersionMatched: true, loaderMatched: true,
+          gameVersions: [mcVersion, loader.toLowerCase()],
+        });
+        return;
+      }
       issues.push({
         modId: mod.id, modName: mod.name ?? `mod-${mod.id}`,
         code: "NO_COMPATIBLE_FILE",
