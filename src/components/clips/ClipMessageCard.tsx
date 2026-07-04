@@ -36,14 +36,14 @@ export const ClipMessageCard = ({ slug }: { slug: string }) => {
     }
   }, [hover, expanded]);
 
+  const stream = useClipUrl(clip?.stream_path);
+  const thumb = useClipUrl(clip?.thumbnail_path);
+
   if (!clip) {
     return (
       <div className="w-72 h-40 rounded-xl bg-secondary animate-pulse" />
     );
   }
-
-  const stream = publicUrl(clip.stream_path);
-  const thumb = publicUrl(clip.thumbnail_path);
 
   return (
     <div
