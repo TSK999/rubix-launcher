@@ -1,4 +1,4 @@
-import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film, BookMarked, Package } from "lucide-react";
+import { Clock, Heart, Library, Sparkles, Box, Settings, ShoppingBag, Library as LibraryIcon, Code2, Shield, Gamepad2, Film, BookMarked, Package, Boxes } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SteamFriendsPanel } from "@/components/SteamFriendsPanel";
@@ -51,6 +51,7 @@ export const Sidebar = ({
 
   const navItems: { to: string; label: string; icon: typeof Library; show: boolean; badge?: string }[] = [
     { to: "/", label: "Launcher", icon: Gamepad2, show: true },
+    { to: "/mods/minecraft", label: "Minecraft", icon: Boxes, show: true },
     { to: "/store", label: "RUBIX Store", icon: ShoppingBag, show: true },
     { to: "/library", label: "Library", icon: LibraryIcon, show: true },
     { to: "/mods", label: "Mod Manager", icon: Package, show: true },
@@ -58,8 +59,11 @@ export const Sidebar = ({
     { to: "/admin/review", label: "Admin", icon: Shield, show: isAdmin },
   ];
 
-  const isActive = (to: string) =>
-    to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
+  const isActive = (to: string) => {
+    if (to === "/") return location.pathname === "/";
+    if (to === "/mods") return location.pathname === "/mods" || (location.pathname.startsWith("/mods/") && !location.pathname.startsWith("/mods/minecraft"));
+    return location.pathname === to || location.pathname.startsWith(to + "/");
+  };
 
   const items: { id: Collection; label: string; icon: typeof Library; count: number }[] = [
     { id: "all", label: "All games", icon: Library, count: counts.all },
