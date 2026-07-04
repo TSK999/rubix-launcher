@@ -41,6 +41,13 @@ function loadGradients(): Record<string, Gradient> {
 function saveGradients(map: Record<string, Gradient>) {
   try { localStorage.setItem(GRAD_KEY, JSON.stringify(map)); } catch {}
 }
+const NAME_KEY = "rubix:mc:instance-name";
+function loadNames(): Record<string, string> {
+  return loadJson(NAME_KEY, {} as Record<string, string>);
+}
+function saveNames(map: Record<string, string>) {
+  try { localStorage.setItem(NAME_KEY, JSON.stringify(map)); } catch {}
+}
 
 const LAST_KEY = "rubix:mc:last-instance";
 
