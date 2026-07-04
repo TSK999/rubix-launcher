@@ -16,6 +16,7 @@ import {
 } from "@/lib/minecraft/api";
 import type { Instance } from "@/lib/minecraft/bridge";
 import { installMod as installMinecraftMod } from "@/lib/minecraft/bridge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   instance: Instance;
