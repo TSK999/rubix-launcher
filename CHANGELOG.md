@@ -4,6 +4,20 @@ All notable changes to RUBIX Launcher are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.5] - 2026-07-05
+
+### Added
+- Full support for Minecraft Resource Packs and Shader Packs via the Modrinth API, with installs directed to `resourcepacks/` and `shaderpacks/` respectively and never mixed with mods.
+- Instance detail "Luminous Glass" redesign — hero gradient header, glowing Launch CTA, frosted-glass action toolbar, and premium pill-style tab strip.
+- Advanced search filters across Mod, Resource Pack, and Shader browsers: sort by relevance, downloads, follows, newest, or updated.
+- Category filters for packs — resolution tags (16x, 32x, realistic, etc.) for resource packs and feature tags (shadows, path-tracing, potato, etc.) for shaders.
+- "Hide installed" toggle on every browser to suppress already-owned content from results.
+- Web preview now ships with demo Minecraft instances so the Minecraft Manager UI is fully reviewable without the desktop app.
+
+### Changed
+- Mod browser search UI upgraded with a tall glassmorphic search field, inline filter chips, and uppercase eyebrow badges.
+- Pack browsers enforce Mojang's standard directory layout for full compatibility with vanilla, Prism Launcher, MultiMC, CurseForge, and Modrinth App.
+
 ## [1.8.2] - 2026-07-04
 
 ### Fixed
