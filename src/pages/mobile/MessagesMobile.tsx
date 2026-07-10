@@ -125,10 +125,10 @@ const MessagesMobile = () => {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="p-0 w-[86vw] max-w-[340px] flex bg-background"
+            className="p-0 w-[88vw] max-w-[360px] flex flex-col bg-background gap-0"
           >
-            {/* Server rail column */}
-            <div className="w-16 shrink-0 border-r border-border bg-card/40 overflow-y-auto">
+            {/* Horizontal server switcher on top */}
+            <div className="shrink-0">
               <ServerRail
                 selected={selected}
                 onSelect={(s) => {
@@ -139,11 +139,10 @@ const MessagesMobile = () => {
                 onCreate={() => setCreateOpen(true)}
                 onJoin={() => setJoinOpen(true)}
                 meId={meId}
-                
               />
             </div>
             {/* Channel list */}
-            <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
               {selected.kind === "dms" ? (
                 <DmChannelRail
                   meId={meId}
@@ -173,6 +172,7 @@ const MessagesMobile = () => {
               )}
             </div>
           </SheetContent>
+
         </Sheet>
 
         {(activeDm || activeChannel) ? (
