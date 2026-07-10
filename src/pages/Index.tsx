@@ -45,7 +45,11 @@ import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/ga
 
 const RECENT_WINDOW_DAYS = 30;
 
+import { useIsMobile } from "@/hooks/use-mobile";
+import HomeMobile from "./mobile/HomeMobile";
+
 const Index = () => {
+  const isMobile = useIsMobile();
   const themeInputRef = useRef<HTMLInputElement>(null);
   const { enabled: controllerMode, toggle: toggleControllerMode, controllerConnected } = useControllerMode();
   const navigate = useNavigate();
@@ -524,6 +528,8 @@ const Index = () => {
   const detailGame = games.find((g) => g.id === detailId) ?? null;
   const showEmptyLibrary = games.length === 0;
   const showEmptyFiltered = !showEmptyLibrary && filtered.length === 0;
+
+  if (isMobile) return <HomeMobile />;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
