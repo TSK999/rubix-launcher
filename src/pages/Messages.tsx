@@ -149,6 +149,9 @@ const Messages = () => {
   const isAdmin = myMembership?.role === "owner" || myMembership?.role === "admin";
   const isOwner = myMembership?.role === "owner";
 
+  if (isMobile) return <MessagesMobile />;
+
+
   if (loading) {
     return (
       <div className="h-screen grid place-items-center">
