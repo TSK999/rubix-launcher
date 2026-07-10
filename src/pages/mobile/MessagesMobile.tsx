@@ -139,7 +139,7 @@ const MessagesMobile = () => {
                 onCreate={() => setCreateOpen(true)}
                 onJoin={() => setJoinOpen(true)}
                 meId={meId}
-                orientation="vertical"
+                
               />
             </div>
             {/* Channel list */}
