@@ -66,6 +66,7 @@ type DmMeta = {
 type Selection = { kind: "dms" } | { kind: "community"; id: string };
 
 const Messages = () => {
+  const isMobile = useIsMobile();
   const { user, profile, loading } = useRubixAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
