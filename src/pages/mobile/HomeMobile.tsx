@@ -62,7 +62,7 @@ const HomeMobile = () => {
                 Clips feed
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Vertical swipe through plays from the community.
+                {"\n"}
               </p>
             </div>
           </div>
@@ -86,7 +86,7 @@ const HomeMobile = () => {
                 Rubix Messaging
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                DMs, groups, and community channels.
+                {"\n"}
               </p>
             </div>
           </div>
