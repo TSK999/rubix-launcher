@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import ClipsFeedMobile from "./mobile/ClipsFeedMobile";
 
 type Profile = { user_id: string; username: string; display_name: string | null; avatar_url: string | null };
 type Tab = "for-you" | "trending" | "recent";
@@ -51,6 +53,7 @@ const ClipThumb = ({ path, title }: { path: string | null; title: string }) => {
 
 
 const ClipsFeed = () => {
+  const isMobile = useIsMobile();
   const { user } = useRubixAuth();
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("for-you");
@@ -160,6 +163,8 @@ const ClipsFeed = () => {
     { id: "trending", label: "Trending", icon: TrendingUp },
     { id: "recent", label: "Recent", icon: Flame },
   ];
+
+  if (isMobile) return <ClipsFeedMobile />;
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">

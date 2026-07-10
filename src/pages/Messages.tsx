@@ -24,6 +24,8 @@ import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import { usePresenceStatus, usePresenceMap, resyncPresence } from "@/lib/presence";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MessagesMobile from "./mobile/MessagesMobile";
 
 const STATUS_META: Record<
   "online" | "away" | "offline",
@@ -64,6 +66,7 @@ type DmMeta = {
 type Selection = { kind: "dms" } | { kind: "community"; id: string };
 
 const Messages = () => {
+  const isMobile = useIsMobile();
   const { user, profile, loading } = useRubixAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -145,6 +148,9 @@ const Messages = () => {
   );
   const isAdmin = myMembership?.role === "owner" || myMembership?.role === "admin";
   const isOwner = myMembership?.role === "owner";
+
+  if (isMobile) return <MessagesMobile />;
+
 
   if (loading) {
     return (
