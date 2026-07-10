@@ -24,6 +24,8 @@ import type { Conversation } from "@/lib/messaging";
 import { playSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import { usePresenceStatus, usePresenceMap, resyncPresence } from "@/lib/presence";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MessagesMobile from "./mobile/MessagesMobile";
 
 const STATUS_META: Record<
   "online" | "away" | "offline",
