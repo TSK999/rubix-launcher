@@ -164,6 +164,8 @@ const ClipsFeed = () => {
     { id: "recent", label: "Recent", icon: Flame },
   ];
 
+  if (isMobile) return <ClipsFeedMobile />;
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       {/* Ambient backdrop */}
