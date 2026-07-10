@@ -45,7 +45,11 @@ import { STORAGE_KEY, getGameSource, type Game, type GameSource } from "@/lib/ga
 
 const RECENT_WINDOW_DAYS = 30;
 
+import { useIsMobile } from "@/hooks/use-mobile";
+import HomeMobile from "./mobile/HomeMobile";
+
 const Index = () => {
+  const isMobile = useIsMobile();
   const themeInputRef = useRef<HTMLInputElement>(null);
   const { enabled: controllerMode, toggle: toggleControllerMode, controllerConnected } = useControllerMode();
   const navigate = useNavigate();
