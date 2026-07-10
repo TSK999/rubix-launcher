@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import ClipsFeedMobile from "./mobile/ClipsFeedMobile";
 
 type Profile = { user_id: string; username: string; display_name: string | null; avatar_url: string | null };
 type Tab = "for-you" | "trending" | "recent";
