@@ -529,6 +529,8 @@ const Index = () => {
   const showEmptyLibrary = games.length === 0;
   const showEmptyFiltered = !showEmptyLibrary && filtered.length === 0;
 
+  if (isMobile) return <HomeMobile />;
+
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       <Sidebar
