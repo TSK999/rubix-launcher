@@ -53,6 +53,7 @@ const ClipThumb = ({ path, title }: { path: string | null; title: string }) => {
 
 
 const ClipsFeed = () => {
+  const isMobile = useIsMobile();
   const { user } = useRubixAuth();
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("for-you");
