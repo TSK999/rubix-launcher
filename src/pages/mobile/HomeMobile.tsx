@@ -113,7 +113,7 @@ const HomeMobile = () => {
         )}
 
         <p className="pt-8 pb-6 text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-          Desktop app for the full launcher
+          {"\n"}
         </p>
       </main>
     </div>
