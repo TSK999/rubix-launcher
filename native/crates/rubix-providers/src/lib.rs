@@ -156,7 +156,7 @@ struct EpicManifest {
     app_name: String,
     display_name: String,
     install_location: PathBuf,
-    #[serde(default)]
+    #[serde(default, rename = "bIsIncompleteInstall")]
     b_is_incomplete_install: bool,
 }
 
@@ -284,6 +284,10 @@ mod tests {
         fs::create_dir(&epic).unwrap();
         let data = serde_json::json!({"AppName":"fixture-id", "DisplayName":"Fixture Epic", "InstallLocation":dir.path(), "bIsIncompleteInstall":false});
         fs::write(epic.join("a.item"), data.to_string()).unwrap();
+        let mut incomplete = data.clone();
+        incomplete["AppName"] = serde_json::json!("unfinished-id");
+        incomplete["bIsIncompleteInstall"] = serde_json::json!(true);
+        fs::write(epic.join("unfinished.item"), incomplete.to_string()).unwrap();
         assert_eq!(
             Epic {
                 manifest_roots: vec![epic]
