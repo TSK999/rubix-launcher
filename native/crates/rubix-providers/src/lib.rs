@@ -224,10 +224,9 @@ pub fn scan(settings: &Settings) -> ScanReport {
     {
         if let Ok(key) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
             .open_subkey("Software\\Valve\\Steam")
+            && let Ok(path) = key.get_value::<String, _>("SteamPath")
         {
-            if let Ok(path) = key.get_value::<String, _>("SteamPath") {
-                roots.push(path.into());
-            }
+            roots.push(path.into());
         }
         for var in ["ProgramFiles(x86)", "ProgramFiles"] {
             if let Some(p) = std::env::var_os(var) {
