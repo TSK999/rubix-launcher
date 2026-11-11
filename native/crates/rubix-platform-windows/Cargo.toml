@@ -1,0 +1,15 @@
+[package]
+name = "rubix-platform-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+anyhow.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows.workspace = true
+
+[lints]
+workspace = true

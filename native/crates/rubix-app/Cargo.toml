@@ -1,0 +1,35 @@
+[package]
+name = "rubix-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rubix-launcher"
+path = "src/main.rs"
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+rubix-database = { path = "../rubix-database" }
+rubix-library = { path = "../rubix-library" }
+rubix-launch = { path = "../rubix-launch" }
+rubix-platform-windows = { path = "../rubix-platform-windows" }
+rubix-ui = { path = "../rubix-ui" }
+anyhow.workspace = true
+iced.workspace = true
+image.workspace = true
+rfd.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
+
+[build-dependencies]
+embed-resource = "=3.0.12"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

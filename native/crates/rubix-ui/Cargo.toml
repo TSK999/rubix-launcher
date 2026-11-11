@@ -1,0 +1,13 @@
+[package]
+name = "rubix-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+rubix-library = { path = "../rubix-library" }
+iced.workspace = true
+
+[lints]
+workspace = true

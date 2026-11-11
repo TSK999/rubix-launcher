@@ -1,0 +1,20 @@
+[package]
+name = "rubix-library"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+rubix-database = { path = "../rubix-database" }
+rubix-providers = { path = "../rubix-providers" }
+anyhow.workspace = true
+image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

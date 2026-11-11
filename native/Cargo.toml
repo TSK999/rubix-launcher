@@ -1,0 +1,46 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+default-members = ["crates/rubix-app"]
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2024"
+rust-version = "1.99"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/TSK999/rubix-launcher"
+
+[workspace.dependencies]
+anyhow = "=1.0.104"
+directories = "=6.0.0"
+iced = { version = "=0.14.0", default-features = false, features = ["wgpu", "tokio", "image-without-codecs", "svg", "advanced", "x11", "wayland"] }
+image = { version = "=0.25.9", default-features = false, features = ["png", "jpeg", "ico", "webp"] }
+rfd = { version = "=0.18.0", default-features = false, features = ["xdg-portal"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "derive", "macros"] }
+tempfile = "=3.27.0"
+thiserror = "=2.0.21"
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "fs", "sync", "time", "macros", "process"] }
+toml = "=0.9.8"
+tracing = "=0.1.44"
+tracing-appender = "=0.2.5"
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }
+uuid = { version = "=1.29.2", features = ["v4", "v5", "serde"] }
+windows = { version = "=0.62.2", features = ["Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+winreg = "=0.56.0"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.dev]
+debug = 1
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
