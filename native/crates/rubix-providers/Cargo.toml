@@ -1,0 +1,20 @@
+[package]
+name = "rubix-providers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+winreg.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

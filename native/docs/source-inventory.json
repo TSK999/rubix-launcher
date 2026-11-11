@@ -1,0 +1,2192 @@
+[
+  {
+    "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+    "lines": 50,
+    "bytes": 1088,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+    "lines": 20,
+    "bytes": 448,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": ".github/PULL_REQUEST_TEMPLATE.md",
+    "lines": 17,
+    "bytes": 316,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": ".github/workflows/release.yml",
+    "lines": 53,
+    "bytes": 1732,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": ".lovable/plan.md",
+    "lines": 103,
+    "bytes": 6403,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "CHANGELOG.md",
+    "lines": 223,
+    "bytes": 11186,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "README.md",
+    "lines": 112,
+    "bytes": 3597,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "components.json",
+    "lines": 20,
+    "bytes": 414,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/clipping/clip-export.cjs",
+    "lines": 21,
+    "bytes": 740,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/clipping/encoder-detect.cjs",
+    "lines": 84,
+    "bytes": 2973,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/clipping/ffmpeg-manager.cjs",
+    "lines": 137,
+    "bytes": 3934,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/clipping/replay-buffer.cjs",
+    "lines": 454,
+    "bytes": 14616,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/main.cjs",
+    "lines": 1570,
+    "bytes": 53425,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/http.cjs",
+    "lines": 213,
+    "bytes": 6312,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/java.cjs",
+    "lines": 140,
+    "bytes": 5310,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/launch.cjs",
+    "lines": 139,
+    "bytes": 4623,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/loader.cjs",
+    "lines": 286,
+    "bytes": 11044,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/mojang.cjs",
+    "lines": 251,
+    "bytes": 9296,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/msal.cjs",
+    "lines": 230,
+    "bytes": 7976,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/mc/paths.cjs",
+    "lines": 44,
+    "bytes": 1473,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/minecraft.cjs",
+    "lines": 681,
+    "bytes": 26840,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron/preload.cjs",
+    "lines": 131,
+    "bytes": 6655,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "electron-builder.json",
+    "lines": 50,
+    "bytes": 1003,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "eslint.config.js",
+    "lines": 26,
+    "bytes": 765,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "package.json",
+    "lines": 103,
+    "bytes": 3384,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "postcss.config.js",
+    "lines": 6,
+    "bytes": 81,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "resources/bin/README.md",
+    "lines": 26,
+    "bytes": 783,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/App.css",
+    "lines": 42,
+    "bytes": 606,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/App.tsx",
+    "lines": 176,
+    "bytes": 6034,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/assets/ksp1-cover.jpg.asset.json",
+    "lines": 11,
+    "bytes": 449,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/assets/ksp2-cover.jpg.asset.json",
+    "lines": 11,
+    "bytes": 449,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ClipHotkeyManager.tsx",
+    "lines": 129,
+    "bytes": 4542,
+    "placeholders": 0,
+    "storage_keys": [
+      "rubix:active-clip-game"
+    ]
+  },
+  {
+    "path": "src/components/ClipPlayer.tsx",
+    "lines": 197,
+    "bytes": 6497,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ClipsSettingsPanel.tsx",
+    "lines": 352,
+    "bytes": 13427,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/EaImportDialog.tsx",
+    "lines": 304,
+    "bytes": 10578,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/EditProfileDialog.tsx",
+    "lines": 674,
+    "bytes": 35513,
+    "placeholders": 14,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/EpicImportDialog.tsx",
+    "lines": 292,
+    "bytes": 10358,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/GameCard.tsx",
+    "lines": 162,
+    "bytes": 6344,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/GameClipsTab.tsx",
+    "lines": 312,
+    "bytes": 11716,
+    "placeholders": 0,
+    "storage_keys": [
+      "rubix:active-clip-game"
+    ]
+  },
+  {
+    "path": "src/components/GameDetail.tsx",
+    "lines": 289,
+    "bytes": 11510,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/GameFormDialog.tsx",
+    "lines": 316,
+    "bytes": 10902,
+    "placeholders": 5,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/GameNotesTab.tsx",
+    "lines": 92,
+    "bytes": 2955,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/GameScreenshotsTab.tsx",
+    "lines": 195,
+    "bytes": 6614,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/KeybindManager.tsx",
+    "lines": 45,
+    "bytes": 1468,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/KeybindsPanel.tsx",
+    "lines": 107,
+    "bytes": 3835,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/LaunchAnimation.tsx",
+    "lines": 60,
+    "bytes": 2297,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/LinkSteamPrompt.tsx",
+    "lines": 105,
+    "bytes": 3368,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/MessagesPanel.tsx",
+    "lines": 71,
+    "bytes": 2369,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/MinecraftErrorBoundary.tsx",
+    "lines": 53,
+    "bytes": 1826,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/NavLink.tsx",
+    "lines": 28,
+    "bytes": 751,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/PresenceManager.tsx",
+    "lines": 69,
+    "bytes": 2078,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/QuickFindDialog.tsx",
+    "lines": 146,
+    "bytes": 4872,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/RequireRubixAuth.tsx",
+    "lines": 22,
+    "bytes": 637,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/RiotImportDialog.tsx",
+    "lines": 276,
+    "bytes": 9981,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/RoleBadges.tsx",
+    "lines": 65,
+    "bytes": 1934,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/RubixFriendsPanel.tsx",
+    "lines": 358,
+    "bytes": 12659,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ScreenshotHotkeyManager.tsx",
+    "lines": 80,
+    "bytes": 2262,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/SettingsDialog.tsx",
+    "lines": 263,
+    "bytes": 10284,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/Sidebar.tsx",
+    "lines": 328,
+    "bytes": 13840,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/SpotifyNowPlaying.tsx",
+    "lines": 382,
+    "bytes": 13313,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/SteamFriendsPanel.tsx",
+    "lines": 352,
+    "bytes": 16128,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/SteamImportDialog.tsx",
+    "lines": 274,
+    "bytes": 9199,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/SteamProfileDialog.tsx",
+    "lines": 303,
+    "bytes": 12846,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/StoreIcon.tsx",
+    "lines": 40,
+    "bytes": 1054,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ThemeManager.tsx",
+    "lines": 109,
+    "bytes": 3057,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/UpdateNotifier.tsx",
+    "lines": 124,
+    "bytes": 3883,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/UpdateSplash.tsx",
+    "lines": 97,
+    "bytes": 3126,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/UpdatesPanel.tsx",
+    "lines": 287,
+    "bytes": 9892,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/UserSearchPopover.tsx",
+    "lines": 98,
+    "bytes": 3629,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/XboxImportDialog.tsx",
+    "lines": 288,
+    "bytes": 10553,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/clips/ClipActionsMenu.tsx",
+    "lines": 217,
+    "bytes": 7565,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/clips/ClipMessageCard.tsx",
+    "lines": 109,
+    "bytes": 3861,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/clips/ShareToChatDialog.tsx",
+    "lines": 171,
+    "bytes": 6402,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/clips/UploadDock.tsx",
+    "lines": 146,
+    "bytes": 5973,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/events/CommunityEventsDialog.tsx",
+    "lines": 213,
+    "bytes": 7836,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/events/CreateEventDialog.tsx",
+    "lines": 206,
+    "bytes": 8257,
+    "placeholders": 4,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/lfg/CreateLfgPostDialog.tsx",
+    "lines": 257,
+    "bytes": 9523,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/lfg/LfgPanel.tsx",
+    "lines": 221,
+    "bytes": 7820,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CallButton.tsx",
+    "lines": 55,
+    "bytes": 1625,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CallRoom.tsx",
+    "lines": 306,
+    "bytes": 12389,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CommunityChannelRail.tsx",
+    "lines": 385,
+    "bytes": 12561,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CommunityChannelView.tsx",
+    "lines": 253,
+    "bytes": 9511,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CommunitySettingsDialog.tsx",
+    "lines": 168,
+    "bytes": 5163,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/ConversationView.tsx",
+    "lines": 228,
+    "bytes": 8681,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CreateCommunityDialog.tsx",
+    "lines": 70,
+    "bytes": 2181,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/CustomEmojiManager.tsx",
+    "lines": 120,
+    "bytes": 3926,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/DmChannelRail.tsx",
+    "lines": 221,
+    "bytes": 7981,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/GifPicker.tsx",
+    "lines": 65,
+    "bytes": 2149,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/GroupSettingsDialog.tsx",
+    "lines": 402,
+    "bytes": 14547,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/IncomingCallToast.tsx",
+    "lines": 91,
+    "bytes": 3038,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/JoinCommunityDialog.tsx",
+    "lines": 61,
+    "bytes": 1915,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/MessageBubble.tsx",
+    "lines": 306,
+    "bytes": 10911,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/MessageComposer.tsx",
+    "lines": 605,
+    "bytes": 21179,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/MessagesDialog.tsx",
+    "lines": 249,
+    "bytes": 9629,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/MiniCallWidget.tsx",
+    "lines": 94,
+    "bytes": 3622,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/NewGroupDialog.tsx",
+    "lines": 137,
+    "bytes": 4727,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/messaging/ServerRail.tsx",
+    "lines": 134,
+    "bytes": 4996,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/CreateInstanceWizard.tsx",
+    "lines": 178,
+    "bytes": 7441,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/InstanceDetail.tsx",
+    "lines": 368,
+    "bytes": 16237,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/MinecraftAccountBadge.tsx",
+    "lines": 148,
+    "bytes": 5196,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/MinecraftLaunchProgress.tsx",
+    "lines": 46,
+    "bytes": 1518,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/MinecraftModBrowser.tsx",
+    "lines": 357,
+    "bytes": 16108,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/minecraft/MinecraftPackBrowser.tsx",
+    "lines": 416,
+    "bytes": 16509,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/mods/GameModsTab.tsx",
+    "lines": 236,
+    "bytes": 7837,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/mods/GameSetupWizard.tsx",
+    "lines": 406,
+    "bytes": 14377,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/mods/ModpackManager.tsx",
+    "lines": 325,
+    "bytes": 11649,
+    "placeholders": 3,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/presence/AmbientActivityFeed.tsx",
+    "lines": 165,
+    "bytes": 5454,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/presence/PresenceHoverCard.tsx",
+    "lines": 237,
+    "bytes": 8412,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/presence/PresenceLine.tsx",
+    "lines": 85,
+    "bytes": 2348,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/presence/StatusDot.tsx",
+    "lines": 28,
+    "bytes": 616,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/presence/StatusPicker.tsx",
+    "lines": 82,
+    "bytes": 2998,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/accordion.tsx",
+    "lines": 52,
+    "bytes": 1976,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/alert-dialog.tsx",
+    "lines": 104,
+    "bytes": 4313,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/alert.tsx",
+    "lines": 43,
+    "bytes": 1546,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/aspect-ratio.tsx",
+    "lines": 5,
+    "bytes": 143,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/avatar.tsx",
+    "lines": 38,
+    "bytes": 1365,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/badge.tsx",
+    "lines": 29,
+    "bytes": 1089,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/breadcrumb.tsx",
+    "lines": 90,
+    "bytes": 2687,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/button.tsx",
+    "lines": 47,
+    "bytes": 1840,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/calendar.tsx",
+    "lines": 54,
+    "bytes": 2563,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/card.tsx",
+    "lines": 43,
+    "bytes": 1785,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/carousel.tsx",
+    "lines": 224,
+    "bytes": 6249,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/chart.tsx",
+    "lines": 303,
+    "bytes": 9987,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/checkbox.tsx",
+    "lines": 26,
+    "bytes": 1053,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/collapsible.tsx",
+    "lines": 9,
+    "bytes": 320,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/command.tsx",
+    "lines": 132,
+    "bytes": 4821,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/context-menu.tsx",
+    "lines": 178,
+    "bytes": 7191,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/dialog.tsx",
+    "lines": 95,
+    "bytes": 3761,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/drawer.tsx",
+    "lines": 87,
+    "bytes": 2941,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/dropdown-menu.tsx",
+    "lines": 179,
+    "bytes": 7260,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/form.tsx",
+    "lines": 129,
+    "bytes": 4014,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/hover-card.tsx",
+    "lines": 27,
+    "bytes": 1193,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/input-otp.tsx",
+    "lines": 61,
+    "bytes": 2166,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/input.tsx",
+    "lines": 22,
+    "bytes": 799,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/label.tsx",
+    "lines": 17,
+    "bytes": 696,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/menubar.tsx",
+    "lines": 207,
+    "bytes": 7863,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/navigation-menu.tsx",
+    "lines": 120,
+    "bytes": 5030,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/pagination.tsx",
+    "lines": 81,
+    "bytes": 2683,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/popover.tsx",
+    "lines": 29,
+    "bytes": 1239,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/progress.tsx",
+    "lines": 23,
+    "bytes": 765,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/radio-group.tsx",
+    "lines": 36,
+    "bytes": 1447,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/resizable.tsx",
+    "lines": 37,
+    "bytes": 1696,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/scroll-area.tsx",
+    "lines": 38,
+    "bytes": 1608,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/select.tsx",
+    "lines": 143,
+    "bytes": 5575,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/separator.tsx",
+    "lines": 20,
+    "bytes": 698,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/sheet.tsx",
+    "lines": 107,
+    "bytes": 4197,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/sidebar.tsx",
+    "lines": 637,
+    "bytes": 22837,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/skeleton.tsx",
+    "lines": 7,
+    "bytes": 234,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/slider.tsx",
+    "lines": 23,
+    "bytes": 1065,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/sonner.tsx",
+    "lines": 27,
+    "bytes": 877,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/switch.tsx",
+    "lines": 27,
+    "bytes": 1147,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/table.tsx",
+    "lines": 72,
+    "bytes": 2694,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/tabs.tsx",
+    "lines": 53,
+    "bytes": 1897,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/textarea.tsx",
+    "lines": 21,
+    "bytes": 751,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/toast.tsx",
+    "lines": 111,
+    "bytes": 4798,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/toaster.tsx",
+    "lines": 24,
+    "bytes": 730,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/toggle-group.tsx",
+    "lines": 49,
+    "bytes": 1714,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/toggle.tsx",
+    "lines": 37,
+    "bytes": 1416,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/tooltip.tsx",
+    "lines": 28,
+    "bytes": 1155,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/components/ui/use-toast.ts",
+    "lines": 3,
+    "bytes": 82,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/use-mobile.tsx",
+    "lines": 19,
+    "bytes": 576,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/use-toast.ts",
+    "lines": 186,
+    "bytes": 3935,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useCommunityEvents.ts",
+    "lines": 112,
+    "bytes": 3015,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useControllerMode.tsx",
+    "lines": 244,
+    "bytes": 8363,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useGamePlaytimes.ts",
+    "lines": 91,
+    "bytes": 2414,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useGameUserData.ts",
+    "lines": 71,
+    "bytes": 2070,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useLfgPosts.ts",
+    "lines": 142,
+    "bytes": 3845,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useRubixAuth.ts",
+    "lines": 62,
+    "bytes": 1881,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/hooks/useUserRoles.ts",
+    "lines": 44,
+    "bytes": 1144,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/index.css",
+    "lines": 794,
+    "bytes": 26216,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/integrations/lovable/index.ts",
+    "lines": 38,
+    "bytes": 952,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/integrations/supabase/client.ts",
+    "lines": 17,
+    "bytes": 590,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/integrations/supabase/types.ts",
+    "lines": 2039,
+    "bytes": 57087,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/audio-devices.ts",
+    "lines": 52,
+    "bytes": 1624,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/call-controller.ts",
+    "lines": 382,
+    "bytes": 11506,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/call-media.ts",
+    "lines": 38,
+    "bytes": 1292,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/calls.ts",
+    "lines": 162,
+    "bytes": 5208,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/clip-buffer.ts",
+    "lines": 197,
+    "bytes": 6330,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/clip-prefs.ts",
+    "lines": 113,
+    "bytes": 3559,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/clip-share.ts",
+    "lines": 157,
+    "bytes": 5210,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/communities.ts",
+    "lines": 236,
+    "bytes": 7534,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/game-clips.ts",
+    "lines": 90,
+    "bytes": 2644,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/game-types.ts",
+    "lines": 48,
+    "bytes": 1416,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/game-user-data.ts",
+    "lines": 121,
+    "bytes": 3564,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/keybinds.ts",
+    "lines": 112,
+    "bytes": 3177,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/messaging.ts",
+    "lines": 504,
+    "bytes": 16047,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/minecraft/api.ts",
+    "lines": 157,
+    "bytes": 6233,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/minecraft/bridge.ts",
+    "lines": 151,
+    "bytes": 5427,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mod-adapters.ts",
+    "lines": 329,
+    "bytes": 11159,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mod-games.ts",
+    "lines": 97,
+    "bytes": 7578,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/modpacks.ts",
+    "lines": 191,
+    "bytes": 5410,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/classify.ts",
+    "lines": 37,
+    "bytes": 1374,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/dependencies/from-package.ts",
+    "lines": 18,
+    "bytes": 586,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/dependencies/index.ts",
+    "lines": 3,
+    "bytes": 81,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/dependencies/registry.ts",
+    "lines": 191,
+    "bytes": 4793,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/dependencies/resolver.ts",
+    "lines": 145,
+    "bytes": 4576,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/dependencies/types.ts",
+    "lines": 61,
+    "bytes": 1990,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/index.ts",
+    "lines": 28,
+    "bytes": 559,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/profiles.ts",
+    "lines": 116,
+    "bytes": 3256,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/state-machine.ts",
+    "lines": 142,
+    "bytes": 4392,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/_bridge.ts",
+    "lines": 43,
+    "bytes": 1433,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/addon-folder.ts",
+    "lines": 74,
+    "bytes": 2391,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/bepinex.ts",
+    "lines": 128,
+    "bytes": 4440,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/direct-copy.ts",
+    "lines": 86,
+    "bytes": 2858,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/index.ts",
+    "lines": 116,
+    "bytes": 4130,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/melonloader.ts",
+    "lines": 114,
+    "bytes": 3738,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/modio.ts",
+    "lines": 67,
+    "bytes": 2158,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/profile-isolated.ts",
+    "lines": 91,
+    "bytes": 3067,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/smapi.ts",
+    "lines": 92,
+    "bytes": 2904,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/tmodloader.ts",
+    "lines": 89,
+    "bytes": 2953,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/strategies/types.ts",
+    "lines": 45,
+    "bytes": 1400,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/mods/types.ts",
+    "lines": 135,
+    "bytes": 3005,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/passport.ts",
+    "lines": 416,
+    "bytes": 11805,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/presence.ts",
+    "lines": 495,
+    "bytes": 14617,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/profile-customization.ts",
+    "lines": 371,
+    "bytes": 11961,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/rawg.ts",
+    "lines": 23,
+    "bytes": 563,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/rubix-friends.ts",
+    "lines": 44,
+    "bytes": 1346,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/rubix-profile.ts",
+    "lines": 271,
+    "bytes": 9408,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/socials.tsx",
+    "lines": 168,
+    "bytes": 5131,
+    "placeholders": 9,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/sounds.ts",
+    "lines": 54,
+    "bytes": 1390,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/spotify.ts",
+    "lines": 102,
+    "bytes": 3315,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/steam-auth.ts",
+    "lines": 34,
+    "bytes": 1129,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/steam-friends.ts",
+    "lines": 26,
+    "bytes": 721,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/steam-profile.ts",
+    "lines": 61,
+    "bytes": 1452,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/store.ts",
+    "lines": 33,
+    "bytes": 878,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/theme-loader.ts",
+    "lines": 143,
+    "bytes": 5144,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/theme-schema.ts",
+    "lines": 41,
+    "bytes": 1032,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/upload-manager.ts",
+    "lines": 283,
+    "bytes": 8496,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/utils.ts",
+    "lines": 6,
+    "bytes": 169,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/lib/webrtc.ts",
+    "lines": 375,
+    "bytes": 12295,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/main.tsx",
+    "lines": 5,
+    "bytes": 161,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/AdminReview.tsx",
+    "lines": 200,
+    "bytes": 8091,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/AuthCallback.tsx",
+    "lines": 156,
+    "bytes": 5459,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/ClipViewer.tsx",
+    "lines": 415,
+    "bytes": 17077,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/ClipsFeed.tsx",
+    "lines": 293,
+    "bytes": 12144,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/DeveloperApply.tsx",
+    "lines": 206,
+    "bytes": 7453,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/DeveloperDashboard.tsx",
+    "lines": 130,
+    "bytes": 5189,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/GameForm.tsx",
+    "lines": 678,
+    "bytes": 25970,
+    "placeholders": 8,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Index.tsx",
+    "lines": 831,
+    "bytes": 29439,
+    "placeholders": 1,
+    "storage_keys": [
+      "rubix:active-clip-game"
+    ]
+  },
+  {
+    "path": "src/pages/KspMods.tsx",
+    "lines": 1086,
+    "bytes": 44597,
+    "placeholders": 5,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Library.tsx",
+    "lines": 427,
+    "bytes": 16384,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Login.tsx",
+    "lines": 324,
+    "bytes": 11853,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Messages.tsx",
+    "lines": 454,
+    "bytes": 17056,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/MinecraftManager.tsx",
+    "lines": 664,
+    "bytes": 30110,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/NotFound.tsx",
+    "lines": 24,
+    "bytes": 727,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Passport.tsx",
+    "lines": 368,
+    "bytes": 13718,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/ResetPassword.tsx",
+    "lines": 124,
+    "bytes": 4590,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/RubixProfile.tsx",
+    "lines": 478,
+    "bytes": 21958,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/Store.tsx",
+    "lines": 337,
+    "bytes": 14644,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/StoreGame.tsx",
+    "lines": 420,
+    "bytes": 17603,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/mobile/ClipsFeedMobile.tsx",
+    "lines": 445,
+    "bytes": 15590,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/mobile/HomeMobile.tsx",
+    "lines": 123,
+    "bytes": 5356,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/pages/mobile/MessagesMobile.tsx",
+    "lines": 300,
+    "bytes": 11112,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/example.test.ts",
+    "lines": 7,
+    "bytes": 143,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/mods.dependencies.test.ts",
+    "lines": 99,
+    "bytes": 3286,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/mods.phase5.test.ts",
+    "lines": 64,
+    "bytes": 2114,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/mods.state-machine.test.ts",
+    "lines": 81,
+    "bytes": 2645,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/mods.strategies.test.ts",
+    "lines": 65,
+    "bytes": 1919,
+    "placeholders": 2,
+    "storage_keys": []
+  },
+  {
+    "path": "src/test/setup.ts",
+    "lines": 15,
+    "bytes": 353,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/types/electron.d.ts",
+    "lines": 308,
+    "bytes": 12326,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "src/vite-env.d.ts",
+    "lines": 1,
+    "bytes": 38,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/config.toml",
+    "lines": 29,
+    "bytes": 441,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/ksp-mods/index.ts",
+    "lines": 67,
+    "bytes": 2359,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/mods-api/index.ts",
+    "lines": 882,
+    "bytes": 33064,
+    "placeholders": 1,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/rawg-search/index.ts",
+    "lines": 136,
+    "bytes": 4610,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/rubix-accounts/index.ts",
+    "lines": 179,
+    "bytes": 6309,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/rubix-messaging/index.ts",
+    "lines": 1014,
+    "bytes": 43512,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/spotify-auth/index.ts",
+    "lines": 246,
+    "bytes": 8707,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/spotify-control/index.ts",
+    "lines": 145,
+    "bytes": 5161,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/spotify-now-playing/index.ts",
+    "lines": 201,
+    "bytes": 6938,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/steam-auth/index.ts",
+    "lines": 122,
+    "bytes": 3992,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/steam-friends/index.ts",
+    "lines": 210,
+    "bytes": 6789,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/steam-import/index.ts",
+    "lines": 196,
+    "bytes": 6489,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/functions/steam-profile/index.ts",
+    "lines": 246,
+    "bytes": 9698,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260420130216_bfbcc5ac-51ed-4c71-bd1e-cf3976ce94af.sql",
+    "lines": 104,
+    "bytes": 3101,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260420132447_204139ea-a17f-403a-8f36-9566dac0cb57.sql",
+    "lines": 104,
+    "bytes": 3480,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260421065431_a93328d0-b164-4473-b178-21410ec6b8b8.sql",
+    "lines": 410,
+    "bytes": 14254,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260421065446_17962c5c-5cc5-458a-af12-e7a78026349d.sql",
+    "lines": 7,
+    "bytes": 475,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260421204227_b33ee95f-b4c1-4cde-b50c-b2df8931496e.sql",
+    "lines": 128,
+    "bytes": 4422,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260421205548_6ad1faad-977c-484e-8af8-729cd4ba57df.sql",
+    "lines": 2,
+    "bytes": 96,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260421211311_1bde21dc-8458-4ca9-b0a5-8145d3ef576a.sql",
+    "lines": 54,
+    "bytes": 1361,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260423202837_bb2919ba-18f2-4b11-b8ef-c6223e1cc10d.sql",
+    "lines": 375,
+    "bytes": 16540,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260423202852_67584800-4bf1-4ae8-a1b6-53ad57450f24.sql",
+    "lines": 13,
+    "bytes": 359,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260425183438_849077bc-30a5-40ae-a22f-33f5768dfd23.sql",
+    "lines": 514,
+    "bytes": 16120,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260425191229_6ecea52d-fd1c-41d2-a970-06dbc4494be2.sql",
+    "lines": 9,
+    "bytes": 234,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260426184811_9857e9ac-7e96-44d6-9753-722af0717173.sql",
+    "lines": 6,
+    "bytes": 269,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260508210514_3f1c3758-1cef-450f-a3a1-e695da525a0c.sql",
+    "lines": 6,
+    "bytes": 253,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260509082730_7390a826-0c0d-42f9-a555-594a6ca1fc9a.sql",
+    "lines": 171,
+    "bytes": 6271,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260509162540_0afc35ba-7a09-4387-a9cd-ad7888e82e27.sql",
+    "lines": 46,
+    "bytes": 1472,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260510093802_4bde2856-86ce-42a2-b8f4-fa5c69e685e3.sql",
+    "lines": 31,
+    "bytes": 1193,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260514215545_acb6ae8e-0f7f-4f27-b085-822a8d705729.sql",
+    "lines": 97,
+    "bytes": 3126,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260514215558_f4348a5d-fc4c-4e0e-b7f1-94442a919813.sql",
+    "lines": 2,
+    "bytes": 159,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260519224830_770cd2f6-8b52-4026-b2f6-a912fb20dd24.sql",
+    "lines": 67,
+    "bytes": 3288,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260519225458_fbe2bc6f-95b9-4c8d-b8d2-5a7e2e05b6fa.sql",
+    "lines": 44,
+    "bytes": 1698,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260521223442_3bf6da66-4f28-4b97-ac11-2aa6e8aee5bc.sql",
+    "lines": 207,
+    "bytes": 7383,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260525192013_6cd293b9-4ef6-4d2e-868e-63f59326db49.sql",
+    "lines": 88,
+    "bytes": 3598,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260527192239_c0ecf6d3-5a2e-4f74-a6bf-797159ca5162.sql",
+    "lines": 87,
+    "bytes": 2564,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260529194921_c4092819-8923-4e0a-b326-1d4431a473e9.sql",
+    "lines": 1,
+    "bytes": 77,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260530062645_d1173fc4-54d6-46e9-abbe-77ed8b38110e.sql",
+    "lines": 1,
+    "bytes": 76,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260603220123_141996e3-cb6f-40ed-8a03-c6c9862c9d0e.sql",
+    "lines": 138,
+    "bytes": 6517,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260603224109_3474ff30-fd80-4158-8ca6-a1d1fa1403df.sql",
+    "lines": 18,
+    "bytes": 539,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260615133820_e611c7bf-7c4f-4b5f-a109-e262b34881c8.sql",
+    "lines": 137,
+    "bytes": 4472,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260615134408_04d157f6-bc36-433a-9287-6c491038c852.sql",
+    "lines": 129,
+    "bytes": 3996,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260616205648_8e3ea9b6-9fd6-4ddd-b67a-a60c364fd85b.sql",
+    "lines": 199,
+    "bytes": 7267,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260620234752_1aa4013c-1f05-48a9-8197-be64ff0f6d0f.sql",
+    "lines": 136,
+    "bytes": 5003,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "supabase/migrations/20260704124425_0c5de5a0-2647-4c2b-bd33-5122b9dba8a4.sql",
+    "lines": 70,
+    "bytes": 2080,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "tailwind.config.ts",
+    "lines": 91,
+    "bytes": 2706,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "tsconfig.app.json",
+    "lines": 35,
+    "bytes": 680,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "tsconfig.json",
+    "lines": 24,
+    "bytes": 396,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "tsconfig.node.json",
+    "lines": 22,
+    "bytes": 481,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "vite.config.ts",
+    "lines": 23,
+    "bytes": 639,
+    "placeholders": 0,
+    "storage_keys": []
+  },
+  {
+    "path": "vitest.config.ts",
+    "lines": 16,
+    "bytes": 395,
+    "placeholders": 0,
+    "storage_keys": []
+  }
+]

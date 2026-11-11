@@ -1,0 +1,16 @@
+[package]
+name = "rubix-launch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rubix-core = { path = "../rubix-core" }
+rubix-platform-windows = { path = "../rubix-platform-windows" }
+anyhow.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
