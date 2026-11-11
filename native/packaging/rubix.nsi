@@ -1,26 +1,32 @@
 Unicode true
 !include "MUI2.nsh"
 !include "x64.nsh"
+; File's wildcard reader on Windows requires native separators.
+!ifdef NSIS_WIN32_MAKENSIS
+  !define HOST_SEP "\"
+!else
+  !define HOST_SEP "/"
+!endif
 !ifndef VERSION
   !define VERSION "2.0.0-alpha.1"
 !endif
 !ifndef APP_EXE
-  !define APP_EXE "..\target\release\rubix-launcher.exe"
+  !define APP_EXE "..${HOST_SEP}target${HOST_SEP}release${HOST_SEP}rubix-launcher.exe"
 !endif
 !ifndef OUT_DIR
-  !define OUT_DIR "..\dist"
+  !define OUT_DIR "..${HOST_SEP}dist"
 !endif
 Name "RUBIX Launcher 2 (Alpha)"
-OutFile "${OUT_DIR}/Rubix-Launcher-${VERSION}-Setup.exe"
+OutFile "${OUT_DIR}${HOST_SEP}Rubix-Launcher-${VERSION}-Setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\Rubix Launcher 2"
 InstallDirRegKey HKCU "Software\Rubix\NativeLauncher" "InstallDir"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-!define MUI_ICON "${__FILEDIR__}/../assets/rubix.ico"
-!define MUI_UNICON "${__FILEDIR__}/../assets/rubix.ico"
+!define MUI_ICON "${__FILEDIR__}${HOST_SEP}..${HOST_SEP}assets${HOST_SEP}rubix.ico"
+!define MUI_UNICON "${__FILEDIR__}${HOST_SEP}..${HOST_SEP}assets${HOST_SEP}rubix.ico"
 !define MUI_ABORTWARNING
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${__FILEDIR__}/../LICENSE"
+!insertmacro MUI_PAGE_LICENSE "${__FILEDIR__}${HOST_SEP}..${HOST_SEP}LICENSE"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -41,7 +47,7 @@ Section "RUBIX Launcher 2" Main
   SetShellVarContext current
   SetOutPath "$INSTDIR"
   File /oname=rubix-launcher.exe "${APP_EXE}"
-  File /oname=LICENSE.txt "${__FILEDIR__}/../LICENSE"
+  File /oname=LICENSE.txt "${__FILEDIR__}${HOST_SEP}..${HOST_SEP}LICENSE"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateDirectory "$SMPROGRAMS\RUBIX Launcher 2"
   CreateShortCut "$SMPROGRAMS\RUBIX Launcher 2\RUBIX Launcher.lnk" "$INSTDIR\rubix-launcher.exe"
